@@ -4,6 +4,7 @@ import '../widgets/quote_card.dart';
 import '../widgets/reflection_prompt_card.dart';
 import '../widgets/yesterday_summary_card.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../reflection/pages/reflection_page.dart';
 
 /// The main "Today" screen — the home page of Daily Reflection.
 class TodayPage extends StatelessWidget {
@@ -35,7 +36,12 @@ class TodayPage extends StatelessWidget {
               // ── Today's Reflection CTA ────────────────────
               ReflectionPromptCard(
                 onStart: () {
-                  // TODO: Navigate to Evening Reflection flow
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ReflectionPage(),
+                    ),
+                  );
                 },
               ),
               const SizedBox(height: 24),
