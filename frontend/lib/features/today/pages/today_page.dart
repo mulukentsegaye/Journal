@@ -3,19 +3,11 @@ import '../widgets/greeting_header.dart';
 import '../widgets/quote_card.dart';
 import '../widgets/reflection_prompt_card.dart';
 import '../widgets/yesterday_summary_card.dart';
-import '../../../shared/widgets/bottom_nav_bar.dart';
 import '../../../core/theme/app_colors.dart';
 
 /// The main "Today" screen — the home page of Daily Reflection.
-class TodayPage extends StatefulWidget {
+class TodayPage extends StatelessWidget {
   const TodayPage({super.key});
-
-  @override
-  State<TodayPage> createState() => _TodayPageState();
-}
-
-class _TodayPageState extends State<TodayPage> {
-  int _navIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -61,13 +53,6 @@ class _TodayPageState extends State<TodayPage> {
             ],
           ),
         ),
-      ),
-      bottomNavigationBar: AppBottomNavBar(
-        currentIndex: _navIndex,
-        onTap: (index) {
-          setState(() => _navIndex = index);
-          // TODO: Hook up page navigation when other pages are built
-        },
       ),
     );
   }
