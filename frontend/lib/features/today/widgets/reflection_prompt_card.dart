@@ -20,9 +20,14 @@ class ReflectionPromptCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -33,18 +38,25 @@ class ReflectionPromptCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
+                width: 9,
+                height: 9,
+                decoration: BoxDecoration(
                   color: AppColors.reflectionDot,
                   shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                      blurRadius: 6,
+                      spreadRadius: 1,
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Text("Today's Reflection", style: AppTextStyles.sectionTitle),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
           // ── Description ────────────────────────────────────
           Text(
@@ -52,23 +64,24 @@ class ReflectionPromptCard extends StatelessWidget {
             'will help clear your mind for rest.',
             style: AppTextStyles.body,
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
 
           // ── Primary button ─────────────────────────────────
           SizedBox(
             width: double.infinity,
-            height: 48,
+            height: 50,
             child: ElevatedButton(
               onPressed: onStart,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 elevation: 0,
+                shadowColor: AppColors.primary.withValues(alpha: 0.3),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(25),
                 ),
               ),
-              child: Text("Start Today's Reflection →",
+              child: Text("Start Today's Reflection  →",
                   style: AppTextStyles.button),
             ),
           ),
@@ -80,9 +93,11 @@ class ReflectionPromptCard extends StatelessWidget {
               Icon(Icons.access_time_rounded,
                   size: 14, color: AppColors.textHint),
               const SizedBox(width: 5),
-              Text(
-                'Your evening reflection typically opens at 6:00 PM.',
-                style: AppTextStyles.bodySmall,
+              Flexible(
+                child: Text(
+                  'Your evening reflection typically opens at 6:00 PM.',
+                  style: AppTextStyles.bodySmall,
+                ),
               ),
             ],
           ),

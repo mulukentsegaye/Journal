@@ -4,7 +4,7 @@ import '../../../core/theme/app_text_styles.dart';
 
 /// A 7-column calendar grid for the given month.
 ///
-/// Days with reflections show a colored dot indicator.
+/// Days with reflections show a soft tinted background with a dot.
 /// The selected day gets a filled salmon circle.
 /// Today gets a subtle ring outline.
 class CalendarGrid extends StatelessWidget {
@@ -29,31 +29,35 @@ class CalendarGrid extends StatelessWidget {
       focusedMonth.year,
       focusedMonth.month,
     );
-    final firstWeekday = DateTime(focusedMonth.year, focusedMonth.month, 1).weekday % 7;
+    final firstWeekday =
+        DateTime(focusedMonth.year, focusedMonth.month, 1).weekday % 7;
     final today = DateTime.now();
 
     return Column(
       children: [
         // ── Day-of-week labels ─────────────────────────────
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: _dayLabels
-              .map((label) => SizedBox(
-                    width: 36,
-                    child: Center(
-                      child: Text(
-                        label,
-                        style: AppTextStyles.bodySmall.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textHint,
-                          fontSize: 12,
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: _dayLabels
+                .map((label) => SizedBox(
+                      width: 38,
+                      child: Center(
+                        child: Text(
+                          label,
+                          style: AppTextStyles.bodySmall.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textHint,
+                            fontSize: 12,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
-                    ),
-                  ))
-              .toList(),
+                    ))
+                .toList(),
+          ),
         ),
-        const SizedBox(height: 8),
 
         // ── Day cells ──────────────────────────────────────
         ..._buildWeeks(daysInMonth, firstWeekday, today),
@@ -70,9 +74,10 @@ class CalendarGrid extends StatelessWidget {
 
       for (int col = 0; col < 7; col++) {
         if ((week == 0 && col < firstWeekday) || dayCounter > daysInMonth) {
-          cells.add(const SizedBox(width: 36, height: 42));
+          cells.add(const SizedBox(width: 38, height: 46));
         } else {
-          final day = DateTime(focusedMonth.year, focusedMonth.month, dayCounter);
+          final day =
+              DateTime(focusedMonth.year, focusedMonth.month, dayCounter);
           final isToday = day.year == today.year &&
               day.month == today.month &&
               day.day == today.day;
@@ -101,7 +106,7 @@ class CalendarGrid extends StatelessWidget {
 
       weeks.add(
         Padding(
-          padding: const EdgeInsets.only(bottom: 4),
+          padding: const EdgeInsets.only(bottom: 6),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: cells,
@@ -135,41 +140,58 @@ class _DayCell extends StatelessWidget {
   Widget build(BuildContext context) {
     Color bgColor = Colors.transparent;
     Color textColor = AppColors.textPrimary;
-    Border? border;
+    BoxBorder? border;
 
     if (isSelected) {
       bgColor = AppColors.primary;
       textColor = Colors.white;
     } else if (isToday) {
-      border = Border.all(color: AppColors.primary.withValues(alpha: 0.5), width: 1.5);
+      border = Border.all(
+          color: AppColors.primary.withValues(alpha: 0.5), width: 1.5);
+    } else if (hasReflection) {
+      // Soft tinted background so reflected days are clearly visible
+      bgColor = AppColors.calmTagBg.withValues(alpha: 0.7);
     }
 
     if (isFuture) {
-      textColor = AppColors.textHint.withValues(alpha: 0.4);
+      textColor = AppColors.textHint.withValues(alpha: 0.35);
     }
 
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
-        width: 36,
-        height: 42,
+        width: 38,
+        height: 46,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 32,
-              height: 32,
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 34,
+              height: 34,
               decoration: BoxDecoration(
                 color: bgColor,
                 shape: BoxShape.circle,
                 border: border,
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.25),
+                          blurRadius: 8,
+                          spreadRadius: 1,
+                        ),
+                      ]
+                    : null,
               ),
               alignment: Alignment.center,
               child: Text(
                 '$day',
                 style: TextStyle(
                   fontSize: 13,
-                  fontWeight: isToday || isSelected ? FontWeight.w600 : FontWeight.w400,
+                  fontWeight:
+                      isToday || isSelected || hasReflection
+                          ? FontWeight.w600
+                          : FontWeight.w400,
                   color: textColor,
                 ),
               ),
@@ -181,7 +203,9 @@ class _DayCell extends StatelessWidget {
               height: 4,
               decoration: BoxDecoration(
                 color: hasReflection
-                    ? (isSelected ? Colors.white.withValues(alpha: 0.7) : AppColors.calmTagText)
+                    ? (isSelected
+                        ? Colors.white.withValues(alpha: 0.7)
+                        : AppColors.calmTagText)
                     : Colors.transparent,
                 shape: BoxShape.circle,
               ),

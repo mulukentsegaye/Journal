@@ -3,6 +3,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 
 /// Shared bottom navigation bar used across all top-level pages.
+///
+/// Active tab shows a salmon-colored icon and label with a
+/// small dot indicator underneath.
 class AppBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -20,16 +23,16 @@ class AppBottomNavBar extends StatelessWidget {
         color: AppColors.cardBackground,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, -2),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
           ),
         ],
       ),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -65,7 +68,7 @@ class AppBottomNavBar extends StatelessWidget {
   }
 }
 
-/// Individual navigation item with icon and label.
+/// Individual navigation item with icon, label, and active dot.
 class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -95,7 +98,21 @@ class _NavItem extends StatelessWidget {
             const SizedBox(height: 3),
             Text(
               label,
-              style: AppTextStyles.navLabel.copyWith(color: color),
+              style: AppTextStyles.navLabel.copyWith(
+                color: color,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 4),
+            // Active indicator dot
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: isActive ? 5 : 0,
+              height: isActive ? 5 : 0,
+              decoration: BoxDecoration(
+                color: AppColors.navActive,
+                shape: BoxShape.circle,
+              ),
             ),
           ],
         ),

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 
-/// Displays an inspirational quote in italic serif with attribution.
+/// Displays an inspirational quote with a decorative left accent border.
 class QuoteCard extends StatelessWidget {
   final String quote;
   final String author;
@@ -14,8 +15,16 @@ class QuoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+    return Container(
+      padding: const EdgeInsets.only(left: 16, top: 2, bottom: 2),
+      decoration: BoxDecoration(
+        border: Border(
+          left: BorderSide(
+            color: AppColors.primary.withValues(alpha: 0.35),
+            width: 3,
+          ),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -26,15 +35,17 @@ class QuoteCard extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: [
-              const Text(
-                '——',
+              Text(
+                '—  ',
                 style: TextStyle(
-                  color: Color(0xFFB0A89F),
-                  fontSize: 13,
+                  color: AppColors.textHint,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w300,
                 ),
               ),
-              const SizedBox(width: 6),
-              Text(author, style: AppTextStyles.quoteAttribution),
+              Flexible(
+                child: Text(author, style: AppTextStyles.quoteAttribution),
+              ),
             ],
           ),
         ],

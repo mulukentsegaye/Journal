@@ -37,7 +37,7 @@ class _AppShellState extends State<AppShell> {
   // Indices 2 & 3 are placeholders until those features are built.
   static const _pages = <Widget>[
     TodayPage(),       // 0 — Today
-    HistoryPage(),     // 1 — History
+    HistoryPage(),     // 1 — Journey
     _PlaceholderPage(title: 'Journal', icon: Icons.edit_note_rounded),  // 2
     _PlaceholderPage(title: 'Space', icon: Icons.person_outline_rounded), // 3
   ];

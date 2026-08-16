@@ -6,7 +6,7 @@ import '../widgets/month_header.dart';
 import '../widgets/day_detail_card.dart';
 import '../widgets/streak_banner.dart';
 
-/// The History page — calendar view showing past reflections.
+/// The Journey page — calendar view showing past reflections.
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
 
