@@ -21,16 +21,15 @@ class GreetingHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // ── Greeting row ───────────────────────────────────────
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        Wrap(
+          spacing: 10,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Expanded(
-              child: Text(
-                '${_greetingText()}, Alex',
-                style: AppTextStyles.greeting,
-              ),
+            Text(
+              '${_greetingText()}, Alex',
+              style: AppTextStyles.greeting,
             ),
-            const SizedBox(width: 10),
             // Streak badge
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

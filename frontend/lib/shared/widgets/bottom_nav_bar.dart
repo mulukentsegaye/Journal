@@ -41,7 +41,7 @@ class AppBottomNavBar extends StatelessWidget {
               ),
               _NavItem(
                 icon: Icons.calendar_today_rounded,
-                label: 'History',
+                label: 'Journey',
                 isActive: currentIndex == 1,
                 onTap: () => onTap(1),
               ),
