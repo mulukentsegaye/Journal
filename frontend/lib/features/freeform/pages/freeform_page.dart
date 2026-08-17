@@ -11,11 +11,13 @@ import '../../summary/pages/summary_page.dart';
 class FreeformPage extends StatefulWidget {
   final bool isStandalone;
   final VoidCallback? onSaved;
+  final Map<int, String>? reflectionAnswers;
 
   const FreeformPage({
     super.key,
     this.isStandalone = true,
     this.onSaved,
+    this.reflectionAnswers,
   });
 
   @override
@@ -88,6 +90,7 @@ class _FreeformPageState extends State<FreeformPage> {
                 moodEmoji: selectedEnergyState.emoji,
                 freeformTitle: _titleController.text,
                 freeformNote: _contentController.text,
+                answers: widget.reflectionAnswers,
               ),
             ),
           );

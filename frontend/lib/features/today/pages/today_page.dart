@@ -5,6 +5,7 @@ import '../widgets/reflection_prompt_card.dart';
 import '../widgets/yesterday_summary_card.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../reflection/pages/reflection_page.dart';
+import '../../summary/pages/summary_page.dart';
 
 /// The main "Today" screen — the home page of Daily Reflection.
 class TodayPage extends StatelessWidget {
@@ -47,13 +48,27 @@ class TodayPage extends StatelessWidget {
               const SizedBox(height: 24),
 
               // ── Yesterday's Summary ───────────────────────
-              const YesterdaySummaryCard(
+              YesterdaySummaryCard(
                 summary:
                     'Felt a gentle transition today. Let go of a '
                     'work stress and walked around the gardens.',
                 date: 'Oct 19',
                 mood: 'Calm',
                 moodEmoji: '🌿',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SummaryPage(
+                        mood: 'Calm',
+                        moodEmoji: '🌿',
+                        freeformTitle: 'Gentle transition today',
+                        freeformNote:
+                            'Felt a gentle transition today. Let go of work stress and walked around the gardens.',
+                      ),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 24),
             ],

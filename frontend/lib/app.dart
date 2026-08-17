@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
+import 'features/auth/widgets/auth_gate.dart';
 import 'features/today/pages/today_page.dart';
 import 'features/history/pages/history_page.dart';
 import 'features/journal/pages/journal_page.dart';
@@ -17,7 +18,7 @@ class DailyReflectionApp extends StatelessWidget {
       title: 'Daily Reflection',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const AppShell(),
+      home: const AuthGate(),
     );
   }
 }

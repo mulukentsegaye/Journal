@@ -164,10 +164,20 @@ class _SummaryPageState extends State<SummaryPage> {
 
   @override
   Widget build(BuildContext context) {
-    final visibleResponses = _isExpanded
-        ? _defaultResponses
-        : _defaultResponses.take(4).toList();
-    final remainingCount = _defaultResponses.length - 4;
+    final allResponses = _defaultResponses.map((item) {
+      if (widget.answers != null && widget.answers!.containsKey(item.number)) {
+        return _SummaryItem(
+          number: item.number,
+          question: item.question,
+          answer: widget.answers![item.number]!,
+        );
+      }
+      return item;
+    }).toList();
+
+    final visibleResponses =
+        _isExpanded ? allResponses : allResponses.take(4).toList();
+    final remainingCount = allResponses.length - 4;
 
     return Scaffold(
       backgroundColor: AppColors.background,

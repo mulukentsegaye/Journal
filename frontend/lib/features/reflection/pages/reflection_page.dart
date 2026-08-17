@@ -143,10 +143,20 @@ class _ReflectionPageState extends State<ReflectionPage> {
   bool get _isLastQuestion => _currentIndex == _questions.length - 1;
 
   void _finish() {
+    final answers = <int, String>{};
+    for (int i = 0; i < _textControllers.length; i++) {
+      final text = _textControllers[i].text.trim();
+      if (text.isNotEmpty) {
+        answers[i + 1] = text;
+      }
+    }
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => const FreeformPage(isStandalone: true),
+        builder: (_) => FreeformPage(
+          isStandalone: true,
+          reflectionAnswers: answers,
+        ),
       ),
     );
   }

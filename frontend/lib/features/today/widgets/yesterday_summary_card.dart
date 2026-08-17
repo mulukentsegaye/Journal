@@ -8,6 +8,7 @@ class YesterdaySummaryCard extends StatelessWidget {
   final String date;
   final String mood;
   final String moodEmoji;
+  final VoidCallback? onTap;
 
   const YesterdaySummaryCard({
     super.key,
@@ -15,11 +16,14 @@ class YesterdaySummaryCard extends StatelessWidget {
     required this.date,
     required this.mood,
     required this.moodEmoji,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(16),
@@ -98,6 +102,7 @@ class YesterdaySummaryCard extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

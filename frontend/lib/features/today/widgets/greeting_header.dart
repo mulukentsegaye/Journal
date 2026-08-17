@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../auth/services/auth_service.dart';
 
 /// Top section of the Today page:
-///   "Good evening, Alex"  🔥 12 Day Streak
+///   "Good evening, User"  🔥 12 Day Streak + Profile/SignOut
 ///   "Welcome back to your quiet space."
 class GreetingHeader extends StatelessWidget {
   const GreetingHeader({super.key});
@@ -15,40 +16,246 @@ class GreetingHeader extends StatelessWidget {
     return 'Good evening';
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── Greeting row ───────────────────────────────────────
-        Wrap(
-          spacing: 10,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
+  void _showProfileSheet(BuildContext context) {
+    final auth = AuthService();
+    final user = auth.currentUser;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.cardBackground,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              '${_greetingText()}, Alex',
-              style: AppTextStyles.greeting,
-            ),
-            // Streak badge
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
-                color: AppColors.streakBadgeBg,
-                borderRadius: BorderRadius.circular(20),
+                color: AppColors.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // User avatar circle
+            CircleAvatar(
+              radius: 32,
+              backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+              child: Text(
+                auth.userName.isNotEmpty ? auth.userName[0].toUpperCase() : 'U',
+                style: AppTextStyles.greeting.copyWith(
+                  fontSize: 26,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // User Name & Email
+            Text(
+              auth.userName,
+              style: AppTextStyles.greeting.copyWith(fontSize: 20),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              user?.email ?? 'Connected',
+              style: AppTextStyles.subtitle.copyWith(fontSize: 14),
+            ),
+            const SizedBox(height: 8),
+
+            // Cloud Sync Status Badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.calmTagBg,
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('🔥', style: TextStyle(fontSize: 13)),
-                  const SizedBox(width: 4),
+                  const Icon(
+                    Icons.cloud_done_rounded,
+                    size: 14,
+                    color: AppColors.calmTagText,
+                  ),
+                  const SizedBox(width: 5),
                   Text(
-                    '12 Day Streak',
+                    'Cloud Sync Active',
                     style: AppTextStyles.badge.copyWith(
-                      color: AppColors.streakBadgeText,
+                      color: AppColors.calmTagText,
                     ),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Sign out button
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  await auth.signOut();
+                },
+                icon: const Icon(Icons.logout_rounded, size: 18, color: Color(0xFFE02424)),
+                label: const Text(
+                  'Sign Out',
+                  style: TextStyle(
+                    color: Color(0xFFE02424),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFFF8B4B4)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(23),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = AuthService();
+    final name = auth.userName;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Greeting row with Profile Avatar ───────────────────
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Wrap(
+                spacing: 10,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    '${_greetingText()}, $name',
+                    style: AppTextStyles.greeting,
+                  ),
+                  // Streak badge (interactive)
+                  GestureDetector(
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        backgroundColor: AppColors.cardBackground,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(24)),
+                        ),
+                        builder: (ctx) => Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: AppColors.divider,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+                              const Text('🔥', style: TextStyle(fontSize: 40)),
+                              const SizedBox(height: 12),
+                              Text(
+                                '12 Days of Reflection',
+                                style: AppTextStyles.greeting.copyWith(fontSize: 20),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'You\'ve taken time for peace and mindful presence every evening. Keep this gentle rhythm alive.',
+                                style: AppTextStyles.body,
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 20),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 46,
+                                child: ElevatedButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(23),
+                                    ),
+                                  ),
+                                  child: const Text('Continue Journey'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: AppColors.streakBadgeBg,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('🔥', style: TextStyle(fontSize: 13)),
+                          const SizedBox(width: 4),
+                          Text(
+                            '12 Day Streak',
+                            style: AppTextStyles.badge.copyWith(
+                              color: AppColors.streakBadgeText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Profile icon button
+            GestureDetector(
+              onTap: () => _showProfileSheet(context),
+              child: Container(
+                width: 38,
+                height: 38,
+                margin: const EdgeInsets.only(left: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                    width: 1.2,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    name.isNotEmpty ? name[0].toUpperCase() : 'U',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
@@ -64,3 +271,4 @@ class GreetingHeader extends StatelessWidget {
     );
   }
 }
+
