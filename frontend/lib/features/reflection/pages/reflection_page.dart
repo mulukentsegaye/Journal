@@ -5,6 +5,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../widgets/reflection_progress_bar.dart';
 import '../widgets/question_card.dart';
 import '../widgets/reflection_nav_buttons.dart';
+import '../../freeform/pages/freeform_page.dart';
 
 /// Evening Reflection — a guided multi-step question flow.
 ///
@@ -142,8 +143,12 @@ class _ReflectionPageState extends State<ReflectionPage> {
   bool get _isLastQuestion => _currentIndex == _questions.length - 1;
 
   void _finish() {
-    // TODO: Save all answers and navigate to Reflection Complete
-    Navigator.pop(context);
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const FreeformPage(isStandalone: true),
+      ),
+    );
   }
 
   @override

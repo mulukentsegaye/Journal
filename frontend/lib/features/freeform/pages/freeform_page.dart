@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../widgets/energy_selector.dart';
 import '../widgets/freeform_editor.dart';
+import '../../summary/pages/summary_page.dart';
 
 /// Freeform Space — an open, unconstrained writing canvas
 /// paired with an energy / mood check-in.
@@ -71,9 +72,26 @@ class _FreeformPageState extends State<FreeformPage> {
 
     if (widget.onSaved != null) {
       widget.onSaved!();
-    } else if (widget.isStandalone && Navigator.canPop(context)) {
-      Future.delayed(const Duration(milliseconds: 600), () {
-        if (mounted) Navigator.pop(context);
+    } else if (widget.isStandalone) {
+      final selectedEnergyState = EnergySelector.states.firstWhere(
+        (s) => s.id == _selectedEnergy,
+        orElse: () => EnergySelector.states[2],
+      );
+
+      Future.delayed(const Duration(milliseconds: 350), () {
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SummaryPage(
+                mood: selectedEnergyState.label,
+                moodEmoji: selectedEnergyState.emoji,
+                freeformTitle: _titleController.text,
+                freeformNote: _contentController.text,
+              ),
+            ),
+          );
+        }
       });
     }
   }
