@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../reflection/models/reflection_entry_model.dart';
+import '../../reflection/services/firestore_service.dart';
 import '../widgets/summary_header_card.dart';
 import '../widgets/response_item_card.dart';
 import '../widgets/freeform_summary_card.dart';
@@ -31,6 +34,28 @@ class SummaryPage extends StatefulWidget {
 
 class _SummaryPageState extends State<SummaryPage> {
   bool _isExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _saveToFirestore();
+  }
+
+  void _saveToFirestore() {
+    final now = DateTime.now();
+    final entry = ReflectionEntryModel(
+      id: '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}',
+      date: now,
+      mood: widget.mood,
+      moodEmoji: widget.moodEmoji,
+      answers: widget.answers ?? {},
+      freeformTitle: widget.freeformTitle,
+      freeformNote: widget.freeformNote,
+      createdAt: now,
+    );
+
+    FirestoreService().saveReflection(entry);
+  }
 
   static const List<_SummaryItem> _defaultResponses = [
     _SummaryItem(
@@ -207,7 +232,7 @@ class _SummaryPageState extends State<SummaryPage> {
                     ),
                   ),
                   Text(
-                    'October 20, 2026',
+                    DateFormat('MMMM d, yyyy').format(DateTime.now()),
                     style: AppTextStyles.bodySmall.copyWith(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
