@@ -1,4 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import '../../../firebase_options.dart';
 
 /// Service that encapsulates Firebase Authentication methods.
 class AuthService {
@@ -8,6 +10,17 @@ class AuthService {
 
   FirebaseAuth get _auth {
     return _injectedAuth ?? FirebaseAuth.instance;
+  }
+
+  /// Ensures Firebase is initialized before making any auth calls.
+  Future<void> _ensureInitialized() async {
+    try {
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      }
+    } catch (_) {}
   }
 
   /// Stream of auth state changes (logged in / logged out).
@@ -49,6 +62,7 @@ class AuthService {
     required String email,
     required String password,
   }) async {
+    await _ensureInitialized();
     try {
       return await _auth.signInWithEmailAndPassword(
         email: email.trim(),
@@ -65,6 +79,7 @@ class AuthService {
     required String password,
     String? displayName,
   }) async {
+    await _ensureInitialized();
     try {
       final credential = await _auth.createUserWithEmailAndPassword(
         email: email.trim(),
