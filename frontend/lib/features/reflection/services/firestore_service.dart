@@ -53,10 +53,10 @@ class FirestoreService {
     final col = _userReflectionsRef();
     if (col == null) return;
 
-    // Use document ID if provided, or generated date key e.g. 2026-10-20
+    // Use document ID if provided, or generate a unique timestamp-based ID
     final docId = entry.id.isNotEmpty
         ? entry.id
-        : '${entry.date.year}-${entry.date.month.toString().padLeft(2, '0')}-${entry.date.day.toString().padLeft(2, '0')}';
+        : '${DateTime.now().millisecondsSinceEpoch}';
 
     await col.doc(docId).set(
       entry.toMap(),

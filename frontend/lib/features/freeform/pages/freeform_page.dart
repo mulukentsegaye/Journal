@@ -64,9 +64,10 @@ class _FreeformPageState extends State<FreeformPage> {
       final now = DateTime.now();
       final title = _titleController.text.trim();
       final content = _contentController.text.trim();
+      final docId = '${now.millisecondsSinceEpoch}';
 
       final entry = ReflectionEntryModel(
-        id: '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}',
+        id: docId,
         date: now,
         mood: selectedEnergyState.label,
         moodEmoji: selectedEnergyState.emoji,
@@ -111,6 +112,7 @@ class _FreeformPageState extends State<FreeformPage> {
           context,
           MaterialPageRoute(
             builder: (_) => SummaryPage(
+              id: docId,
               mood: selectedEnergyState.label,
               moodEmoji: selectedEnergyState.emoji,
               freeformTitle: title.isNotEmpty ? title : null,

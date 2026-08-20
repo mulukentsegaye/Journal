@@ -206,6 +206,7 @@ class _JournalPageState extends State<JournalPage> {
                               context,
                               MaterialPageRoute(
                                 builder: (_) => SummaryPage(
+                                  id: originalModel.id,
                                   mood: originalModel.mood,
                                   moodEmoji: originalModel.moodEmoji,
                                   freeformTitle: originalModel.freeformTitle,

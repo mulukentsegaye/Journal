@@ -13,6 +13,7 @@ import '../widgets/freeform_summary_card.dart';
 /// Summary Page / Reflection Complete screen — displays all saved
 /// answers, freeform note, mood tag, and share options.
 class SummaryPage extends StatefulWidget {
+  final String? id;
   final String mood;
   final String moodEmoji;
   final String? freeformTitle;
@@ -21,6 +22,7 @@ class SummaryPage extends StatefulWidget {
 
   const SummaryPage({
     super.key,
+    this.id,
     this.mood = 'Calm',
     this.moodEmoji = '🌿',
     this.freeformTitle,
@@ -34,6 +36,7 @@ class SummaryPage extends StatefulWidget {
 
 class _SummaryPageState extends State<SummaryPage> {
   bool _isExpanded = false;
+  late final String _docId;
 
   static const Map<int, String> _questionPrompts = {
     1: 'What made you smile today?',
@@ -48,13 +51,14 @@ class _SummaryPageState extends State<SummaryPage> {
   @override
   void initState() {
     super.initState();
+    _docId = widget.id ?? '${DateTime.now().millisecondsSinceEpoch}';
     _saveToFirestore();
   }
 
   void _saveToFirestore() {
     final now = DateTime.now();
     final entry = ReflectionEntryModel(
-      id: '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}',
+      id: _docId,
       date: now,
       mood: widget.mood,
       moodEmoji: widget.moodEmoji,

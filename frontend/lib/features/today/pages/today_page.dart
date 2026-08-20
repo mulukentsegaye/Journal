@@ -79,6 +79,7 @@ class TodayPage extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (_) => SummaryPage(
+                            id: entry?.id,
                             mood: mood,
                             moodEmoji: moodEmoji,
                             freeformTitle: entry?.freeformTitle ??
