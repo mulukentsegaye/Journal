@@ -1,0 +1,128 @@
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
+import '../../features/reflection/services/firestore_service.dart';
+
+/// App-wide settings and preference manager.
+class SettingsService extends ChangeNotifier {
+  static final SettingsService _instance = SettingsService._internal();
+  factory SettingsService() => _instance;
+  SettingsService._internal();
+
+  static const String _keyThemeMode = 'settings_theme_mode';
+  static const String _keyReminderEnabled = 'settings_reminder_enabled';
+  static const String _keyReminderHour = 'settings_reminder_hour';
+  static const String _keyReminderMinute = 'settings_reminder_minute';
+
+  ThemeMode _themeMode = ThemeMode.system;
+  bool _reminderEnabled = true;
+  TimeOfDay _reminderTime = const TimeOfDay(hour: 18, minute: 0); // 6:00 PM
+  bool _isInitialized = false;
+
+  ThemeMode get themeMode => _themeMode;
+  bool get reminderEnabled => _reminderEnabled;
+  TimeOfDay get reminderTime => _reminderTime;
+  bool get isInitialized => _isInitialized;
+
+  /// Load persisted user preferences.
+  Future<void> loadSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      final themeIndex = prefs.getInt(_keyThemeMode);
+      if (themeIndex != null && themeIndex >= 0 && themeIndex < ThemeMode.values.length) {
+        _themeMode = ThemeMode.values[themeIndex];
+      }
+
+      _reminderEnabled = prefs.getBool(_keyReminderEnabled) ?? true;
+      final hour = prefs.getInt(_keyReminderHour) ?? 18;
+      final minute = prefs.getInt(_keyReminderMinute) ?? 0;
+      _reminderTime = TimeOfDay(hour: hour, minute: minute);
+
+      _isInitialized = true;
+      notifyListeners();
+    } catch (_) {
+      _isInitialized = true;
+      notifyListeners();
+    }
+  }
+
+  /// Update and persist theme mode (system, light, dark).
+  Future<void> setThemeMode(ThemeMode mode) async {
+    _themeMode = mode;
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_keyThemeMode, mode.index);
+    } catch (_) {}
+  }
+
+  /// Toggle daily reflection reminder.
+  Future<void> setReminderEnabled(bool enabled) async {
+    _reminderEnabled = enabled;
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_keyReminderEnabled, enabled);
+    } catch (_) {}
+  }
+
+  /// Set the time for daily reflection reminders.
+  Future<void> setReminderTime(TimeOfDay time) async {
+    _reminderTime = time;
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_keyReminderHour, time.hour);
+      await prefs.setInt(_keyReminderMinute, time.minute);
+    } catch (_) {}
+  }
+
+  /// Format reminder time nicely e.g. "6:00 PM".
+  String get formattedReminderTime {
+    final now = DateTime.now();
+    final dt = DateTime(now.year, now.month, now.day, _reminderTime.hour, _reminderTime.minute);
+    return DateFormat('h:mm a').format(dt);
+  }
+
+  /// Exports all saved reflections as a structured Markdown document.
+  Future<String> exportAllReflectionsMarkdown() async {
+    final firestore = FirestoreService();
+    final entries = await firestore.streamReflections().first;
+
+    if (entries.isEmpty) {
+      return '# Daily Reflection Journal Backup\n\nNo reflection entries found yet.';
+    }
+
+    final buffer = StringBuffer();
+    buffer.writeln('# Daily Reflection Journal Backup');
+    buffer.writeln('Exported on: ${DateFormat('MMMM d, yyyy — h:mm a').format(DateTime.now())}');
+    buffer.writeln('Total Reflections: ${entries.length}\n');
+    buffer.writeln('---\n');
+
+    for (final entry in entries) {
+      final dateStr = DateFormat('EEEE, MMMM d, yyyy').format(entry.date);
+      buffer.writeln('## $dateStr');
+      buffer.writeln('**Mood**: ${entry.mood} ${entry.moodEmoji}\n');
+
+      if (entry.freeformTitle != null && entry.freeformTitle!.isNotEmpty) {
+        buffer.writeln('### ${entry.freeformTitle}');
+      }
+      if (entry.freeformNote != null && entry.freeformNote!.isNotEmpty) {
+        buffer.writeln('${entry.freeformNote}\n');
+      }
+
+      if (entry.answers.isNotEmpty) {
+        buffer.writeln('#### Guided Reflections:');
+        for (final entryItem in entry.answers.entries) {
+          buffer.writeln('- **Question ${entryItem.key}**: "${entryItem.value}"');
+        }
+        buffer.writeln();
+      }
+
+      buffer.writeln('---\n');
+    }
+
+    return buffer.toString().trim();
+  }
+}

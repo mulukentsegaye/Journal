@@ -4,6 +4,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../auth/services/auth_service.dart';
 import '../../reflection/models/reflection_entry_model.dart';
 import '../../reflection/services/firestore_service.dart';
+import '../../settings/pages/settings_page.dart';
 
 /// Top section of the Today page:
 ///   "Good evening, User"  🔥 X Day Streak + Profile/SignOut
@@ -187,6 +188,35 @@ class GreetingHeader extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
+
+            // Settings button
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SettingsPage()),
+                  );
+                },
+                icon: const Icon(Icons.settings_outlined, size: 18),
+                label: const Text(
+                  'Settings & Preferences',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(23),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
 
             // Sign out button
             SizedBox(

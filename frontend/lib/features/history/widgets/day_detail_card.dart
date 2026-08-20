@@ -11,11 +11,17 @@ import '../pages/history_page.dart';
 class DayDetailCard extends StatelessWidget {
   final DateTime day;
   final ReflectionEntry? entry;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+  final VoidCallback? onView;
 
   const DayDetailCard({
     super.key,
     required this.day,
     this.entry,
+    this.onEdit,
+    this.onDelete,
+    this.onView,
   });
 
   static const _months = [
@@ -130,6 +136,50 @@ class DayDetailCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+
+        // ── Actions row ──────────────────────────────────
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            if (onDelete != null)
+              IconButton(
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  size: 19,
+                  color: Color(0xFFE02424),
+                ),
+                tooltip: 'Delete reflection',
+                onPressed: onDelete,
+              ),
+            if (onEdit != null)
+              IconButton(
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  size: 19,
+                  color: AppColors.textSecondary,
+                ),
+                tooltip: 'Edit reflection',
+                onPressed: onEdit,
+              ),
+            const Spacer(),
+            if (onView != null)
+              TextButton.icon(
+                onPressed: onView,
+                icon: const Icon(
+                  Icons.auto_stories_outlined,
+                  size: 16,
+                  color: AppColors.primary,
+                ),
+                label: Text(
+                  'View Summary →',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+          ],
         ),
       ],
     );

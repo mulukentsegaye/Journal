@@ -9,12 +9,16 @@ class JournalCard extends StatelessWidget {
   final JournalEntry entry;
   final VoidCallback onTap;
   final VoidCallback onBookmarkToggle;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const JournalCard({
     super.key,
     required this.entry,
     required this.onTap,
     required this.onBookmarkToggle,
+    this.onEdit,
+    this.onDelete,
   });
 
   static const _months = [
@@ -65,7 +69,7 @@ class JournalCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Top Row: Date & Mood Pill & Bookmark ──────────
+            // ── Top Row: Date & Mood Pill & Bookmark & Options ──────────
             Row(
               children: [
                 // Date tag
@@ -128,6 +132,62 @@ class JournalCard extends StatelessWidget {
                         : AppColors.textHint,
                   ),
                 ),
+
+                // More Options Menu
+                if (onEdit != null || onDelete != null) ...[
+                  const SizedBox(width: 4),
+                  PopupMenuButton<String>(
+                    icon: const Icon(
+                      Icons.more_vert_rounded,
+                      size: 20,
+                      color: AppColors.textHint,
+                    ),
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    color: AppColors.cardBackground,
+                    onSelected: (value) {
+                      if (value == 'edit' && onEdit != null) {
+                        onEdit!();
+                      } else if (value == 'delete' && onDelete != null) {
+                        onDelete!();
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      if (onEdit != null)
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit_outlined,
+                                  size: 18, color: AppColors.textPrimary),
+                              SizedBox(width: 10),
+                              Text('Edit', style: TextStyle(fontSize: 14)),
+                            ],
+                          ),
+                        ),
+                      if (onDelete != null)
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_outline_rounded,
+                                  size: 18, color: Color(0xFFE02424)),
+                              SizedBox(width: 10),
+                              Text(
+                                'Delete',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFFE02424),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 14),

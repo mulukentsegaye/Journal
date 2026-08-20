@@ -58,6 +58,80 @@ class _JournalPageState extends State<JournalPage> {
     }).toList();
   }
 
+  void _confirmDelete(String id) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Delete reflection?',
+          style: GoogleFonts.lora(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        content: Text(
+          'This reflection will be permanently removed from your journal.',
+          style: AppTextStyles.body,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _firestoreService.deleteReflection(id);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    backgroundColor: AppColors.textPrimary,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    content: const Text('Reflection deleted.'),
+                  ),
+                );
+              }
+            },
+            child: const Text(
+              'Delete',
+              style: TextStyle(
+                color: Color(0xFFE02424),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _editReflection(ReflectionEntryModel model) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FreeformPage(
+          id: model.id,
+          date: model.date,
+          initialTitle: model.freeformTitle,
+          initialContent: model.freeformNote ??
+              (model.answers.isNotEmpty ? model.answers.values.first : ''),
+          initialMood: model.mood,
+          reflectionAnswers: model.answers,
+          isStandalone: true,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -220,6 +294,8 @@ class _JournalPageState extends State<JournalPage> {
                             entry.id,
                             entry.isBookmarked,
                           ),
+                          onEdit: () => _editReflection(originalModel),
+                          onDelete: () => _confirmDelete(entry.id),
                         ),
                       );
                     }),

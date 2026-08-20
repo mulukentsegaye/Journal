@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../services/auth_service.dart';
@@ -45,7 +46,8 @@ class _AuthPageState extends State<AuthPage> {
         await _authService.signUpWithEmail(
           email: _emailController.text,
           password: _passwordController.text,
-          displayName: _nameController.text.isNotEmpty ? _nameController.text : null,
+          displayName:
+              _nameController.text.isNotEmpty ? _nameController.text : null,
         );
       } else {
         await _authService.signInWithEmail(
@@ -66,6 +68,148 @@ class _AuthPageState extends State<AuthPage> {
         });
       }
     }
+  }
+
+  Future<void> _signInAsGuest() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      await _authService.signInAnonymously();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _showForgotPasswordDialog() {
+    final resetEmailController =
+        TextEditingController(text: _emailController.text.trim());
+    bool isSending = false;
+    String? resetError;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.cardBackground,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            'Reset Password',
+            style: GoogleFonts.lora(
+              fontSize: 19,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Enter your account email and we\'ll send you a password reset link.',
+                style: AppTextStyles.body.copyWith(fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              if (resetError != null) ...[
+                Text(
+                  resetError!,
+                  style:
+                      const TextStyle(color: Color(0xFFE02424), fontSize: 12),
+                ),
+                const SizedBox(height: 8),
+              ],
+              TextFormField(
+                controller: resetEmailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  hintText: 'your.email@example.com',
+                  prefixIcon: const Icon(Icons.mail_outline, size: 18),
+                  filled: true,
+                  fillColor: AppColors.surface,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.divider),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel',
+                  style: TextStyle(color: AppColors.textSecondary)),
+            ),
+            ElevatedButton(
+              onPressed: isSending
+                  ? null
+                  : () async {
+                      final email = resetEmailController.text.trim();
+                      if (email.isEmpty || !email.contains('@')) {
+                        setDialogState(() {
+                          resetError = 'Please enter a valid email address';
+                        });
+                        return;
+                      }
+                      setDialogState(() {
+                        isSending = true;
+                        resetError = null;
+                      });
+                      try {
+                        await _authService.sendPasswordResetEmail(email);
+                        if (ctx.mounted) Navigator.pop(ctx);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: AppColors.textPrimary,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                              content:
+                                  Text('Password reset link sent to $email.'),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        setDialogState(() {
+                          isSending = false;
+                          resetError = e.toString();
+                        });
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20)),
+              ),
+              child: isSending
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('Send Reset Link'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -319,7 +463,23 @@ class _AuthPageState extends State<AuthPage> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 28),
+                    if (!_isSignUp) ...[
+                      const SizedBox(height: 10),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: GestureDetector(
+                          onTap: _showForgotPasswordDialog,
+                          child: Text(
+                            'Forgot Password?',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
 
                     // ── Action Button ─────────────────────────────
                     SizedBox(
@@ -355,7 +515,54 @@ class _AuthPageState extends State<AuthPage> {
                               ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
+
+                    // ── Or Divider ────────────────────────────────
+                    Row(
+                      children: [
+                        Expanded(child: Divider(color: AppColors.divider)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            'or',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.textHint,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        Expanded(child: Divider(color: AppColors.divider)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // ── Guest Sign-In Button ──────────────────────
+                    SizedBox(
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        onPressed: _isLoading ? null : _signInAsGuest,
+                        icon: const Text('🌿', style: TextStyle(fontSize: 16)),
+                        label: Text(
+                          'Continue as Guest',
+                          style: AppTextStyles.button.copyWith(
+                            fontSize: 14,
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: AppColors.divider,
+                            width: 1.2,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          backgroundColor: AppColors.cardBackground,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
 
                     // ── Helper text ───────────────────────────────
                     Text(

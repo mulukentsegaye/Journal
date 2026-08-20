@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../reflection/models/reflection_entry_model.dart';
 import '../../reflection/services/firestore_service.dart';
+import '../../freeform/pages/freeform_page.dart';
 import '../widgets/summary_header_card.dart';
 import '../widgets/response_item_card.dart';
 import '../widgets/freeform_summary_card.dart';
@@ -378,6 +379,82 @@ class _SummaryPageState extends State<SummaryPage> {
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
+  void _confirmDelete() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Delete reflection?',
+          style: GoogleFonts.lora(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        content: Text(
+          'This reflection will be permanently removed.',
+          style: AppTextStyles.body,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await FirestoreService().deleteReflection(_docId);
+              if (mounted) {
+                Navigator.of(context).popUntil((route) => route.isFirst);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    backgroundColor: AppColors.textPrimary,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    content: const Text('Reflection deleted.'),
+                  ),
+                );
+              }
+            },
+            child: const Text(
+              'Delete',
+              style: TextStyle(
+                color: Color(0xFFE02424),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _editReflection() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FreeformPage(
+          id: _docId,
+          initialTitle: widget.freeformTitle,
+          initialContent: widget.freeformNote ??
+              (widget.answers != null && widget.answers!.isNotEmpty
+                  ? widget.answers!.values.first
+                  : ''),
+          initialMood: widget.mood,
+          reflectionAnswers: widget.answers,
+          isStandalone: true,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final List<_SummaryItem> userResponses = [];
@@ -437,21 +514,83 @@ class _SummaryPageState extends State<SummaryPage> {
                       color: AppColors.textSecondary,
                     ),
                   ),
-                  GestureDetector(
-                    onTap: _shareReflection,
-                    child: Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(12),
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: _shareReflection,
+                        child: Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.ios_share_rounded,
+                            size: 19,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.ios_share_rounded,
-                        size: 19,
-                        color: AppColors.textPrimary,
+                      const SizedBox(width: 8),
+                      PopupMenuButton<String>(
+                        icon: Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.more_horiz_rounded,
+                            size: 20,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        color: AppColors.cardBackground,
+                        onSelected: (value) {
+                          if (value == 'edit') {
+                            _editReflection();
+                          } else if (value == 'delete') {
+                            _confirmDelete();
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit_outlined,
+                                    size: 18, color: AppColors.textPrimary),
+                                SizedBox(width: 10),
+                                Text('Edit Reflection',
+                                    style: TextStyle(fontSize: 14)),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_outline_rounded,
+                                    size: 18, color: Color(0xFFE02424)),
+                                SizedBox(width: 10),
+                                Text(
+                                  'Delete Reflection',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFFE02424),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),

@@ -26,4 +26,25 @@ class AppTheme {
       highlightColor: AppColors.primary.withValues(alpha: 0.05),
     );
   }
+
+  static ThemeData get darkTheme {
+    return ThemeData(
+      useMaterial3: true,
+      scaffoldBackgroundColor: AppColors.darkBackground,
+      colorScheme: ColorScheme.dark(
+        primary: AppColors.darkPrimary,
+        onPrimary: Colors.white,
+        surface: AppColors.darkSurface,
+        onSurface: AppColors.darkTextPrimary,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: AppColors.darkBackground,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle.light,
+      ),
+      splashColor: AppColors.darkPrimary.withValues(alpha: 0.12),
+      highlightColor: AppColors.darkPrimary.withValues(alpha: 0.08),
+    );
+  }
 }

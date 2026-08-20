@@ -97,6 +97,45 @@ class AuthService {
     }
   }
 
+  /// Send password reset link to given email.
+  Future<void> sendPasswordResetEmail(String email) async {
+    await _ensureInitialized();
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim());
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    }
+  }
+
+  /// Sign in anonymously as a guest without credentials.
+  Future<UserCredential> signInAnonymously() async {
+    await _ensureInitialized();
+    try {
+      return await _auth.signInAnonymously();
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    }
+  }
+
+  /// Update the current user's profile display name.
+  Future<void> updateDisplayName(String name) async {
+    await _ensureInitialized();
+    try {
+      await currentUser?.updateDisplayName(name.trim());
+      await currentUser?.reload();
+    } catch (_) {}
+  }
+
+  /// Delete current user's account permanently.
+  Future<void> deleteAccount() async {
+    await _ensureInitialized();
+    try {
+      await currentUser?.delete();
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    }
+  }
+
   /// Sign out current user.
   Future<void> signOut() async {
     try {

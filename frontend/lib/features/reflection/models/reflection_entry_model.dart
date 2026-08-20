@@ -122,6 +122,7 @@ class ReflectionEntryModel {
     }
 
     return ReflectionEntry(
+      id: id,
       mood: mood,
       moodEmoji: moodEmoji,
       summary: summaryText,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
+import 'core/services/settings_service.dart';
 import 'features/auth/widgets/auth_gate.dart';
 import 'features/today/pages/today_page.dart';
 import 'features/history/pages/history_page.dart';
@@ -14,11 +15,18 @@ class DailyReflectionApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Daily Reflection',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      home: const AuthGate(),
+    return ListenableBuilder(
+      listenable: SettingsService(),
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'Daily Reflection',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: SettingsService().themeMode,
+          home: const AuthGate(),
+        );
+      },
     );
   }
 }
