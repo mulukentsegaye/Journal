@@ -11,12 +11,22 @@ import '../../reflection/services/firestore_service.dart';
 /// Freeform Space — an open, unconstrained writing canvas
 /// paired with an energy / mood check-in.
 class FreeformPage extends StatefulWidget {
+  final String? id;
+  final String? initialTitle;
+  final String? initialContent;
+  final String? initialMood;
+  final DateTime? date;
   final bool isStandalone;
   final VoidCallback? onSaved;
   final Map<int, String>? reflectionAnswers;
 
   const FreeformPage({
     super.key,
+    this.id,
+    this.initialTitle,
+    this.initialContent,
+    this.initialMood,
+    this.date,
     this.isStandalone = true,
     this.onSaved,
     this.reflectionAnswers,
@@ -35,8 +45,10 @@ class _FreeformPageState extends State<FreeformPage> {
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController();
-    _contentController = TextEditingController();
+    _selectedEnergy = widget.initialMood?.toLowerCase() ?? 'calm';
+    _titleController = TextEditingController(text: widget.initialTitle ?? '');
+    _contentController =
+        TextEditingController(text: widget.initialContent ?? '');
   }
 
   @override
@@ -61,10 +73,10 @@ class _FreeformPageState extends State<FreeformPage> {
     );
 
     try {
-      final now = DateTime.now();
+      final now = widget.date ?? DateTime.now();
       final title = _titleController.text.trim();
       final content = _contentController.text.trim();
-      final docId = '${now.millisecondsSinceEpoch}';
+      final docId = widget.id ?? '${DateTime.now().millisecondsSinceEpoch}';
 
       final entry = ReflectionEntryModel(
         id: docId,
@@ -92,7 +104,9 @@ class _FreeformPageState extends State<FreeformPage> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Thought saved to today\'s reflection.',
+                  widget.id != null
+                      ? 'Reflection updated successfully.'
+                      : 'Thought saved to today\'s reflection.',
                   style: AppTextStyles.body.copyWith(
                     color: Colors.white,
                     fontSize: 13,
@@ -222,7 +236,7 @@ class _FreeformPageState extends State<FreeformPage> {
                   if (canPop) const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Freeform Space',
+                      widget.id != null ? 'Edit Reflection' : 'Freeform Space',
                       style: GoogleFonts.lora(
                         fontSize: 22,
                         fontWeight: FontWeight.w600,
@@ -335,7 +349,9 @@ class _FreeformPageState extends State<FreeformPage> {
                             const Icon(Icons.bookmark_added_rounded, size: 18),
                             const SizedBox(width: 8),
                             Text(
-                              'Save to Today\'s Entry',
+                              widget.id != null
+                                  ? 'Update Reflection'
+                                  : 'Save to Today\'s Entry',
                               style: AppTextStyles.button.copyWith(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
