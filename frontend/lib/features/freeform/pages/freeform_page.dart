@@ -144,7 +144,8 @@ class _FreeformPageState extends State<FreeformPage> {
   }
 
   void _confirmCancel() {
-    if (_contentController.text.isEmpty) {
+    if (_contentController.text.trim().isEmpty &&
+        _titleController.text.trim().isEmpty) {
       Navigator.pop(context);
       return;
     }
