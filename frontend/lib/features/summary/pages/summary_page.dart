@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
@@ -22,9 +23,8 @@ class SummaryPage extends StatefulWidget {
     super.key,
     this.mood = 'Calm',
     this.moodEmoji = '🌿',
-    this.freeformTitle = "Title of tonight's thought",
-    this.freeformNote =
-        'Walked around the gardens after the wind died down. Let my breathing follow the rhythmic sway of the bamboo branch. Simple evening rest is more than enough.',
+    this.freeformTitle,
+    this.freeformNote,
     this.answers,
   });
 
@@ -34,6 +34,16 @@ class SummaryPage extends StatefulWidget {
 
 class _SummaryPageState extends State<SummaryPage> {
   bool _isExpanded = false;
+
+  static const Map<int, String> _questionPrompts = {
+    1: 'What made you smile today?',
+    2: 'Who or what are you most grateful for?',
+    3: 'What was a slight friction or lesson?',
+    4: 'Where did you feel tension in your body?',
+    5: 'What meaningful interaction did you have?',
+    6: 'What can you release before sleep?',
+    7: 'What is one gentle intention for tomorrow?',
+  };
 
   @override
   void initState() {
@@ -49,53 +59,45 @@ class _SummaryPageState extends State<SummaryPage> {
       mood: widget.mood,
       moodEmoji: widget.moodEmoji,
       answers: widget.answers ?? {},
-      freeformTitle: widget.freeformTitle,
-      freeformNote: widget.freeformNote,
+      freeformTitle: widget.freeformTitle?.trim().isNotEmpty == true
+          ? widget.freeformTitle!.trim()
+          : null,
+      freeformNote: widget.freeformNote?.trim().isNotEmpty == true
+          ? widget.freeformNote!.trim()
+          : null,
       createdAt: now,
     );
 
     FirestoreService().saveReflection(entry);
   }
 
-  static const List<_SummaryItem> _defaultResponses = [
-    _SummaryItem(
-      number: 1,
-      question: 'What made you smile today?',
-      answer: 'A warm cup of coffee by the window during a calm morning pause.',
-    ),
-    _SummaryItem(
-      number: 2,
-      question: 'Who or what are you most grateful for?',
-      answer: 'My sister\'s voice note. She has this gift of bringing laughter to tiny things.',
-    ),
-    _SummaryItem(
-      number: 3,
-      question: 'What was a slight friction or lesson?',
-      answer: 'I caught myself over-explaining in that afternoon sync. Trusting my silence more.',
-    ),
-    _SummaryItem(
-      number: 4,
-      question: 'Where did you feel tension in your body?',
-      answer: 'My neck and shoulders, mostly right after the design review.',
-    ),
-    _SummaryItem(
-      number: 5,
-      question: 'What meaningful interaction did you have?',
-      answer: 'A quiet conversation with a neighbor about their garden flowers.',
-    ),
-    _SummaryItem(
-      number: 6,
-      question: 'What can you release before sleep?',
-      answer: 'The urge to check emails one last time. Tomorrow will take care of itself.',
-    ),
-    _SummaryItem(
-      number: 7,
-      question: 'What is one gentle intention for tomorrow?',
-      answer: 'Take three deep breaths before replying to challenging messages.',
-    ),
-  ];
-
   void _shareReflection() {
+    final buffer = StringBuffer();
+    buffer.writeln(
+        'Daily Reflection — ${DateFormat('MMMM d, yyyy').format(DateTime.now())}');
+    buffer.writeln('Mood: ${widget.mood} ${widget.moodEmoji}\n');
+
+    if (widget.answers != null && widget.answers!.isNotEmpty) {
+      final sortedKeys = widget.answers!.keys.toList()..sort();
+      for (final key in sortedKeys) {
+        final answer = widget.answers![key]?.trim();
+        if (answer != null && answer.isNotEmpty) {
+          final prompt = _questionPrompts[key] ?? 'Question $key';
+          buffer.writeln('$key. $prompt');
+          buffer.writeln('"$answer"\n');
+        }
+      }
+    }
+
+    if (widget.freeformTitle != null &&
+        widget.freeformTitle!.trim().isNotEmpty) {
+      buffer.writeln(widget.freeformTitle!.trim());
+    }
+    if (widget.freeformNote != null &&
+        widget.freeformNote!.trim().isNotEmpty) {
+      buffer.writeln(widget.freeformNote!.trim());
+    }
+
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.cardBackground,
@@ -139,18 +141,24 @@ class _SummaryPageState extends State<SummaryPage> {
                 _ShareOption(
                   icon: Icons.copy_rounded,
                   label: 'Copy Text',
-                  onTap: () {
+                  onTap: () async {
                     Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        backgroundColor: AppColors.textPrimary,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        content: const Text('Reflection copied to clipboard!'),
-                      ),
+                    await Clipboard.setData(
+                      ClipboardData(text: buffer.toString().trim()),
                     );
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: AppColors.textPrimary,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          content:
+                              const Text('Reflection copied to clipboard!'),
+                        ),
+                      );
+                    }
                   },
                 ),
                 _ShareOption(
@@ -189,20 +197,27 @@ class _SummaryPageState extends State<SummaryPage> {
 
   @override
   Widget build(BuildContext context) {
-    final allResponses = _defaultResponses.map((item) {
-      if (widget.answers != null && widget.answers!.containsKey(item.number)) {
-        return _SummaryItem(
-          number: item.number,
-          question: item.question,
-          answer: widget.answers![item.number]!,
-        );
+    final List<_SummaryItem> userResponses = [];
+    if (widget.answers != null && widget.answers!.isNotEmpty) {
+      final sortedKeys = widget.answers!.keys.toList()..sort();
+      for (final key in sortedKeys) {
+        final answer = widget.answers![key]?.trim();
+        if (answer != null && answer.isNotEmpty) {
+          final question = _questionPrompts[key] ?? 'Question $key';
+          userResponses.add(
+            _SummaryItem(
+              number: key,
+              question: question,
+              answer: answer,
+            ),
+          );
+        }
       }
-      return item;
-    }).toList();
+    }
 
     final visibleResponses =
-        _isExpanded ? allResponses : allResponses.take(4).toList();
-    final remainingCount = allResponses.length - 4;
+        _isExpanded ? userResponses : userResponses.take(4).toList();
+    final remainingCount = userResponses.length - 4;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -274,78 +289,119 @@ class _SummaryPageState extends State<SummaryPage> {
                     ),
                     const SizedBox(height: 28),
 
-                    // Section Title: RESPONSE SUMMARY
-                    Text(
-                      'RESPONSE SUMMARY',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1.2,
-                        color: AppColors.textHint,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Answer items
-                    ...visibleResponses.map((item) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: ResponseItemCard(
-                          index: item.number,
-                          question: item.question,
-                          answer: item.answer,
+                    // Section Title & Answer items (if user answered questions)
+                    if (userResponses.isNotEmpty) ...[
+                      Text(
+                        'RESPONSE SUMMARY',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.2,
+                          color: AppColors.textHint,
                         ),
-                      );
-                    }),
+                      ),
+                      const SizedBox(height: 14),
 
-                    // Expand / Collapse "+ 3 more reflective responses"
-                    if (!_isExpanded && remainingCount > 0)
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          child: GestureDetector(
-                            onTap: () => setState(() => _isExpanded = true),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.surface,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    '+ $remainingCount more reflective responses',
-                                    style: AppTextStyles.bodySmall.copyWith(
-                                      color: AppColors.textSecondary,
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 12,
+                      ...visibleResponses.map((item) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: ResponseItemCard(
+                            index: item.number,
+                            question: item.question,
+                            answer: item.answer,
+                          ),
+                        );
+                      }),
+
+                      // Expand / Collapse "+ X more reflective responses"
+                      if (!_isExpanded && remainingCount > 0)
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: GestureDetector(
+                              onTap: () => setState(() => _isExpanded = true),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surface,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      '+ $remainingCount more reflective responses',
+                                      style: AppTextStyles.bodySmall.copyWith(
+                                        color: AppColors.textSecondary,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 12,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  const Icon(
-                                    Icons.keyboard_arrow_down_rounded,
-                                    size: 16,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ],
+                                    const SizedBox(width: 4),
+                                    const Icon(
+                                      Icons.keyboard_arrow_down_rounded,
+                                      size: 16,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-
-                    const SizedBox(height: 18),
+                      const SizedBox(height: 18),
+                    ],
 
                     // Additional Freeform Note Card
                     if (widget.freeformNote != null &&
-                        widget.freeformNote!.isNotEmpty)
+                        widget.freeformNote!.trim().isNotEmpty)
                       FreeformSummaryCard(
                         title: widget.freeformTitle,
-                        note: widget.freeformNote!,
+                        note: widget.freeformNote!.trim(),
+                      ),
+
+                    // Empty state if neither guided responses nor freeform note
+                    if (userResponses.isEmpty &&
+                        (widget.freeformNote == null ||
+                            widget.freeformNote!.trim().isEmpty))
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 32, horizontal: 20),
+                        decoration: BoxDecoration(
+                          color: AppColors.cardBackground,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: AppColors.divider.withValues(alpha: 0.6),
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            const Text('🌿', style: TextStyle(fontSize: 28)),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Quiet Check-in Recorded',
+                              style: GoogleFonts.lora(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Your mood and peaceful presence have been captured for tonight.',
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
                       ),
 
                     const SizedBox(height: 24),

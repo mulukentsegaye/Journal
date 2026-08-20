@@ -4,7 +4,6 @@ class AppStrings {
 
   static const String appName = 'Daily Reflection';
   static const String welcomeSubtitle = 'Welcome back to your quiet space.';
-  static const String streakLabel = '12 Day Streak';
 
   // Reflection CTA
   static const String startReflection = "Start Today's Reflection →";

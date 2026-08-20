@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../auth/services/auth_service.dart';
+import '../../reflection/models/reflection_entry_model.dart';
+import '../../reflection/services/firestore_service.dart';
 
 /// Top section of the Today page:
-///   "Good evening, User"  🔥 12 Day Streak + Profile/SignOut
+///   "Good evening, User"  🔥 X Day Streak + Profile/SignOut
 ///   "Welcome back to your quiet space."
 class GreetingHeader extends StatelessWidget {
   const GreetingHeader({super.key});
@@ -14,6 +16,98 @@ class GreetingHeader extends StatelessWidget {
     if (hour < 12) return 'Good morning';
     if (hour < 17) return 'Good afternoon';
     return 'Good evening';
+  }
+
+  int _calculateStreak(List<ReflectionEntryModel> entries) {
+    if (entries.isEmpty) return 0;
+
+    final Set<DateTime> uniqueDates = entries
+        .map((e) => DateTime(e.date.year, e.date.month, e.date.day))
+        .toSet();
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    DateTime checkDate;
+    if (uniqueDates.contains(today)) {
+      checkDate = today;
+    } else if (uniqueDates.contains(yesterday)) {
+      checkDate = yesterday;
+    } else {
+      return 0;
+    }
+
+    int streak = 0;
+    while (uniqueDates.contains(checkDate)) {
+      streak++;
+      checkDate = checkDate.subtract(const Duration(days: 1));
+    }
+
+    return streak;
+  }
+
+  void _showStreakSheet(BuildContext context, int streak) {
+    final title =
+        streak == 1 ? '1 Day of Reflection' : '$streak Days of Reflection';
+    final description = streak > 0
+        ? 'You\'ve taken time for peace and mindful presence every evening. Keep this gentle rhythm alive.'
+        : 'Take a quiet moment tonight to begin your mindful reflection streak.';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.cardBackground,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(streak > 0 ? '🔥' : '🌱',
+                style: const TextStyle(fontSize: 40)),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: AppTextStyles.greeting.copyWith(fontSize: 20),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              description,
+              style: AppTextStyles.body,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(23),
+                  ),
+                ),
+                child: Text(streak > 0 ? 'Continue Journey' : 'Start Today'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showProfileSheet(BuildContext context) {
@@ -103,7 +197,8 @@ class GreetingHeader extends StatelessWidget {
                   Navigator.pop(ctx);
                   await auth.signOut();
                 },
-                icon: const Icon(Icons.logout_rounded, size: 18, color: Color(0xFFE02424)),
+                icon: const Icon(Icons.logout_rounded,
+                    size: 18, color: Color(0xFFE02424)),
                 label: const Text(
                   'Sign Out',
                   style: TextStyle(
@@ -148,57 +243,33 @@ class GreetingHeader extends StatelessWidget {
                     '${_greetingText()}, $name',
                     style: AppTextStyles.greeting,
                   ),
-                  // Streak badge (interactive)
-                  GestureDetector(
-                    onTap: () {
-                      showModalBottomSheet(
-                        context: context,
-                        backgroundColor: AppColors.cardBackground,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.vertical(top: Radius.circular(24)),
-                        ),
-                        builder: (ctx) => Padding(
-                          padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-                          child: Column(
+                  // Dynamic Streak badge (interactive)
+                  StreamBuilder<List<ReflectionEntryModel>>(
+                    stream: FirestoreService().streamReflections(),
+                    builder: (context, snapshot) {
+                      final entries = snapshot.data ?? [];
+                      final streak = _calculateStreak(entries);
+                      final streakText = '$streak Day Streak';
+                      final emoji = streak > 0 ? '🔥' : '🌱';
+
+                      return GestureDetector(
+                        onTap: () => _showStreakSheet(context, streak),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: AppColors.streakBadgeBg,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Container(
-                                width: 40,
-                                height: 4,
-                                decoration: BoxDecoration(
-                                  color: AppColors.divider,
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-                              const Text('🔥', style: TextStyle(fontSize: 40)),
-                              const SizedBox(height: 12),
+                              Text(emoji, style: const TextStyle(fontSize: 13)),
+                              const SizedBox(width: 4),
                               Text(
-                                '12 Days of Reflection',
-                                style: AppTextStyles.greeting.copyWith(fontSize: 20),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'You\'ve taken time for peace and mindful presence every evening. Keep this gentle rhythm alive.',
-                                style: AppTextStyles.body,
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 20),
-                              SizedBox(
-                                width: double.infinity,
-                                height: 46,
-                                child: ElevatedButton(
-                                  onPressed: () => Navigator.pop(ctx),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primary,
-                                    foregroundColor: Colors.white,
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(23),
-                                    ),
-                                  ),
-                                  child: const Text('Continue Journey'),
+                                streakText,
+                                style: AppTextStyles.badge.copyWith(
+                                  color: AppColors.streakBadgeText,
                                 ),
                               ),
                             ],
@@ -206,27 +277,6 @@ class GreetingHeader extends StatelessWidget {
                         ),
                       );
                     },
-                    child: Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: AppColors.streakBadgeBg,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('🔥', style: TextStyle(fontSize: 13)),
-                          const SizedBox(width: 4),
-                          Text(
-                            '12 Day Streak',
-                            style: AppTextStyles.badge.copyWith(
-                              color: AppColors.streakBadgeText,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ),
                 ],
               ),
