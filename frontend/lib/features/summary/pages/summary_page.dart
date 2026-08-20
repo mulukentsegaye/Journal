@@ -75,12 +75,193 @@ class _SummaryPageState extends State<SummaryPage> {
     FirestoreService().saveReflection(entry);
   }
 
+  void _showCardPreviewDialog(
+      BuildContext context, String dateStr, String snippet) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.transparent,
+        contentPadding: EdgeInsets.zero,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        content: Container(
+          width: double.maxFinite,
+          constraints: const BoxConstraints(maxWidth: 380),
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.3),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Card Top row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Text('🌿', style: TextStyle(fontSize: 18)),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Daily Reflection',
+                        style: GoogleFonts.lora(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      dateStr,
+                      style: AppTextStyles.bodySmall.copyWith(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Quote Card Body
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: AppColors.cardBackground,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.divider),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.calmTagBg,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(widget.moodEmoji,
+                              style: const TextStyle(fontSize: 12)),
+                          const SizedBox(width: 4),
+                          Text(
+                            widget.mood,
+                            style: AppTextStyles.tag.copyWith(
+                              color: AppColors.calmTagText,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '"$snippet"',
+                      style: GoogleFonts.lora(
+                        fontSize: 15,
+                        fontStyle: FontStyle.italic,
+                        color: AppColors.textPrimary,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Actions
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppColors.divider),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child: Text(
+                        'Close',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        final cardText =
+                            '🌿 Daily Reflection ($dateStr)\nMood: ${widget.mood} ${widget.moodEmoji}\n\n"$snippet"';
+                        await Clipboard.setData(ClipboardData(text: cardText));
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: AppColors.textPrimary,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              content: const Text('Reflection card copied!'),
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.copy_rounded, size: 16),
+                      label: const Text('Copy Card'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _shareReflection() {
+    final now = DateTime.now();
+    final dateStr = DateFormat('MMMM d, yyyy').format(now);
     final buffer = StringBuffer();
-    buffer.writeln(
-        'Daily Reflection — ${DateFormat('MMMM d, yyyy').format(DateTime.now())}');
+    buffer.writeln('Daily Reflection — $dateStr');
     buffer.writeln('Mood: ${widget.mood} ${widget.moodEmoji}\n');
 
+    String snippet = widget.freeformNote?.trim() ?? '';
     if (widget.answers != null && widget.answers!.isNotEmpty) {
       final sortedKeys = widget.answers!.keys.toList()..sort();
       for (final key in sortedKeys) {
@@ -89,6 +270,9 @@ class _SummaryPageState extends State<SummaryPage> {
           final prompt = _questionPrompts[key] ?? 'Question $key';
           buffer.writeln('$key. $prompt');
           buffer.writeln('"$answer"\n');
+          if (snippet.isEmpty) {
+            snippet = answer;
+          }
         }
       }
     }
@@ -100,6 +284,10 @@ class _SummaryPageState extends State<SummaryPage> {
     if (widget.freeformNote != null &&
         widget.freeformNote!.trim().isNotEmpty) {
       buffer.writeln(widget.freeformNote!.trim());
+    }
+
+    if (snippet.isEmpty) {
+      snippet = 'Captured a quiet moment of evening peace.';
     }
 
     showModalBottomSheet(
@@ -170,16 +358,7 @@ class _SummaryPageState extends State<SummaryPage> {
                   label: 'Export Card',
                   onTap: () {
                     Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        backgroundColor: AppColors.textPrimary,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        content: const Text('Image card generated.'),
-                      ),
-                    );
+                    _showCardPreviewDialog(context, dateStr, snippet);
                   },
                 ),
                 _ShareOption(
