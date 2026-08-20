@@ -5,6 +5,8 @@ import '../../../core/theme/app_text_styles.dart';
 import '../widgets/energy_selector.dart';
 import '../widgets/freeform_editor.dart';
 import '../../summary/pages/summary_page.dart';
+import '../../reflection/models/reflection_entry_model.dart';
+import '../../reflection/services/firestore_service.dart';
 
 /// Freeform Space — an open, unconstrained writing canvas
 /// paired with an energy / mood check-in.
@@ -26,17 +28,15 @@ class FreeformPage extends StatefulWidget {
 
 class _FreeformPageState extends State<FreeformPage> {
   String _selectedEnergy = 'calm';
+  bool _isSaving = false;
   late final TextEditingController _titleController;
   late final TextEditingController _contentController;
 
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(text: "Title of tonight's thought");
-    _contentController = TextEditingController(
-      text:
-          "Today was a transition day. I felt the air getting cooler during my evening walk, and it made me realize how quickly this season is passing. It's easy to get lost in the sprint of daily deadlines. Tonight, I'm choosing to release that race. Cozy sweater, soft tea, and no expectations...",
-    );
+    _titleController = TextEditingController();
+    _contentController = TextEditingController();
   }
 
   @override
@@ -46,56 +46,100 @@ class _FreeformPageState extends State<FreeformPage> {
     super.dispose();
   }
 
-  void _saveEntry() {
+  Future<void> _saveEntry() async {
+    if (_isSaving) return;
+
     FocusScope.of(context).unfocus();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: AppColors.textPrimary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        content: Row(
-          children: [
-            const Text('✨', style: TextStyle(fontSize: 16)),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Thought saved to today\'s reflection.',
-                style: AppTextStyles.body.copyWith(
-                  color: Colors.white,
-                  fontSize: 13,
-                ),
-              ),
-            ),
-          ],
-        ),
-        duration: const Duration(seconds: 2),
-      ),
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    final selectedEnergyState = EnergySelector.states.firstWhere(
+      (s) => s.id == _selectedEnergy,
+      orElse: () => EnergySelector.states[2],
     );
 
-    if (widget.onSaved != null) {
-      widget.onSaved!();
-    } else if (widget.isStandalone) {
-      final selectedEnergyState = EnergySelector.states.firstWhere(
-        (s) => s.id == _selectedEnergy,
-        orElse: () => EnergySelector.states[2],
+    try {
+      final now = DateTime.now();
+      final title = _titleController.text.trim();
+      final content = _contentController.text.trim();
+
+      final entry = ReflectionEntryModel(
+        id: '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}',
+        date: now,
+        mood: selectedEnergyState.label,
+        moodEmoji: selectedEnergyState.emoji,
+        answers: widget.reflectionAnswers ?? const {},
+        freeformTitle: title.isNotEmpty ? title : null,
+        freeformNote: content.isNotEmpty ? content : null,
+        createdAt: now,
       );
 
-      Future.delayed(const Duration(milliseconds: 350), () {
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => SummaryPage(
-                mood: selectedEnergyState.label,
-                moodEmoji: selectedEnergyState.emoji,
-                freeformTitle: _titleController.text,
-                freeformNote: _contentController.text,
-                answers: widget.reflectionAnswers,
+      await FirestoreService().saveReflection(entry);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.textPrimary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          content: Row(
+            children: [
+              const Text('✨', style: TextStyle(fontSize: 16)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Thought saved to today\'s reflection.',
+                  style: AppTextStyles.body.copyWith(
+                    color: Colors.white,
+                    fontSize: 13,
+                  ),
+                ),
               ),
+            ],
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      if (widget.onSaved != null) {
+        widget.onSaved!();
+      } else if (widget.isStandalone) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SummaryPage(
+              mood: selectedEnergyState.label,
+              moodEmoji: selectedEnergyState.emoji,
+              freeformTitle: title.isNotEmpty ? title : null,
+              freeformNote: content.isNotEmpty ? content : null,
+              answers: widget.reflectionAnswers,
             ),
-          );
-        }
-      });
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFFE02424),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            content: Text(
+              'Failed to save reflection: $e',
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
     }
   }
 
@@ -261,30 +305,41 @@ class _FreeformPageState extends State<FreeformPage> {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: _saveEntry,
+                  onPressed: _isSaving ? null : _saveEntry,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
+                    disabledBackgroundColor:
+                        AppColors.primary.withValues(alpha: 0.6),
                     elevation: 0,
                     shadowColor: AppColors.primary.withValues(alpha: 0.3),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(26),
                     ),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.bookmark_added_rounded, size: 18),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Save to Today\'s Entry',
-                        style: AppTextStyles.button.copyWith(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.bookmark_added_rounded, size: 18),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Save to Today\'s Entry',
+                              style: AppTextStyles.button.copyWith(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
             ),
