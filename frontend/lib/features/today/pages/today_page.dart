@@ -4,6 +4,7 @@ import '../widgets/greeting_header.dart';
 import '../widgets/quote_card.dart';
 import '../widgets/reflection_prompt_card.dart';
 import '../widgets/yesterday_summary_card.dart';
+import '../../../core/constants/app_strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../reflection/pages/reflection_page.dart';
 import '../../summary/pages/summary_page.dart';
@@ -33,9 +34,9 @@ class TodayPage extends StatelessWidget {
               const SizedBox(height: 28),
 
               // ── Inspirational quote ───────────────────────
-              const QuoteCard(
-                quote: 'Quiet the mind and the soul will speak.',
-                author: 'Ma Jaya Sati Bhagavati',
+              QuoteCard(
+                quote: AppStrings.quoteOfTheDay['quote']!,
+                author: AppStrings.quoteOfTheDay['author']!,
               ),
               const SizedBox(height: 28),
 

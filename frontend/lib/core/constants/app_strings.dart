@@ -20,7 +20,8 @@ class AppStrings {
       'author': 'Ma Jaya Sati Bhagavati',
     },
     {
-      'quote': 'Almost everything will work again if you unplug it for a few minutes, including you.',
+      'quote':
+          'Almost everything will work again if you unplug it for a few minutes, including you.',
       'author': 'Anne Lamott',
     },
     {
@@ -28,8 +29,56 @@ class AppStrings {
       'author': 'Albert Einstein',
     },
     {
-      'quote': 'The present moment is filled with joy and happiness. If you are attentive, you will see it.',
+      'quote':
+          'The present moment is filled with joy and happiness. If you are attentive, you will see it.',
       'author': 'Thich Nhat Hanh',
     },
+    {
+      'quote':
+          'Within you, there is a stillness and a sanctuary to which you can retreat at any time.',
+      'author': 'Hermann Hesse',
+    },
+    {
+      'quote':
+          'Feelings come and go like clouds in a windy sky. Conscious breathing is my anchor.',
+      'author': 'Thich Nhat Hanh',
+    },
+    {
+      'quote':
+          'You cannot always control what goes on outside. But you can always control what goes on inside.',
+      'author': 'Wayne Dyer',
+    },
+    {
+      'quote':
+          'Peace comes from within. Do not seek it without.',
+      'author': 'Buddha',
+    },
+    {
+      'quote':
+          'Look at the trees, look at the birds, look at the clouds, look at the stars… and if you have eyes you will see that the whole existence is joyful.',
+      'author': 'Osho',
+    },
+    {
+      'quote':
+          'Let go of the battle. Breathe quietly and let it be. Let your body relax and your heart soften.',
+      'author': 'Jack Kornfield',
+    },
+    {
+      'quote':
+          'Give yourself the permission to pause, breathe, and begin again with gentleness.',
+      'author': 'Mindful Living',
+    },
+    {
+      'quote':
+          'The soul should always stand ajar, ready to welcome the ecstatic experience.',
+      'author': 'Emily Dickinson',
+    },
   ];
+
+  /// Returns a daily rotated quote based on the day of the year.
+  static Map<String, String> get quoteOfTheDay {
+    final now = DateTime.now();
+    final dayOfYear = now.difference(DateTime(now.year, 1, 1)).inDays;
+    return dailyQuotes[dayOfYear % dailyQuotes.length];
+  }
 }
