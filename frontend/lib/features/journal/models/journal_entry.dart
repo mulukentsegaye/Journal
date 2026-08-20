@@ -12,6 +12,7 @@ class JournalEntry {
   final Color moodTextColor;
   final int questionsCount;
   final bool isBookmarked;
+  final String entryType;
   final List<String> tags;
 
   const JournalEntry({
@@ -25,11 +26,13 @@ class JournalEntry {
     required this.moodTextColor,
     required this.questionsCount,
     this.isBookmarked = false,
+    this.entryType = 'guided',
     this.tags = const [],
   });
 
   JournalEntry copyWith({
     bool? isBookmarked,
+    String? entryType,
   }) {
     return JournalEntry(
       id: id,
@@ -42,6 +45,7 @@ class JournalEntry {
       moodTextColor: moodTextColor,
       questionsCount: questionsCount,
       isBookmarked: isBookmarked ?? this.isBookmarked,
+      entryType: entryType ?? this.entryType,
       tags: tags,
     );
   }

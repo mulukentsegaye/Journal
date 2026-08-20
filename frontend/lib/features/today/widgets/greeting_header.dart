@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../auth/services/auth_service.dart';
-import '../../reflection/models/reflection_entry_model.dart';
-import '../../reflection/services/firestore_service.dart';
+import '../../reflection/services/reflection_service.dart';
 import '../../settings/pages/settings_page.dart';
 
 /// Top section of the Today page:
@@ -17,35 +16,6 @@ class GreetingHeader extends StatelessWidget {
     if (hour < 12) return 'Good morning';
     if (hour < 17) return 'Good afternoon';
     return 'Good evening';
-  }
-
-  int _calculateStreak(List<ReflectionEntryModel> entries) {
-    if (entries.isEmpty) return 0;
-
-    final Set<DateTime> uniqueDates = entries
-        .map((e) => DateTime(e.date.year, e.date.month, e.date.day))
-        .toSet();
-
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(const Duration(days: 1));
-
-    DateTime checkDate;
-    if (uniqueDates.contains(today)) {
-      checkDate = today;
-    } else if (uniqueDates.contains(yesterday)) {
-      checkDate = yesterday;
-    } else {
-      return 0;
-    }
-
-    int streak = 0;
-    while (uniqueDates.contains(checkDate)) {
-      streak++;
-      checkDate = checkDate.subtract(const Duration(days: 1));
-    }
-
-    return streak;
   }
 
   void _showStreakSheet(BuildContext context, int streak) {
@@ -273,12 +243,11 @@ class GreetingHeader extends StatelessWidget {
                     '${_greetingText()}, $name',
                     style: AppTextStyles.greeting,
                   ),
-                  // Dynamic Streak badge (interactive)
-                  StreamBuilder<List<ReflectionEntryModel>>(
-                    stream: FirestoreService().streamReflections(),
-                    builder: (context, snapshot) {
-                      final entries = snapshot.data ?? [];
-                      final streak = _calculateStreak(entries);
+                  // Dynamic Streak badge (interactive, shared state)
+                  ListenableBuilder(
+                    listenable: ReflectionService(),
+                    builder: (context, _) {
+                      final streak = ReflectionService().streakCount;
                       final streakText = '$streak Day Streak';
                       final emoji = streak > 0 ? '🔥' : '🌱';
 

@@ -3,6 +3,12 @@ import '../../../core/theme/app_colors.dart';
 import '../../journal/models/journal_entry.dart';
 import '../../history/pages/history_page.dart';
 
+/// Distinguishes between guided step reflections and standalone freeform notes.
+enum ReflectionType {
+  guided,
+  freeform,
+}
+
 /// Full model for a saved daily reflection stored in Cloud Firestore.
 class ReflectionEntryModel {
   final String id;
@@ -13,6 +19,7 @@ class ReflectionEntryModel {
   final String? freeformTitle;
   final String? freeformNote;
   final bool isBookmarked;
+  final ReflectionType type;
   final DateTime createdAt;
 
   const ReflectionEntryModel({
@@ -24,6 +31,7 @@ class ReflectionEntryModel {
     this.freeformTitle,
     this.freeformNote,
     this.isBookmarked = false,
+    this.type = ReflectionType.guided,
     required this.createdAt,
   });
 
@@ -37,6 +45,7 @@ class ReflectionEntryModel {
       'freeformTitle': freeformTitle,
       'freeformNote': freeformNote,
       'isBookmarked': isBookmarked,
+      'type': type.name,
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -53,6 +62,11 @@ class ReflectionEntryModel {
       });
     }
 
+    final typeStr = map['type']?.toString();
+    final parsedType = typeStr == 'freeform'
+        ? ReflectionType.freeform
+        : ReflectionType.guided;
+
     return ReflectionEntryModel(
       id: docId,
       date: map['date'] != null
@@ -64,6 +78,7 @@ class ReflectionEntryModel {
       freeformTitle: map['freeformTitle']?.toString(),
       freeformNote: map['freeformNote']?.toString(),
       isBookmarked: map['isBookmarked'] == true,
+      type: parsedType,
       createdAt: map['createdAt'] != null
           ? DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now()
           : DateTime.now(),
@@ -100,7 +115,9 @@ class ReflectionEntryModel {
       date: date,
       title: freeformTitle?.isNotEmpty == true
           ? freeformTitle!
-          : 'Reflection on ${_formatDate(date)}',
+          : (type == ReflectionType.freeform
+              ? 'Freeform Note — ${_formatDate(date)}'
+              : 'Reflection on ${_formatDate(date)}'),
       contentSnippet: snippet,
       mood: mood,
       moodEmoji: moodEmoji,
@@ -108,6 +125,7 @@ class ReflectionEntryModel {
       moodTextColor: text,
       questionsCount: answers.length,
       isBookmarked: isBookmarked,
+      entryType: type.name,
     );
   }
 
@@ -141,6 +159,7 @@ class ReflectionEntryModel {
 
   ReflectionEntryModel copyWith({
     bool? isBookmarked,
+    ReflectionType? type,
   }) {
     return ReflectionEntryModel(
       id: id,
@@ -151,6 +170,7 @@ class ReflectionEntryModel {
       freeformTitle: freeformTitle,
       freeformNote: freeformNote,
       isBookmarked: isBookmarked ?? this.isBookmarked,
+      type: type ?? this.type,
       createdAt: createdAt,
     );
   }

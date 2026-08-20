@@ -218,17 +218,21 @@ class JournalCard extends StatelessWidget {
             ),
             const SizedBox(height: 14),
 
-            // ── Footer: Questions answered + Arrow ────────────
+            // ── Footer: Type / Questions answered + Arrow ────────
             Row(
               children: [
                 Icon(
-                  Icons.chat_bubble_outline_rounded,
-                  size: 13,
+                  entry.entryType == 'freeform'
+                      ? Icons.edit_note_rounded
+                      : Icons.chat_bubble_outline_rounded,
+                  size: 14,
                   color: AppColors.textHint,
                 ),
                 const SizedBox(width: 5),
                 Text(
-                  '${entry.questionsCount} reflections answered',
+                  entry.entryType == 'freeform'
+                      ? 'Freeform note'
+                      : '${entry.questionsCount} reflections answered',
                   style: AppTextStyles.bodySmall.copyWith(
                     fontSize: 11,
                     color: AppColors.textHint,

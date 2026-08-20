@@ -8,7 +8,7 @@ import '../widgets/journal_filter_chips.dart';
 import '../../summary/pages/summary_page.dart';
 import '../../freeform/pages/freeform_page.dart';
 import '../../reflection/models/reflection_entry_model.dart';
-import '../../reflection/services/firestore_service.dart';
+import '../../reflection/services/reflection_service.dart';
 
 /// Journal Page — searchable, filterable archive of past reflections and notes.
 /// Connected to live Cloud Firestore data.
@@ -23,7 +23,7 @@ class _JournalPageState extends State<JournalPage> {
   String _selectedFilter = 'all';
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  final FirestoreService _firestoreService = FirestoreService();
+  final ReflectionService _reflectionService = ReflectionService();
 
   @override
   void dispose() {
@@ -32,7 +32,7 @@ class _JournalPageState extends State<JournalPage> {
   }
 
   void _toggleBookmark(String id, bool currentVal) {
-    _firestoreService.toggleBookmark(id, currentVal);
+    _reflectionService.toggleBookmark(id, currentVal);
   }
 
   List<JournalEntry> _applyFilters(List<JournalEntry> entries) {
@@ -87,7 +87,7 @@ class _JournalPageState extends State<JournalPage> {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              await _firestoreService.deleteReflection(id);
+              await _reflectionService.deleteReflection(id);
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -155,10 +155,10 @@ class _JournalPageState extends State<JournalPage> {
         ),
       ),
       body: SafeArea(
-        child: StreamBuilder<List<ReflectionEntryModel>>(
-          stream: _firestoreService.streamReflections(),
-          builder: (context, snapshot) {
-            final models = snapshot.data ?? [];
+        child: ListenableBuilder(
+          listenable: _reflectionService,
+          builder: (context, _) {
+            final models = _reflectionService.entries;
             final rawEntries = models.map((m) => m.toJournalEntry()).toList();
             final filtered = _applyFilters(rawEntries);
 
@@ -242,8 +242,7 @@ class _JournalPageState extends State<JournalPage> {
                   const SizedBox(height: 22),
 
                   // ── Entries List or Empty State ──────────────────
-                  if (snapshot.connectionState == ConnectionState.waiting &&
-                      rawEntries.isEmpty)
+                  if (_reflectionService.isLoading && rawEntries.isEmpty)
                     const Center(
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: 40),

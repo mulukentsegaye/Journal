@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../reflection/models/reflection_entry_model.dart';
-import '../../reflection/services/firestore_service.dart';
+import '../../reflection/services/reflection_service.dart';
 import '../../freeform/pages/freeform_page.dart';
 import '../widgets/summary_header_card.dart';
 import '../widgets/response_item_card.dart';
@@ -73,7 +73,7 @@ class _SummaryPageState extends State<SummaryPage> {
       createdAt: now,
     );
 
-    FirestoreService().saveReflection(entry);
+    ReflectionService().saveReflection(entry);
   }
 
   void _showCardPreviewDialog(
@@ -408,7 +408,7 @@ class _SummaryPageState extends State<SummaryPage> {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              await FirestoreService().deleteReflection(_docId);
+              await ReflectionService().deleteReflection(_docId);
               if (mounted) {
                 Navigator.of(context).popUntil((route) => route.isFirst);
                 ScaffoldMessenger.of(context).showSnackBar(

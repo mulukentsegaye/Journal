@@ -6,7 +6,7 @@ import '../widgets/energy_selector.dart';
 import '../widgets/freeform_editor.dart';
 import '../../summary/pages/summary_page.dart';
 import '../../reflection/models/reflection_entry_model.dart';
-import '../../reflection/services/firestore_service.dart';
+import '../../reflection/services/reflection_service.dart';
 
 /// Freeform Space — an open, unconstrained writing canvas
 /// paired with an energy / mood check-in.
@@ -86,10 +86,11 @@ class _FreeformPageState extends State<FreeformPage> {
         answers: widget.reflectionAnswers ?? const {},
         freeformTitle: title.isNotEmpty ? title : null,
         freeformNote: content.isNotEmpty ? content : null,
+        type: ReflectionType.freeform,
         createdAt: now,
       );
 
-      await FirestoreService().saveReflection(entry);
+      await ReflectionService().saveReflection(entry);
 
       if (!mounted) return;
 

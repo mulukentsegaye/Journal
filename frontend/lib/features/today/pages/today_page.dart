@@ -9,7 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../reflection/pages/reflection_page.dart';
 import '../../summary/pages/summary_page.dart';
 import '../../reflection/models/reflection_entry_model.dart';
-import '../../reflection/services/firestore_service.dart';
+import '../../reflection/services/reflection_service.dart';
 
 /// The main "Today" screen — the home page of Daily Reflection.
 /// Dynamically connected to Firestore for past summary cards.
@@ -18,7 +18,7 @@ class TodayPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final firestoreService = FirestoreService();
+    final reflectionService = ReflectionService();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -53,9 +53,9 @@ class TodayPage extends StatelessWidget {
               ),
               const SizedBox(height: 24),
 
-              // ── Past Summary (From Firestore) ─────────────
+              // ── Past Summary (From ReflectionService) ─────────────
               FutureBuilder<ReflectionEntryModel?>(
-                future: firestoreService.getYesterdayOrLatestReflection(),
+                future: reflectionService.getYesterdayOrLatestReflection(),
                 builder: (context, snapshot) {
                   final entry = snapshot.data;
                   final summaryText = entry?.freeformNote?.isNotEmpty == true

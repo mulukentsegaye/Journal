@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/streak_calculator.dart';
 import '../widgets/calendar_grid.dart';
 import '../widgets/month_header.dart';
 import '../widgets/day_detail_card.dart';
 import '../widgets/streak_banner.dart';
 import '../../reflection/models/reflection_entry_model.dart';
-import '../../reflection/services/firestore_service.dart';
+import '../../reflection/services/reflection_service.dart';
 import '../../summary/pages/summary_page.dart';
 import '../../freeform/pages/freeform_page.dart';
 
@@ -23,7 +24,7 @@ class HistoryPage extends StatefulWidget {
 class _HistoryPageState extends State<HistoryPage> {
   late DateTime _focusedMonth;
   DateTime? _selectedDay;
-  final FirestoreService _firestoreService = FirestoreService();
+  final ReflectionService _reflectionService = ReflectionService();
 
   @override
   void initState() {
@@ -79,7 +80,7 @@ class _HistoryPageState extends State<HistoryPage> {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              await _firestoreService.deleteReflection(id);
+              await _reflectionService.deleteReflection(id);
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -145,10 +146,10 @@ class _HistoryPageState extends State<HistoryPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: StreamBuilder<List<ReflectionEntryModel>>(
-          stream: _firestoreService.streamReflections(),
-          builder: (context, snapshot) {
-            final models = snapshot.data ?? [];
+        child: ListenableBuilder(
+          listenable: _reflectionService,
+          builder: (context, _) {
+            final models = _reflectionService.entries;
             final Map<DateTime, ReflectionEntry> reflectionData = {};
             final Map<DateTime, ReflectionEntryModel> modelByDate = {};
 
@@ -158,11 +159,11 @@ class _HistoryPageState extends State<HistoryPage> {
               modelByDate[dateKey] = m;
             }
 
-            final completedDaysThisMonth = reflectionData.keys
-                .where((d) =>
-                    d.year == _focusedMonth.year &&
-                    d.month == _focusedMonth.month)
-                .length;
+            final completedDaysThisMonth =
+                StreakCalculator.calculateCompletedDaysInMonth(
+              models,
+              _focusedMonth,
+            );
 
             final selectedKey = _selectedDay != null
                 ? DateTime(_selectedDay!.year, _selectedDay!.month,
