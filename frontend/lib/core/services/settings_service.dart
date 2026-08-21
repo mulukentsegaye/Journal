@@ -24,6 +24,18 @@ class SettingsService extends ChangeNotifier {
   TimeOfDay get reminderTime => _reminderTime;
   bool get isInitialized => _isInitialized;
 
+  /// Whether dark mode is currently active based on theme mode or system brightness.
+  bool get isDarkMode {
+    if (_themeMode == ThemeMode.dark) return true;
+    if (_themeMode == ThemeMode.light) return false;
+    try {
+      return WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+          Brightness.dark;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Load persisted user preferences.
   Future<void> loadSettings() async {
     try {

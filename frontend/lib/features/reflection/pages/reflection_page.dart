@@ -187,7 +187,7 @@ class _ReflectionPageState extends State<ReflectionPage> {
                         color: AppColors.surface,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.arrow_back_rounded,
+                      child: Icon(Icons.arrow_back_rounded,
                           size: 20, color: AppColors.textPrimary),
                     ),
                   ),

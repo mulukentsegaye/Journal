@@ -9,28 +9,42 @@ class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: AppColors.background,
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: AppColors.lightBackground,
+      cardColor: AppColors.lightCardBackground,
+      dialogTheme: const DialogThemeData(
+        backgroundColor: AppColors.lightCardBackground,
+      ),
+      dividerColor: AppColors.lightDivider,
       colorScheme: ColorScheme.light(
-        primary: AppColors.primary,
+        primary: AppColors.lightPrimary,
         onPrimary: Colors.white,
-        surface: AppColors.background,
-        onSurface: AppColors.textPrimary,
+        surface: AppColors.lightBackground,
+        onSurface: AppColors.lightTextPrimary,
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.lightBackground,
+        foregroundColor: AppColors.lightTextPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,
         systemOverlayStyle: SystemUiOverlayStyle.dark,
+        iconTheme: IconThemeData(color: AppColors.lightTextPrimary),
       ),
-      splashColor: AppColors.primary.withValues(alpha: 0.08),
-      highlightColor: AppColors.primary.withValues(alpha: 0.05),
+      splashColor: AppColors.lightPrimary.withValues(alpha: 0.08),
+      highlightColor: AppColors.lightPrimary.withValues(alpha: 0.05),
     );
   }
 
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
+      brightness: Brightness.dark,
       scaffoldBackgroundColor: AppColors.darkBackground,
+      cardColor: AppColors.darkCardBackground,
+      dialogTheme: const DialogThemeData(
+        backgroundColor: AppColors.darkCardBackground,
+      ),
+      dividerColor: AppColors.darkDivider,
       colorScheme: ColorScheme.dark(
         primary: AppColors.darkPrimary,
         onPrimary: Colors.white,
@@ -39,9 +53,11 @@ class AppTheme {
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.darkBackground,
+        foregroundColor: AppColors.darkTextPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,
         systemOverlayStyle: SystemUiOverlayStyle.light,
+        iconTheme: IconThemeData(color: AppColors.darkTextPrimary),
       ),
       splashColor: AppColors.darkPrimary.withValues(alpha: 0.12),
       highlightColor: AppColors.darkPrimary.withValues(alpha: 0.08),

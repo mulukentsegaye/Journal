@@ -142,7 +142,7 @@ class GreetingHeader extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.cloud_done_rounded,
                     size: 14,
                     color: AppColors.calmTagText,

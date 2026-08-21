@@ -36,6 +36,7 @@ class _SettingsPageState extends State<SettingsPage> {
         content: TextField(
           controller: controller,
           autofocus: true,
+          style: TextStyle(color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: 'Your name',
             filled: true,
@@ -98,7 +99,10 @@ class _SettingsPageState extends State<SettingsPage> {
             backgroundColor: AppColors.textPrimary,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            content: Text('Evening reminder scheduled for ${_settingsService.formattedReminderTime}.'),
+            content: Text(
+              'Evening reminder scheduled for ${_settingsService.formattedReminderTime}.',
+              style: TextStyle(color: AppColors.cardBackground),
+            ),
           ),
         );
       }
@@ -114,12 +118,15 @@ class _SettingsPageState extends State<SettingsPage> {
           backgroundColor: AppColors.textPrimary,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          content: const Row(
+          content: Row(
             children: [
-              Text('✨', style: TextStyle(fontSize: 16)),
-              SizedBox(width: 8),
+              const Text('✨', style: TextStyle(fontSize: 16)),
+              const SizedBox(width: 8),
               Expanded(
-                child: Text('Journal backup copied to clipboard as Markdown!'),
+                child: Text(
+                  'Journal backup copied to clipboard as Markdown!',
+                  style: TextStyle(color: AppColors.cardBackground),
+                ),
               ),
             ],
           ),
@@ -182,27 +189,74 @@ class _SettingsPageState extends State<SettingsPage> {
     final user = _authService.currentUser;
     final name = _authService.userName;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(
-          'Settings',
-          style: GoogleFonts.lora(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+    return ListenableBuilder(
+      listenable: _settingsService,
+      builder: (context, _) {
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            backgroundColor: AppColors.background,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            title: Text(
+              'Settings & Preferences',
+              style: GoogleFonts.lora(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            centerTitle: true,
+            leading: Padding(
+              padding: const EdgeInsets.only(left: 14),
+              child: Center(
+                child: InkWell(
+                  onTap: () => Navigator.maybePop(context),
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.divider),
+                    ),
+                    child: Icon(
+                      Icons.arrow_back_rounded,
+                      color: AppColors.textPrimary,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 14),
+                child: Center(
+                  child: InkWell(
+                    onTap: () => Navigator.maybePop(context),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.divider),
+                      ),
+                      child: Icon(
+                        Icons.close_rounded,
+                        color: AppColors.textPrimary,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: ListenableBuilder(
-        listenable: _settingsService,
-        builder: (context, _) {
-          return ListView(
+          body: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             physics: const BouncingScrollPhysics(),
             children: [
@@ -243,7 +297,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                 ),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.textSecondary),
+                                icon: Icon(Icons.edit_outlined, size: 16, color: AppColors.textSecondary),
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
                                 onPressed: _showEditNameDialog,
@@ -267,7 +321,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.cloud_done_rounded, size: 12, color: AppColors.calmTagText),
+                                Icon(Icons.cloud_done_rounded, size: 12, color: AppColors.calmTagText),
                                 const SizedBox(width: 4),
                                 Text(
                                   'Cloud Sync Active',
@@ -288,7 +342,7 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 24),
 
               // ── Appearance Section (Dark Theme) ────────────
-              _SectionHeader(title: 'APPEARANCE'),
+              const _SectionHeader(title: 'APPEARANCE'),
               Container(
                 decoration: BoxDecoration(
                   color: AppColors.cardBackground,
@@ -323,7 +377,7 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 24),
 
               // ── Reflection Reminders Section ───────────────
-              _SectionHeader(title: 'EVENING REMINDERS'),
+              const _SectionHeader(title: 'EVENING REMINDERS'),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
@@ -374,7 +428,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               ),
                             ),
                             const SizedBox(width: 6),
-                            const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textHint),
+                            Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textHint),
                           ],
                         ),
                         onTap: _pickReminderTime,
@@ -386,7 +440,7 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 24),
 
               // ── Data & Backup Section ──────────────────────
-              _SectionHeader(title: 'DATA & BACKUP'),
+              const _SectionHeader(title: 'DATA & BACKUP'),
               Container(
                 decoration: BoxDecoration(
                   color: AppColors.cardBackground,
@@ -400,7 +454,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       color: AppColors.surface,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.download_rounded, color: AppColors.primary, size: 20),
+                    child: Icon(Icons.download_rounded, color: AppColors.primary, size: 20),
                   ),
                   title: Text(
                     'Export All Reflections',
@@ -410,7 +464,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     'Backup entire journal history as Markdown text',
                     style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
                   ),
-                  trailing: const Icon(Icons.copy_rounded, size: 18, color: AppColors.textHint),
+                  trailing: Icon(Icons.copy_rounded, size: 18, color: AppColors.textHint),
                   onTap: _exportBackup,
                 ),
               ),
@@ -455,11 +509,31 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ),
               ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () => Navigator.maybePop(context),
+                  icon: const Icon(Icons.check_rounded, size: 20),
+                  label: const Text(
+                    'Done',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ),
               const SizedBox(height: 32),
             ],
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -514,7 +588,7 @@ class _ThemeOptionTile extends StatelessWidget {
         ),
       ),
       trailing: isSelected
-          ? const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 20)
+          ? Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 20)
           : null,
       onTap: onTap,
     );

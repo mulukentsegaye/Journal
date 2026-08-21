@@ -107,7 +107,7 @@ class FreeformEditor extends StatelessWidget {
             ),
           ),
 
-          const Divider(color: AppColors.divider, height: 1),
+          Divider(color: AppColors.divider, height: 1),
 
           // ── Title Input ───────────────────────────────────
           Padding(
@@ -137,7 +137,7 @@ class FreeformEditor extends StatelessWidget {
             ),
           ),
 
-          const Divider(color: AppColors.divider, height: 16),
+          Divider(color: AppColors.divider, height: 16),
 
           // ── Content / Note Body Input ─────────────────────
           Padding(

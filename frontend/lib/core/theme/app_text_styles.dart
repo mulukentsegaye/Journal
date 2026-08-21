@@ -10,14 +10,14 @@ class AppTextStyles {
   AppTextStyles._();
 
   // ── Greeting / large headings ──────────────────────────────
-  static TextStyle greeting = GoogleFonts.lora(
+  static TextStyle get greeting => GoogleFonts.lora(
     fontSize: 26,
     fontWeight: FontWeight.w600,
     color: AppColors.textPrimary,
     height: 1.3,
   );
 
-  static TextStyle subtitle = GoogleFonts.inter(
+  static TextStyle get subtitle => GoogleFonts.inter(
     fontSize: 14,
     fontWeight: FontWeight.w400,
     color: AppColors.textSecondary,
@@ -25,7 +25,7 @@ class AppTextStyles {
   );
 
   // ── Quote ──────────────────────────────────────────────────
-  static TextStyle quote = GoogleFonts.lora(
+  static TextStyle get quote => GoogleFonts.lora(
     fontSize: 16,
     fontWeight: FontWeight.w400,
     fontStyle: FontStyle.italic,
@@ -33,7 +33,7 @@ class AppTextStyles {
     height: 1.5,
   );
 
-  static TextStyle quoteAttribution = GoogleFonts.inter(
+  static TextStyle get quoteAttribution => GoogleFonts.inter(
     fontSize: 13,
     fontWeight: FontWeight.w500,
     color: AppColors.textSecondary,
@@ -41,7 +41,7 @@ class AppTextStyles {
   );
 
   // ── Section headers ────────────────────────────────────────
-  static TextStyle sectionTitle = GoogleFonts.inter(
+  static TextStyle get sectionTitle => GoogleFonts.inter(
     fontSize: 15,
     fontWeight: FontWeight.w600,
     color: AppColors.textPrimary,
@@ -49,14 +49,14 @@ class AppTextStyles {
   );
 
   // ── Body / description ────────────────────────────────────
-  static TextStyle body = GoogleFonts.inter(
+  static TextStyle get body => GoogleFonts.inter(
     fontSize: 14,
     fontWeight: FontWeight.w400,
     color: AppColors.textSecondary,
     height: 1.5,
   );
 
-  static TextStyle bodySmall = GoogleFonts.inter(
+  static TextStyle get bodySmall => GoogleFonts.inter(
     fontSize: 12,
     fontWeight: FontWeight.w400,
     color: AppColors.textHint,
@@ -64,7 +64,7 @@ class AppTextStyles {
   );
 
   // ── Buttons ───────────────────────────────────────────────
-  static TextStyle button = GoogleFonts.inter(
+  static TextStyle get button => GoogleFonts.inter(
     fontSize: 15,
     fontWeight: FontWeight.w600,
     color: Colors.white,
@@ -72,27 +72,27 @@ class AppTextStyles {
   );
 
   // ── Badges / tags ─────────────────────────────────────────
-  static TextStyle badge = GoogleFonts.inter(
+  static TextStyle get badge => GoogleFonts.inter(
     fontSize: 12,
     fontWeight: FontWeight.w600,
     height: 1.2,
   );
 
-  static TextStyle tag = GoogleFonts.inter(
+  static TextStyle get tag => GoogleFonts.inter(
     fontSize: 13,
     fontWeight: FontWeight.w500,
     height: 1.2,
   );
 
   // ── Nav labels ────────────────────────────────────────────
-  static TextStyle navLabel = GoogleFonts.inter(
+  static TextStyle get navLabel => GoogleFonts.inter(
     fontSize: 11,
     fontWeight: FontWeight.w500,
     height: 1.2,
   );
 
   // ── Yesterday summary ─────────────────────────────────────
-  static TextStyle summaryQuote = GoogleFonts.lora(
+  static TextStyle get summaryQuote => GoogleFonts.lora(
     fontSize: 14,
     fontWeight: FontWeight.w400,
     fontStyle: FontStyle.italic,
@@ -100,7 +100,7 @@ class AppTextStyles {
     height: 1.5,
   );
 
-  static TextStyle dateTag = GoogleFonts.inter(
+  static TextStyle get dateTag => GoogleFonts.inter(
     fontSize: 12,
     fontWeight: FontWeight.w500,
     color: AppColors.textSecondary,

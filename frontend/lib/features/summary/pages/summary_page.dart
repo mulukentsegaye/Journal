@@ -202,7 +202,7 @@ class _SummaryPageState extends State<SummaryPage> {
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(ctx),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.divider),
+                        side: BorderSide(color: AppColors.divider),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
@@ -499,7 +499,7 @@ class _SummaryPageState extends State<SummaryPage> {
                         color: AppColors.surface,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.arrow_back_rounded,
                         size: 20,
                         color: AppColors.textPrimary,
@@ -525,7 +525,7 @@ class _SummaryPageState extends State<SummaryPage> {
                             color: AppColors.surface,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.ios_share_rounded,
                             size: 19,
                             color: AppColors.textPrimary,
@@ -541,7 +541,7 @@ class _SummaryPageState extends State<SummaryPage> {
                             color: AppColors.surface,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.more_horiz_rounded,
                             size: 20,
                             color: AppColors.textPrimary,
@@ -559,14 +559,14 @@ class _SummaryPageState extends State<SummaryPage> {
                           }
                         },
                         itemBuilder: (context) => [
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 'edit',
                             child: Row(
                               children: [
                                 Icon(Icons.edit_outlined,
                                     size: 18, color: AppColors.textPrimary),
-                                SizedBox(width: 10),
-                                Text('Edit Reflection',
+                                const SizedBox(width: 10),
+                                const Text('Edit Reflection',
                                     style: TextStyle(fontSize: 14)),
                               ],
                             ),
@@ -663,7 +663,7 @@ class _SummaryPageState extends State<SummaryPage> {
                                       ),
                                     ),
                                     const SizedBox(width: 4),
-                                    const Icon(
+                                    Icon(
                                       Icons.keyboard_arrow_down_rounded,
                                       size: 16,
                                       color: AppColors.textSecondary,

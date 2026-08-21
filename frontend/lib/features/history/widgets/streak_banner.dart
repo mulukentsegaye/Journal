@@ -67,7 +67,7 @@ class StreakBanner extends StatelessWidget {
                     value: progress,
                     minHeight: 6,
                     backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-                    valueColor: const AlwaysStoppedAnimation<Color>(
+                    valueColor: AlwaysStoppedAnimation<Color>(
                       AppColors.primary,
                     ),
                   ),

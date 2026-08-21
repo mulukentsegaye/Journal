@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:daily_reflection/features/reflection/models/reflection_entry_model.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   group('ReflectionEntryModel Serialization & Conversion Tests', () {
     test('toMap and fromMap preserves all fields including type', () {
       final now = DateTime.now();

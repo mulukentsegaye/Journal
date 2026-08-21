@@ -154,7 +154,7 @@ class DayDetailCard extends StatelessWidget {
               ),
             if (onEdit != null)
               IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.edit_outlined,
                   size: 19,
                   color: AppColors.textSecondary,
@@ -166,7 +166,7 @@ class DayDetailCard extends StatelessWidget {
             if (onView != null)
               TextButton.icon(
                 onPressed: onView,
-                icon: const Icon(
+                icon: Icon(
                   Icons.auto_stories_outlined,
                   size: 16,
                   color: AppColors.primary,

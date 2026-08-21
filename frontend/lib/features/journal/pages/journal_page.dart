@@ -208,7 +208,7 @@ class _JournalPageState extends State<JournalPage> {
                           fontSize: 14,
                           color: AppColors.textHint.withValues(alpha: 0.7),
                         ),
-                        prefixIcon: const Icon(
+                        prefixIcon: Icon(
                           Icons.search_rounded,
                           size: 20,
                           color: AppColors.textHint,
@@ -219,7 +219,7 @@ class _JournalPageState extends State<JournalPage> {
                                   _searchController.clear();
                                   setState(() => _searchQuery = '');
                                 },
-                                child: const Icon(
+                                child: Icon(
                                   Icons.close_rounded,
                                   size: 18,
                                   color: AppColors.textHint,
@@ -243,9 +243,9 @@ class _JournalPageState extends State<JournalPage> {
 
                   // ── Entries List or Empty State ──────────────────
                   if (_reflectionService.isLoading && rawEntries.isEmpty)
-                    const Center(
+                    Center(
                       child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 40),
+                        padding: const EdgeInsets.symmetric(vertical: 40),
                         child: CircularProgressIndicator(
                           color: AppColors.primary,
                           strokeWidth: 2.5,

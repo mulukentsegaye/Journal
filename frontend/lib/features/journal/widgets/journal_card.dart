@@ -137,7 +137,7 @@ class JournalCard extends StatelessWidget {
                 if (onEdit != null || onDelete != null) ...[
                   const SizedBox(width: 4),
                   PopupMenuButton<String>(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.more_vert_rounded,
                       size: 20,
                       color: AppColors.textHint,
@@ -156,14 +156,14 @@ class JournalCard extends StatelessWidget {
                     },
                     itemBuilder: (context) => [
                       if (onEdit != null)
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'edit',
                           child: Row(
                             children: [
                               Icon(Icons.edit_outlined,
                                   size: 18, color: AppColors.textPrimary),
-                              SizedBox(width: 10),
-                              Text('Edit', style: TextStyle(fontSize: 14)),
+                              const SizedBox(width: 10),
+                              const Text('Edit', style: TextStyle(fontSize: 14)),
                             ],
                           ),
                         ),

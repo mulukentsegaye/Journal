@@ -227,7 +227,7 @@ class _FreeformPageState extends State<FreeformPage> {
                           color: AppColors.surface,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.arrow_back_rounded,
                           size: 20,
                           color: AppColors.textPrimary,
@@ -269,7 +269,7 @@ class _FreeformPageState extends State<FreeformPage> {
                           Container(
                             width: 6,
                             height: 6,
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               color: AppColors.calmTagText,
                               shape: BoxShape.circle,
                             ),
