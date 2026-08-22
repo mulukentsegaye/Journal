@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../../../app.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../auth/services/auth_service.dart';
 import '../../reflection/services/reflection_service.dart';
 
 /// Top section of the Today page:
-///   "Good evening, User"  🔥 X Day Streak + Profile/SignOut
+///   "Good evening, User"  🔥 X Day Streak + 3-Line Menu Drawer Button
 ///   "Welcome back to your quiet space."
 class GreetingHeader extends StatelessWidget {
   const GreetingHeader({super.key});
@@ -88,7 +90,7 @@ class GreetingHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Greeting row with Profile Avatar ───────────────────
+        // ── Greeting row with 3-Line Menu Button ───────────────
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -140,29 +142,36 @@ class GreetingHeader extends StatelessWidget {
                 ],
               ),
             ),
-            // Profile icon button
+            // 3-Line Hamburger Menu button
             GestureDetector(
-              onTap: () => Scaffold.of(context).openEndDrawer(),
+              onTap: () {
+                HapticFeedback.lightImpact();
+                AppShell.openDrawer();
+              },
               child: Container(
-                width: 38,
-                height: 38,
+                width: 40,
+                height: 40,
                 margin: const EdgeInsets.only(left: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
+                  color: AppColors.cardBackground,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.3),
-                    width: 1.2,
+                    color: AppColors.divider,
+                    width: 1,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Center(
-                  child: Text(
-                    name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
-                    ),
+                  child: Icon(
+                    Icons.menu_rounded,
+                    size: 22,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ),

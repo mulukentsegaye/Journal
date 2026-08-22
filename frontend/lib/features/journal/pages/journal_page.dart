@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../app.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/streak_calculator.dart';
@@ -15,7 +17,6 @@ import '../../summary/pages/summary_page.dart';
 import '../../freeform/pages/freeform_page.dart';
 import '../../reflection/models/reflection_entry_model.dart';
 import '../../reflection/services/reflection_service.dart';
-import '../../auth/services/auth_service.dart';
 import '../../settings/widgets/pdf_export_dialog.dart';
 
 enum JournalViewMode {
@@ -38,7 +39,6 @@ class _JournalPageState extends State<JournalPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   final ReflectionService _reflectionService = ReflectionService();
-  final AuthService _authService = AuthService();
 
   late DateTime _focusedMonth;
   DateTime? _selectedDay;
@@ -193,8 +193,6 @@ class _JournalPageState extends State<JournalPage> {
 
   @override
   Widget build(BuildContext context) {
-    final name = _authService.userName;
-
     return Scaffold(
       backgroundColor: AppColors.background,
       floatingActionButton: FloatingActionButton.extended(
@@ -295,29 +293,35 @@ class _JournalPageState extends State<JournalPage> {
                             constraints: const BoxConstraints(),
                           ),
                           const SizedBox(width: 8),
-                          // Profile avatar button -> opens right sidebar
+                          // 3-Line Menu Drawer Button
                           GestureDetector(
-                            onTap: () => Scaffold.of(context).openEndDrawer(),
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              AppShell.openDrawer();
+                            },
                             child: Container(
                               width: 36,
                               height: 36,
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.12),
+                                color: AppColors.cardBackground,
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color:
-                                      AppColors.primary.withValues(alpha: 0.3),
-                                  width: 1.2,
+                                  color: AppColors.divider,
+                                  width: 1,
                                 ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.03),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               child: Center(
-                                child: Text(
-                                  name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.primary,
-                                  ),
+                                child: Icon(
+                                  Icons.menu_rounded,
+                                  size: 20,
+                                  color: AppColors.textPrimary,
                                 ),
                               ),
                             ),

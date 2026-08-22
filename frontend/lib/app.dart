@@ -73,6 +73,14 @@ class _DailyReflectionAppState extends State<DailyReflectionApp>
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
 
+  static final GlobalKey<ScaffoldState> scaffoldKey =
+      GlobalKey<ScaffoldState>();
+
+  /// Static helper to open the right-side profile drawer from anywhere in the app
+  static void openDrawer() {
+    scaffoldKey.currentState?.openEndDrawer();
+  }
+
   @override
   State<AppShell> createState() => _AppShellState();
 }
@@ -88,6 +96,7 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: AppShell.scaffoldKey,
       endDrawer: const ProfileDrawer(),
       body: IndexedStack(
         index: _currentIndex,
