@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
+import '../constants/app_strings.dart';
 import '../../features/reflection/services/firestore_service.dart';
 
 /// App-wide settings and preference manager.
@@ -127,7 +128,8 @@ class SettingsService extends ChangeNotifier {
       if (entry.answers.isNotEmpty) {
         buffer.writeln('#### Guided Reflections:');
         for (final entryItem in entry.answers.entries) {
-          buffer.writeln('- **Question ${entryItem.key}**: "${entryItem.value}"');
+          final prompt = AppStrings.questionPrompts[entryItem.key] ?? 'Question ${entryItem.key}';
+          buffer.writeln('- **$prompt**\n  "${entryItem.value}"');
         }
         buffer.writeln();
       }

@@ -10,8 +10,61 @@ class AppStrings {
   static const String reflectionPromptTitle = "Today's Reflection";
   static const String reflectionPromptDesc =
       'Ground your thoughts. Taking just 5 minutes tonight will help clear your mind for rest.';
-  static const String reflectionOpenNote =
-      'Your evening reflection typically opens at 6:00 PM.';
+  // Reflection Questions (7-step daily guided reflection)
+  static const Map<int, String> questionPrompts = {
+    1: 'What are 7 things I am grateful for today?',
+    2: 'What are 7 good things I noticed today that I might normally overlook?',
+    3: 'What are 7 positive things I did today—for myself or someone else?',
+    4: 'What are 7 moments today when I was fully present?',
+    5: 'What are 7 things I could have done better today?',
+    6: 'What are 7 things I learned about myself today?',
+    7: 'What are 7 things I will intentionally do differently tomorrow?',
+  };
+
+  static const List<Map<String, String>> reflectionQuestions = [
+    {
+      'category': 'GRATITUDE',
+      'emoji': '🙏',
+      'text': 'What are 7 things I am grateful for today?',
+      'hint': 'List 7 things you are grateful for today, big or small…',
+    },
+    {
+      'category': 'AWARENESS',
+      'emoji': '🌿',
+      'text': 'What are 7 good things I noticed today that I might normally overlook?',
+      'hint': 'List 7 small details, quiet moments, or subtle joys you noticed…',
+    },
+    {
+      'category': 'KINDNESS & ACTION',
+      'emoji': '💛',
+      'text': 'What are 7 positive things I did today—for myself or someone else?',
+      'hint': 'List 7 caring actions, accomplishments, or positive choices…',
+    },
+    {
+      'category': 'MINDFULNESS',
+      'emoji': '🧘',
+      'text': 'What are 7 moments today when I was fully present?',
+      'hint': 'List 7 moments you were completely immersed in the present…',
+    },
+    {
+      'category': 'GROWTH & LEARNING',
+      'emoji': '🌱',
+      'text': 'What are 7 things I could have done better today?',
+      'hint': 'List 7 gentle reflections on what you can improve without self-judgment…',
+    },
+    {
+      'category': 'SELF-DISCOVERY',
+      'emoji': '💡',
+      'text': 'What are 7 things I learned about myself today?',
+      'hint': 'List 7 insights, patterns, or discoveries about yourself today…',
+    },
+    {
+      'category': 'INTENTION',
+      'emoji': '✨',
+      'text': 'What are 7 things I will intentionally do differently tomorrow?',
+      'hint': 'List 7 intentional choices or habits for tomorrow…',
+    },
+  ];
 
   // Quotes pool
   static const List<Map<String, String>> dailyQuotes = [

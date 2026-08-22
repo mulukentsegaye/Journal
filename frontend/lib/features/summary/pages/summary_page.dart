@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import '../../../core/constants/app_strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../reflection/models/reflection_entry_model.dart';
@@ -39,15 +40,7 @@ class _SummaryPageState extends State<SummaryPage> {
   bool _isExpanded = false;
   late final String _docId;
 
-  static const Map<int, String> _questionPrompts = {
-    1: 'What made you smile today?',
-    2: 'Who or what are you most grateful for?',
-    3: 'What was a slight friction or lesson?',
-    4: 'Where did you feel tension in your body?',
-    5: 'What meaningful interaction did you have?',
-    6: 'What can you release before sleep?',
-    7: 'What is one gentle intention for tomorrow?',
-  };
+  static const Map<int, String> _questionPrompts = AppStrings.questionPrompts;
 
   @override
   void initState() {

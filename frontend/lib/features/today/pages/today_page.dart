@@ -58,43 +58,49 @@ class TodayPage extends StatelessWidget {
                 future: reflectionService.getYesterdayOrLatestReflection(),
                 builder: (context, snapshot) {
                   final entry = snapshot.data;
-                  final summaryText = entry?.freeformNote?.isNotEmpty == true
-                      ? entry!.freeformNote!
-                      : (entry?.answers.isNotEmpty == true
-                          ? entry!.answers.values.first
-                          : 'Felt a gentle transition today. Let go of work stress and walked around the gardens.');
+                  if (entry == null) {
+                    return const SizedBox.shrink();
+                  }
 
-                  final dateText = entry != null
-                      ? DateFormat('MMM d').format(entry.date)
-                      : 'Oct 19';
-                  final mood = entry?.mood ?? 'Calm';
-                  final moodEmoji = entry?.moodEmoji ?? '🌿';
+                  final summaryText = entry.freeformNote?.isNotEmpty == true
+                      ? entry.freeformNote!
+                      : (entry.answers.isNotEmpty == true
+                          ? entry.answers.values.first
+                          : 'Daily reflection captured.');
 
-                  return YesterdaySummaryCard(
-                    summary: summaryText,
-                    date: dateText,
-                    mood: mood,
-                    moodEmoji: moodEmoji,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => SummaryPage(
-                            id: entry?.id,
-                            mood: mood,
-                            moodEmoji: moodEmoji,
-                            freeformTitle: entry?.freeformTitle ??
-                                'Gentle transition today',
-                            freeformNote: summaryText,
-                            answers: entry?.answers,
-                          ),
-                        ),
-                      );
-                    },
+                  final dateText = DateFormat('MMM d').format(entry.date);
+                  final mood = entry.mood;
+                  final moodEmoji = entry.moodEmoji;
+
+                  return Column(
+                    children: [
+                      YesterdaySummaryCard(
+                        summary: summaryText,
+                        date: dateText,
+                        mood: mood,
+                        moodEmoji: moodEmoji,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => SummaryPage(
+                                id: entry.id,
+                                mood: mood,
+                                moodEmoji: moodEmoji,
+                                freeformTitle: entry.freeformTitle ??
+                                    'Daily Reflection',
+                                freeformNote: entry.freeformNote,
+                                answers: entry.answers,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                    ],
                   );
                 },
               ),
-              const SizedBox(height: 24),
             ],
           ),
         ),
