@@ -6,6 +6,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/services/settings_service.dart';
 import '../../../core/services/security_service.dart';
 import '../../auth/services/auth_service.dart';
+import '../widgets/pdf_export_dialog.dart';
 
 /// Full-featured Settings & Profile customization screen.
 class SettingsPage extends StatefulWidget {
@@ -775,25 +776,50 @@ class _SettingsPageState extends State<SettingsPage> {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: AppColors.divider),
                 ),
-                child: ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(10),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(Icons.menu_book_rounded, color: AppColors.primary, size: 20),
+                      ),
+                      title: Text(
+                        'Export Keepsake Journal (PDF Book)',
+                        style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        'Generate an elegant printable PDF book for archiving or printing',
+                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                      ),
+                      trailing: Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textHint),
+                      onTap: () => PdfExportDialog.show(context),
                     ),
-                    child: Icon(Icons.download_rounded, color: AppColors.primary, size: 20),
-                  ),
-                  title: Text(
-                    'Export All Reflections',
-                    style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: Text(
-                    'Backup entire journal history as Markdown text',
-                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
-                  ),
-                  trailing: Icon(Icons.copy_rounded, size: 18, color: AppColors.textHint),
-                  onTap: _exportBackup,
+                    Divider(height: 1, color: AppColors.divider),
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(Icons.download_rounded, color: AppColors.primary, size: 20),
+                      ),
+                      title: Text(
+                        'Export All Reflections (Markdown)',
+                        style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        'Backup entire journal history as plain text',
+                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                      ),
+                      trailing: Icon(Icons.copy_rounded, size: 18, color: AppColors.textHint),
+                      onTap: _exportBackup,
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 32),

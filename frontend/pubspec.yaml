@@ -50,6 +50,10 @@ dependencies:
   # Voice-to-Text Audio Journaling
   speech_to_text: ^7.0.0
 
+  # PDF Keepsake Book Export
+  pdf: ^3.11.1
+  printing: ^5.13.2
+
   intl: ^0.19.0
   shared_preferences: ^2.5.5
 

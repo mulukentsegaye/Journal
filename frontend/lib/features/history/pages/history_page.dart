@@ -11,6 +11,7 @@ import '../../reflection/models/reflection_entry_model.dart';
 import '../../reflection/services/reflection_service.dart';
 import '../../summary/pages/summary_page.dart';
 import '../../freeform/pages/freeform_page.dart';
+import '../../settings/widgets/pdf_export_dialog.dart';
 
 /// The Journey page — calendar view showing past reflections.
 /// Dynamically connected to live Cloud Firestore entries.
@@ -182,12 +183,42 @@ class _HistoryPageState extends State<HistoryPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Page title ────────────────────────────────
-                  Text('Your Journey', style: AppTextStyles.greeting),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Look back on the moments you\'ve captured.',
-                    style: AppTextStyles.subtitle,
+                  // ── Page title & PDF Export ───────────────────
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Your Journey', style: AppTextStyles.greeting),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Look back on the moments you\'ve captured.',
+                            style: AppTextStyles.subtitle,
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        onPressed: () => PdfExportDialog.show(
+                          context,
+                          initialMonth: _focusedMonth,
+                        ),
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.divider),
+                          ),
+                          child: Icon(
+                            Icons.picture_as_pdf_outlined,
+                            size: 20,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        tooltip: 'Export Month as Keepsake PDF',
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 24),
 
