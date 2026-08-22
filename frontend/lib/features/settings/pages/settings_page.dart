@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/services/settings_service.dart';
+import '../../../core/services/security_service.dart';
 import '../../auth/services/auth_service.dart';
 
 /// Full-featured Settings & Profile customization screen.
@@ -16,6 +17,7 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   final _settingsService = SettingsService();
+  final _securityService = SecurityService();
   final _authService = AuthService();
 
   void _showEditNameDialog() {
@@ -70,6 +72,179 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showSetPinDialog() {
+    final pinController = TextEditingController();
+    final confirmController = TextEditingController();
+    String? errorText;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.cardBackground,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              const Text('🔒', style: TextStyle(fontSize: 20)),
+              const SizedBox(width: 8),
+              Text(
+                _securityService.hasPin ? 'Change Security PIN' : 'Set Security PIN',
+                style: GoogleFonts.lora(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Enter a 4-digit code to protect your reflections.',
+                style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: pinController,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                maxLength: 4,
+                obscureText: true,
+                style: TextStyle(color: AppColors.textPrimary, letterSpacing: 8, fontSize: 18),
+                textAlign: TextAlign.center,
+                decoration: InputDecoration(
+                  counterText: '',
+                  hintText: 'PIN',
+                  filled: true,
+                  fillColor: AppColors.surface,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.divider),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: confirmController,
+                keyboardType: TextInputType.number,
+                maxLength: 4,
+                obscureText: true,
+                style: TextStyle(color: AppColors.textPrimary, letterSpacing: 8, fontSize: 18),
+                textAlign: TextAlign.center,
+                decoration: InputDecoration(
+                  counterText: '',
+                  hintText: 'Confirm PIN',
+                  filled: true,
+                  fillColor: AppColors.surface,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: AppColors.divider),
+                  ),
+                ),
+              ),
+              if (errorText != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  errorText!,
+                  style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final pin = pinController.text.trim();
+                final confirm = confirmController.text.trim();
+
+                if (pin.length != 4) {
+                  setDialogState(() => errorText = 'PIN must be exactly 4 digits');
+                  return;
+                }
+                if (pin != confirm) {
+                  setDialogState(() => errorText = 'PINs do not match');
+                  return;
+                }
+
+                final messenger = ScaffoldMessenger.of(context);
+                await _securityService.setPin(pin);
+                if (ctx.mounted) Navigator.pop(ctx);
+                messenger.showSnackBar(
+                  SnackBar(
+                    backgroundColor: AppColors.primary,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    content: const Text(
+                      'Security PIN set successfully! App Lock is now active.',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              ),
+              child: const Text('Save PIN'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showTimeoutDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Auto-Lock Timeout',
+          style: GoogleFonts.lora(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildTimeoutTile(ctx, title: 'Immediately', seconds: 0),
+            _buildTimeoutTile(ctx, title: 'After 1 minute', seconds: 60),
+            _buildTimeoutTile(ctx, title: 'After 5 minutes', seconds: 300),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimeoutTile(BuildContext ctx, {required String title, required int seconds}) {
+    final isSelected = _securityService.lockTimeoutSeconds == seconds;
+    return ListTile(
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          color: isSelected ? AppColors.primary : AppColors.textPrimary,
+        ),
+      ),
+      trailing: isSelected
+          ? Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 20)
+          : null,
+      onTap: () {
+        _securityService.setLockTimeout(seconds);
+        Navigator.pop(ctx);
+      },
     );
   }
 
@@ -190,7 +365,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final name = _authService.userName;
 
     return ListenableBuilder(
-      listenable: _settingsService,
+      listenable: Listenable.merge([_settingsService, _securityService]),
       builder: (context, _) {
         return Scaffold(
           backgroundColor: AppColors.background,
@@ -442,6 +617,151 @@ class _SettingsPageState extends State<SettingsPage> {
                         onTap: _pickReminderTime,
                       ),
                     ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // ── Privacy & Security Section ─────────────────
+              const _SectionHeader(title: 'PRIVACY & SECURITY'),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.cardBackground,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.divider),
+                ),
+                child: Column(
+                  children: [
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        'App Lock',
+                        style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        'Protect reflections with Biometrics & PIN code',
+                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                      ),
+                      activeThumbColor: AppColors.primary,
+                      activeTrackColor: AppColors.primary.withValues(alpha: 0.4),
+                      value: _securityService.isLockEnabled,
+                      onChanged: (val) {
+                        if (val) {
+                          if (!_securityService.hasPin) {
+                            _showSetPinDialog();
+                          } else {
+                            _securityService.setLockEnabled(true);
+                          }
+                        } else {
+                          _securityService.setLockEnabled(false);
+                        }
+                      },
+                    ),
+                    if (_securityService.isLockEnabled) ...[
+                      Divider(color: AppColors.divider),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          'Biometric Unlock',
+                          style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w500),
+                        ),
+                        subtitle: Text(
+                          'Use Face ID, Touch ID, or Fingerprint scan',
+                          style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                        ),
+                        activeThumbColor: AppColors.primary,
+                        activeTrackColor: AppColors.primary.withValues(alpha: 0.4),
+                        value: _securityService.isBiometricsEnabled,
+                        onChanged: (val) => _securityService.setBiometricsEnabled(val),
+                      ),
+                      Divider(color: AppColors.divider),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          _securityService.hasPin ? 'Change PIN Code' : 'Set 4-Digit PIN',
+                          style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w500),
+                        ),
+                        trailing: Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textHint),
+                        onTap: _showSetPinDialog,
+                      ),
+                      Divider(color: AppColors.divider),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          'Auto-Lock Timeout',
+                          style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w500),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _securityService.lockTimeoutSeconds == 0
+                                  ? 'Immediately'
+                                  : (_securityService.lockTimeoutSeconds == 60
+                                      ? '1 minute'
+                                      : '5 minutes'),
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textHint),
+                          ],
+                        ),
+                        onTap: _showTimeoutDialog,
+                      ),
+                    ],
+                    Divider(color: AppColors.divider),
+                    // E2EE Indicator Tile
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDEF7EC),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.shield_outlined,
+                          color: Color(0xFF03543F),
+                          size: 20,
+                        ),
+                      ),
+                      title: Row(
+                        children: [
+                          Text(
+                            'End-to-End Encryption',
+                            style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFDEF7EC),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'AES-256 Active',
+                              style: TextStyle(
+                                color: Color(0xFF03543F),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      subtitle: Text(
+                        'Your reflection notes, answers, and memories are encrypted on-device before cloud synchronization.',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),

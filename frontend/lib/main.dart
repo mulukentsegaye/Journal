@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
 import 'core/config/supabase_config.dart';
 import 'core/services/settings_service.dart';
+import 'core/services/security_service.dart';
 import 'features/auth/services/auth_service.dart';
 
 void main() async {
@@ -22,5 +23,6 @@ void main() async {
 
   await AuthService().loadSession();
   await SettingsService().loadSettings();
+  await SecurityService().loadSecuritySettings();
   runApp(const DailyReflectionApp());
 }

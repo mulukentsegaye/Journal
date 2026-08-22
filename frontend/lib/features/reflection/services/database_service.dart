@@ -3,11 +3,12 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/config/supabase_config.dart';
+import '../../../core/services/encryption_service.dart';
 import '../../auth/services/auth_service.dart';
 import '../models/reflection_entry_model.dart';
 
-/// Database service with Local-First offline persistence and automatic
-/// background synchronization to Supabase PostgreSQL.
+/// Database service with Local-First offline persistence, AES-256 Client-Side
+/// End-to-End Encryption (E2EE), and automatic background synchronization to Supabase.
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
   factory DatabaseService([SupabaseClient? client]) {
@@ -19,6 +20,7 @@ class DatabaseService {
   DatabaseService._internal();
 
   SupabaseClient? _injectedClient;
+  final EncryptionService _encryption = EncryptionService();
 
   static const String _keyLocalReflections = 'daily_reflections_local_cache';
   static const String _keyPendingWrites = 'daily_reflections_pending_writes';
@@ -113,7 +115,7 @@ class DatabaseService {
     } catch (_) {}
   }
 
-  /// Pushes any pending writes and deletes to Supabase when online.
+  /// Pushes any pending writes and deletes to Supabase (with client-side E2EE).
   Future<void> syncPendingChanges() async {
     if (!_isOnlineAndAuth) return;
     final client = _client;
@@ -137,15 +139,17 @@ class DatabaseService {
         await prefs.setStringList(_keyPendingDeletes, pendingDeletes);
       }
 
-      // 2. Process pending writes
+      // 2. Process pending writes (encrypt before uploading)
       final pendingWrites = prefs.getStringList(_keyPendingWrites) ?? [];
       if (pendingWrites.isNotEmpty) {
         for (final item in List<String>.from(pendingWrites)) {
           try {
             final map = jsonDecode(item) as Map<String, dynamic>;
             final entry = ReflectionEntryModel.fromMap(map, map['id']?.toString() ?? '');
+            final encryptedEntry = await _encryption.encryptEntry(entry);
+
             await client.from('reflections').upsert(
-              entry.toSupabaseMap(userId: user.id),
+              encryptedEntry.toSupabaseMap(userId: user.id),
               onConflict: 'id',
             );
             pendingWrites.remove(item);
@@ -156,13 +160,13 @@ class DatabaseService {
         await prefs.setStringList(_keyPendingWrites, pendingWrites);
       }
 
-      // 3. Fetch latest from Supabase and merge
+      // 3. Fetch latest from Supabase, decrypt on device, and merge
       await _pullRemoteChanges();
     } catch (_) {}
   }
 
-  /// Pulls remote reflections for the authenticated user from Supabase
-  /// and merges into the local repository.
+  /// Pulls remote reflections from Supabase, decrypts on-device,
+  /// and merges into local repository.
   Future<void> _pullRemoteChanges() async {
     if (!_isOnlineAndAuth) return;
     final client = _client;
@@ -175,9 +179,14 @@ class DatabaseService {
           .select()
           .order('date', ascending: false);
 
-      final remoteEntries = (response as List)
-          .map((row) => ReflectionEntryModel.fromSupabase(row as Map<String, dynamic>))
-          .toList();
+      final remoteRows = response as List;
+      final remoteEntries = <ReflectionEntryModel>[];
+
+      for (final row in remoteRows) {
+        final rawEntry = ReflectionEntryModel.fromSupabase(row as Map<String, dynamic>);
+        final decryptedEntry = await _encryption.decryptEntry(rawEntry);
+        remoteEntries.add(decryptedEntry);
+      }
 
       if (remoteEntries.isNotEmpty) {
         final localEntries = await _loadLocalEntries();
@@ -198,7 +207,7 @@ class DatabaseService {
 
   // ── Public CRUD Methods ──────────────────────────────────────
 
-  /// Save or update a reflection (instant local save + background cloud sync).
+  /// Save or update a reflection (instant local save + background E2EE cloud sync).
   Future<void> saveReflection(ReflectionEntryModel entry) async {
     final docId = entry.id.isNotEmpty
         ? entry.id
@@ -217,7 +226,7 @@ class DatabaseService {
       createdAt: entry.createdAt,
     );
 
-    // 1. Instant local update (0ms UI latency)
+    // 1. Instant local update (0ms UI latency, cleartext locally for speed)
     final entries = await _loadLocalEntries();
     final index = entries.indexWhere((e) => e.id == docId);
     if (index >= 0) {
@@ -228,12 +237,13 @@ class DatabaseService {
     entries.sort((a, b) => b.date.compareTo(a.date));
     await _persistLocalEntries(entries);
 
-    // 2. Queue write or sync to Supabase
+    // 2. Queue write or sync encrypted payload to Supabase
     if (_isOnlineAndAuth) {
       try {
         final user = AuthService().currentUser;
+        final encrypted = await _encryption.encryptEntry(entryWithId);
         await _client!.from('reflections').upsert(
-          entryWithId.toSupabaseMap(userId: user?.id),
+          encrypted.toSupabaseMap(userId: user?.id),
           onConflict: 'id',
         );
       } catch (_) {

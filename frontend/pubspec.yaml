@@ -39,6 +39,11 @@ dependencies:
   # Backend & Database
   supabase_flutter: ^2.8.3
 
+  # Security & Privacy
+  local_auth: ^2.3.0
+  encrypt: ^5.0.3
+  crypto: ^3.0.6
+
   intl: ^0.19.0
   shared_preferences: ^2.5.5
 
