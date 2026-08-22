@@ -12,19 +12,26 @@ class SupabaseConfig {
     defaultValue: 'https://hwvvtvqextfvgzoxnxdy.supabase.co',
   );
 
-  /// Clean normalized Supabase Project URL (ensures no trailing slash or /rest/v1 suffix)
+  /// Clean normalized Supabase Project URL (guarantees base origin e.g. https://xyz.supabase.co)
   static String get supabaseUrl {
-    var url = _rawUrl.trim();
-    if (url.endsWith('/')) {
-      url = url.substring(0, url.length - 1);
+    var raw = _rawUrl.trim();
+    try {
+      final uri = Uri.parse(raw);
+      if (uri.hasScheme && uri.host.isNotEmpty) {
+        final portPart = uri.hasPort ? ':${uri.port}' : '';
+        return '${uri.scheme}://${uri.host}$portPart';
+      }
+    } catch (_) {}
+    while (raw.endsWith('/')) {
+      raw = raw.substring(0, raw.length - 1);
     }
-    if (url.endsWith('/rest/v1')) {
-      url = url.substring(0, url.length - '/rest/v1'.length);
+    if (raw.endsWith('/rest/v1')) {
+      raw = raw.substring(0, raw.length - '/rest/v1'.length);
     }
-    if (url.endsWith('/')) {
-      url = url.substring(0, url.length - 1);
+    while (raw.endsWith('/')) {
+      raw = raw.substring(0, raw.length - 1);
     }
-    return url;
+    return raw;
   }
 
   /// Supabase Anonymous Public API Key

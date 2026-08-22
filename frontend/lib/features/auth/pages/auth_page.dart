@@ -43,12 +43,25 @@ class _AuthPageState extends State<AuthPage> {
 
     try {
       if (_isSignUp) {
-        await _authService.signUpWithEmail(
+        final res = await _authService.signUpWithEmail(
           email: _emailController.text,
           password: _passwordController.text,
           displayName:
               _nameController.text.isNotEmpty ? _nameController.text : null,
         );
+        if (res.session == null && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: AppColors.primary,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              content: const Text(
+                'Account created! If confirmation is required, please check your email inbox.',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          );
+        }
       } else {
         await _authService.signInWithEmail(
           email: _emailController.text,
