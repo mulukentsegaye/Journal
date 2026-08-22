@@ -34,31 +34,19 @@ class AppBottomNavBar extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _NavItem(
-                icon: Icons.home_rounded,
+                icon: Icons.spa_outlined,
                 label: 'Today',
                 isActive: currentIndex == 0,
                 onTap: () => onTap(0),
               ),
               _NavItem(
-                icon: Icons.calendar_today_rounded,
-                label: 'Journey',
+                icon: Icons.auto_stories_outlined,
+                label: 'Journal',
                 isActive: currentIndex == 1,
                 onTap: () => onTap(1),
-              ),
-              _NavItem(
-                icon: Icons.edit_note_rounded,
-                label: 'Journal',
-                isActive: currentIndex == 2,
-                onTap: () => onTap(2),
-              ),
-              _NavItem(
-                icon: Icons.spa_outlined,
-                label: 'Space',
-                isActive: currentIndex == 3,
-                onTap: () => onTap(3),
               ),
             ],
           ),

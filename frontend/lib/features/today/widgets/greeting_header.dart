@@ -3,7 +3,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../auth/services/auth_service.dart';
 import '../../reflection/services/reflection_service.dart';
-import '../../settings/pages/settings_page.dart';
 
 /// Top section of the Today page:
 ///   "Good evening, User"  🔥 X Day Streak + Profile/SignOut
@@ -81,151 +80,6 @@ class GreetingHeader extends StatelessWidget {
     );
   }
 
-  void _showProfileSheet(BuildContext context) {
-    final auth = AuthService();
-    final user = auth.currentUser;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.cardBackground,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.divider,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // User avatar circle
-            CircleAvatar(
-              radius: 32,
-              backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-              child: Text(
-                auth.userName.isNotEmpty ? auth.userName[0].toUpperCase() : 'U',
-                style: AppTextStyles.greeting.copyWith(
-                  fontSize: 26,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // User Name & Email
-            Text(
-              auth.userName,
-              style: AppTextStyles.greeting.copyWith(fontSize: 20),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              auth.isGuest
-                  ? (auth.isLocalGuest ? 'Guest Mode (Local)' : 'Guest Mode (Anonymous)')
-                  : (user?.email ?? 'Connected'),
-              style: AppTextStyles.subtitle.copyWith(fontSize: 14),
-            ),
-            const SizedBox(height: 8),
-
-            // Cloud / Local Sync Status Badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.calmTagBg,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    auth.isLocalGuest
-                        ? Icons.phone_android_rounded
-                        : Icons.cloud_done_rounded,
-                    size: 14,
-                    color: AppColors.calmTagText,
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    auth.isLocalGuest
-                        ? 'Local Storage Active'
-                        : 'Cloud Sync Active',
-                    style: AppTextStyles.badge.copyWith(
-                      color: AppColors.calmTagText,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Settings button
-            SizedBox(
-              width: double.infinity,
-              height: 46,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SettingsPage()),
-                  );
-                },
-                icon: const Icon(Icons.settings_outlined, size: 18),
-                label: const Text(
-                  'Settings & Preferences',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(23),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Sign out button
-            SizedBox(
-              width: double.infinity,
-              height: 46,
-              child: OutlinedButton.icon(
-                onPressed: () async {
-                  Navigator.pop(ctx);
-                  await auth.signOut();
-                },
-                icon: const Icon(Icons.logout_rounded,
-                    size: 18, color: Color(0xFFE02424)),
-                label: const Text(
-                  'Sign Out',
-                  style: TextStyle(
-                    color: Color(0xFFE02424),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Color(0xFFF8B4B4)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(23),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final auth = AuthService();
@@ -288,7 +142,7 @@ class GreetingHeader extends StatelessWidget {
             ),
             // Profile icon button
             GestureDetector(
-              onTap: () => _showProfileSheet(context),
+              onTap: () => Scaffold.of(context).openEndDrawer(),
               child: Container(
                 width: 38,
                 height: 38,

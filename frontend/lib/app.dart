@@ -5,10 +5,9 @@ import 'core/services/security_service.dart';
 import 'features/auth/widgets/auth_gate.dart';
 import 'features/auth/widgets/lock_screen.dart';
 import 'features/today/pages/today_page.dart';
-import 'features/history/pages/history_page.dart';
 import 'features/journal/pages/journal_page.dart';
-import 'features/freeform/pages/freeform_page.dart';
 import 'shared/widgets/bottom_nav_bar.dart';
+import 'shared/widgets/profile_drawer.dart';
 
 /// Root widget that configures MaterialApp with theme and App Lock security.
 class DailyReflectionApp extends StatefulWidget {
@@ -82,15 +81,14 @@ class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
 
   static const _pages = <Widget>[
-    TodayPage(),       // 0 — Today
-    HistoryPage(),     // 1 — Journey
-    JournalPage(),     // 2 — Journal
-    FreeformPage(isStandalone: false), // 3 — Space
+    TodayPage(),   // 0 — Today Sanctuary
+    JournalPage(), // 1 — Unified Journal (Timeline & Calendar)
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      endDrawer: const ProfileDrawer(),
       body: IndexedStack(
         index: _currentIndex,
         children: _pages,

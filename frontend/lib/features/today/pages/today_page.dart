@@ -6,6 +6,8 @@ import '../widgets/reflection_prompt_card.dart';
 import '../widgets/yesterday_summary_card.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../freeform/pages/freeform_page.dart';
 import '../../reflection/pages/reflection_page.dart';
 import '../../summary/pages/summary_page.dart';
 import '../../reflection/models/reflection_entry_model.dart';
@@ -50,6 +52,72 @@ class TodayPage extends StatelessWidget {
                     ),
                   );
                 },
+              ),
+              const SizedBox(height: 16),
+
+              // ── Quick Freeform Space Card ─────────────────
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const FreeformPage(isStandalone: true),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBackground,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.divider),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(Icons.edit_note_rounded,
+                            color: AppColors.primary, size: 22),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Freeform Space',
+                              style: AppTextStyles.body.copyWith(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Have thoughts on your mind? Write freely anytime.',
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.textSecondary,
+                                fontSize: 11.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.arrow_forward_ios_rounded,
+                          size: 14, color: AppColors.textHint),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 24),
 
