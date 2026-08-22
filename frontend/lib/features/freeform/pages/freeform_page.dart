@@ -1,20 +1,24 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../shared/widgets/photo_viewer_dialog.dart';
 import '../widgets/energy_selector.dart';
 import '../widgets/freeform_editor.dart';
 import '../../summary/pages/summary_page.dart';
 import '../../reflection/models/reflection_entry_model.dart';
 import '../../reflection/services/reflection_service.dart';
 
-/// Freeform Space — an open, unconstrained writing canvas
-/// paired with an energy / mood check-in.
+/// Freeform Space — an open writing canvas paired with mood selector
+/// and daily moment photo attachment.
 class FreeformPage extends StatefulWidget {
   final String? id;
   final String? initialTitle;
   final String? initialContent;
   final String? initialMood;
+  final String? initialPhotoUrl;
   final DateTime? date;
   final bool isStandalone;
   final VoidCallback? onSaved;
@@ -26,6 +30,7 @@ class FreeformPage extends StatefulWidget {
     this.initialTitle,
     this.initialContent,
     this.initialMood,
+    this.initialPhotoUrl,
     this.date,
     this.isStandalone = true,
     this.onSaved,
@@ -39,13 +44,16 @@ class FreeformPage extends StatefulWidget {
 class _FreeformPageState extends State<FreeformPage> {
   String _selectedEnergy = 'calm';
   bool _isSaving = false;
+  String? _photoPath;
   late final TextEditingController _titleController;
   late final TextEditingController _contentController;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
     _selectedEnergy = widget.initialMood?.toLowerCase() ?? 'calm';
+    _photoPath = widget.initialPhotoUrl;
     _titleController = TextEditingController(text: widget.initialTitle ?? '');
     _contentController =
         TextEditingController(text: widget.initialContent ?? '');
@@ -56,6 +64,101 @@ class _FreeformPageState extends State<FreeformPage> {
     _titleController.dispose();
     _contentController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickPhoto(ImageSource source) async {
+    try {
+      final picked = await _picker.pickImage(
+        source: source,
+        maxWidth: 1800,
+        maxHeight: 1800,
+        imageQuality: 85,
+      );
+      if (picked != null) {
+        setState(() {
+          _photoPath = picked.path;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not attach photo: $e'),
+            backgroundColor: const Color(0xFFE02424),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showPhotoOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.cardBackground,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.divider,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Add Moment Photo',
+                style: GoogleFonts.lora(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.camera_alt_outlined, color: AppColors.primary),
+                ),
+                title: const Text('Take a Photo'),
+                subtitle: const Text('Capture your current surroundings'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickPhoto(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.photo_library_outlined, color: AppColors.primary),
+                ),
+                title: const Text('Choose from Library'),
+                subtitle: const Text('Select a memorable moment from today'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickPhoto(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _saveEntry() async {
@@ -86,6 +189,7 @@ class _FreeformPageState extends State<FreeformPage> {
         answers: widget.reflectionAnswers ?? const {},
         freeformTitle: title.isNotEmpty ? title : null,
         freeformNote: content.isNotEmpty ? content : null,
+        photoUrl: _photoPath,
         type: ReflectionType.freeform,
         createdAt: now,
       );
@@ -133,6 +237,7 @@ class _FreeformPageState extends State<FreeformPage> {
               freeformTitle: title.isNotEmpty ? title : null,
               freeformNote: content.isNotEmpty ? content : null,
               answers: widget.reflectionAnswers,
+              photoUrl: _photoPath,
             ),
           ),
         );
@@ -162,7 +267,8 @@ class _FreeformPageState extends State<FreeformPage> {
 
   void _confirmCancel() {
     if (_contentController.text.trim().isEmpty &&
-        _titleController.text.trim().isEmpty) {
+        _titleController.text.trim().isEmpty &&
+        _photoPath == null) {
       Navigator.pop(context);
       return;
     }
@@ -199,6 +305,145 @@ class _FreeformPageState extends State<FreeformPage> {
                 style: TextStyle(color: AppColors.primary)),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPhotoAttachmentCard() {
+    if (_photoPath != null && _photoPath!.isNotEmpty) {
+      final isNetwork = _photoPath!.startsWith('http://') || _photoPath!.startsWith('https://');
+      final imageProvider = isNetwork
+          ? NetworkImage(_photoPath!) as ImageProvider
+          : FileImage(File(_photoPath!));
+
+      return Container(
+        decoration: BoxDecoration(
+          color: AppColors.cardBackground,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.divider),
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Text('📸', style: TextStyle(fontSize: 16)),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Daily Moment Photo',
+                      style: AppTextStyles.body.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.change_circle_outlined, size: 20, color: AppColors.primary),
+                      tooltip: 'Change Photo',
+                      onPressed: _showPhotoOptions,
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded, size: 20, color: Color(0xFFE02424)),
+                      tooltip: 'Remove Photo',
+                      onPressed: () => setState(() => _photoPath = null),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () => PhotoViewerDialog.show(context, photoUrl: _photoPath!),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    Image(
+                      image: imageProvider,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                    Container(
+                      margin: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.zoom_in_rounded, color: Colors.white, size: 14),
+                          SizedBox(width: 4),
+                          Text('View', style: TextStyle(color: Colors.white, fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return InkWell(
+      onTap: _showPhotoOptions,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        decoration: BoxDecoration(
+          color: AppColors.cardBackground,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.25),
+            style: BorderStyle.solid,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.add_a_photo_outlined, color: AppColors.primary, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Add Daily Moment Photo',
+                  style: AppTextStyles.body.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
+                  ),
+                ),
+                Text(
+                  'Capture a sunset, tea, nature, or peaceful moment',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -302,7 +547,7 @@ class _FreeformPageState extends State<FreeformPage> {
                       selectedId: _selectedEnergy,
                       onSelected: (id) => setState(() => _selectedEnergy = id),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
                     // Editor card
                     FreeformEditor(
@@ -310,6 +555,10 @@ class _FreeformPageState extends State<FreeformPage> {
                       contentController: _contentController,
                       onContentChanged: (_) => setState(() {}),
                     ),
+                    const SizedBox(height: 20),
+
+                    // Photo Attachment Card
+                    _buildPhotoAttachmentCard(),
                     const SizedBox(height: 24),
                   ],
                 ),

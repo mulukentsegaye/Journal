@@ -13,6 +13,7 @@ class JournalEntry {
   final int questionsCount;
   final bool isBookmarked;
   final String entryType;
+  final String? photoUrl;
   final List<String> tags;
 
   const JournalEntry({
@@ -27,12 +28,14 @@ class JournalEntry {
     required this.questionsCount,
     this.isBookmarked = false,
     this.entryType = 'guided',
+    this.photoUrl,
     this.tags = const [],
   });
 
   JournalEntry copyWith({
     bool? isBookmarked,
     String? entryType,
+    String? photoUrl,
   }) {
     return JournalEntry(
       id: id,
@@ -46,6 +49,7 @@ class JournalEntry {
       questionsCount: questionsCount,
       isBookmarked: isBookmarked ?? this.isBookmarked,
       entryType: entryType ?? this.entryType,
+      photoUrl: photoUrl ?? this.photoUrl,
       tags: tags,
     );
   }

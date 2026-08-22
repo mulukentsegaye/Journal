@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -5,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../shared/widgets/photo_viewer_dialog.dart';
 import '../../reflection/models/reflection_entry_model.dart';
 import '../../reflection/services/reflection_service.dart';
 import '../../freeform/pages/freeform_page.dart';
@@ -13,13 +15,14 @@ import '../widgets/response_item_card.dart';
 import '../widgets/freeform_summary_card.dart';
 
 /// Summary Page / Reflection Complete screen — displays all saved
-/// answers, freeform note, mood tag, and share options.
+/// answers, freeform note, mood tag, moment photo, and share options.
 class SummaryPage extends StatefulWidget {
   final String? id;
   final String mood;
   final String moodEmoji;
   final String? freeformTitle;
   final String? freeformNote;
+  final String? photoUrl;
   final Map<int, String>? answers;
 
   const SummaryPage({
@@ -29,6 +32,7 @@ class SummaryPage extends StatefulWidget {
     this.moodEmoji = '🌿',
     this.freeformTitle,
     this.freeformNote,
+    this.photoUrl,
     this.answers,
   });
 
@@ -63,6 +67,7 @@ class _SummaryPageState extends State<SummaryPage> {
       freeformNote: widget.freeformNote?.trim().isNotEmpty == true
           ? widget.freeformNote!.trim()
           : null,
+      photoUrl: widget.photoUrl,
       createdAt: now,
     );
 
@@ -441,6 +446,7 @@ class _SummaryPageState extends State<SummaryPage> {
                   ? widget.answers!.values.first
                   : ''),
           initialMood: widget.mood,
+          initialPhotoUrl: widget.photoUrl,
           reflectionAnswers: widget.answers,
           isStandalone: true,
         ),
@@ -602,7 +608,102 @@ class _SummaryPageState extends State<SummaryPage> {
                       mood: widget.mood,
                       moodEmoji: widget.moodEmoji,
                     ),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 20),
+
+                    // ── Attached Daily Moment Photo ──────────────────
+                    if (widget.photoUrl != null && widget.photoUrl!.isNotEmpty) ...[
+                      GestureDetector(
+                        onTap: () => PhotoViewerDialog.show(
+                          context,
+                          photoUrl: widget.photoUrl!,
+                          caption: widget.freeformTitle ?? 'Daily Moment Photo',
+                        ),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.cardBackground,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: AppColors.divider.withValues(alpha: 0.8),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                blurRadius: 16,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Stack(
+                                alignment: Alignment.bottomRight,
+                                children: [
+                                  widget.photoUrl!.startsWith('http://') ||
+                                          widget.photoUrl!.startsWith('https://')
+                                      ? Image.network(
+                                          widget.photoUrl!,
+                                          height: 200,
+                                          width: double.infinity,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (ctx, err, stack) =>
+                                              const SizedBox.shrink(),
+                                        )
+                                      : Image.file(
+                                          File(widget.photoUrl!),
+                                          height: 200,
+                                          width: double.infinity,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (ctx, err, stack) =>
+                                              const SizedBox.shrink(),
+                                        ),
+                                  Container(
+                                    margin: const EdgeInsets.all(10),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black54,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.zoom_in_rounded,
+                                            color: Colors.white, size: 14),
+                                        SizedBox(width: 4),
+                                        Text('View Photo',
+                                            style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 11)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(14),
+                                child: Row(
+                                  children: [
+                                    const Text('📸',
+                                        style: TextStyle(fontSize: 16)),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Daily Moment Captured',
+                                      style: AppTextStyles.bodySmall.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
 
                     // Section Title & Answer items (if user answered questions)
                     if (userResponses.isNotEmpty) ...[

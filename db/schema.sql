@@ -15,11 +15,15 @@ CREATE TABLE IF NOT EXISTS public.reflections (
     answers JSONB NOT NULL DEFAULT '{}'::jsonb,
     freeform_title TEXT,
     freeform_note TEXT,
+    photo_url TEXT,
     is_bookmarked BOOLEAN NOT NULL DEFAULT FALSE,
     type TEXT NOT NULL DEFAULT 'guided',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Migration helper if table already exists
+ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS photo_url TEXT;
 
 -- 3. Enable Row Level Security (RLS)
 ALTER TABLE public.reflections ENABLE ROW LEVEL SECURITY;

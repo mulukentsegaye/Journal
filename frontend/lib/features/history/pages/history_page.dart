@@ -118,6 +118,7 @@ class _HistoryPageState extends State<HistoryPage> {
           initialContent: model.freeformNote ??
               (model.answers.isNotEmpty ? model.answers.values.first : ''),
           initialMood: model.mood,
+          initialPhotoUrl: model.photoUrl,
           reflectionAnswers: model.answers,
           isStandalone: true,
         ),
@@ -135,6 +136,7 @@ class _HistoryPageState extends State<HistoryPage> {
           moodEmoji: model.moodEmoji,
           freeformTitle: model.freeformTitle,
           freeformNote: model.freeformNote,
+          photoUrl: model.photoUrl,
           answers: model.answers,
         ),
       ),
@@ -266,6 +268,7 @@ class ReflectionEntry {
   final String summary;
   final int questionsAnswered;
   final int minutesSpent;
+  final String? photoUrl;
 
   const ReflectionEntry({
     required this.id,
@@ -274,5 +277,6 @@ class ReflectionEntry {
     required this.summary,
     required this.questionsAnswered,
     required this.minutesSpent,
+    this.photoUrl,
   });
 }

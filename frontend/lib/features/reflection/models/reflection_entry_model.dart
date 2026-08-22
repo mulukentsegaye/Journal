@@ -9,7 +9,7 @@ enum ReflectionType {
   freeform,
 }
 
-/// Full model for a saved daily reflection stored in Cloud Firestore.
+/// Full model for a saved daily reflection stored in local cache and Supabase.
 class ReflectionEntryModel {
   final String id;
   final DateTime date;
@@ -18,6 +18,7 @@ class ReflectionEntryModel {
   final Map<int, String> answers;
   final String? freeformTitle;
   final String? freeformNote;
+  final String? photoUrl;
   final bool isBookmarked;
   final ReflectionType type;
   final DateTime createdAt;
@@ -30,6 +31,7 @@ class ReflectionEntryModel {
     this.answers = const {},
     this.freeformTitle,
     this.freeformNote,
+    this.photoUrl,
     this.isBookmarked = false,
     this.type = ReflectionType.guided,
     required this.createdAt,
@@ -44,6 +46,7 @@ class ReflectionEntryModel {
       'answers': answers.map((k, v) => MapEntry(k.toString(), v)),
       'freeformTitle': freeformTitle,
       'freeformNote': freeformNote,
+      'photoUrl': photoUrl,
       'isBookmarked': isBookmarked,
       'type': type.name,
       'createdAt': createdAt.toIso8601String(),
@@ -60,6 +63,7 @@ class ReflectionEntryModel {
       'answers': answers.map((k, v) => MapEntry(k.toString(), v)),
       'freeform_title': freeformTitle,
       'freeform_note': freeformNote,
+      'photo_url': photoUrl,
       'is_bookmarked': isBookmarked,
       'type': type.name,
       'created_at': createdAt.toIso8601String(),
@@ -101,6 +105,7 @@ class ReflectionEntryModel {
       answers: parsedAnswers,
       freeformTitle: (map['freeformTitle'] ?? map['freeform_title'])?.toString(),
       freeformNote: (map['freeformNote'] ?? map['freeform_note'])?.toString(),
+      photoUrl: (map['photoUrl'] ?? map['photo_url'])?.toString(),
       isBookmarked: (map['isBookmarked'] ?? map['is_bookmarked']) == true,
       type: parsedType,
       createdAt: createdStr != null
@@ -155,6 +160,7 @@ class ReflectionEntryModel {
       questionsCount: answers.length,
       isBookmarked: isBookmarked,
       entryType: type.name,
+      photoUrl: photoUrl,
     );
   }
 
@@ -175,6 +181,7 @@ class ReflectionEntryModel {
       summary: summaryText,
       questionsAnswered: answers.length,
       minutesSpent: (answers.length * 1.2).round().clamp(3, 15),
+      photoUrl: photoUrl,
     );
   }
 
@@ -189,6 +196,7 @@ class ReflectionEntryModel {
   ReflectionEntryModel copyWith({
     bool? isBookmarked,
     ReflectionType? type,
+    String? photoUrl,
   }) {
     return ReflectionEntryModel(
       id: id,
@@ -198,6 +206,7 @@ class ReflectionEntryModel {
       answers: answers,
       freeformTitle: freeformTitle,
       freeformNote: freeformNote,
+      photoUrl: photoUrl ?? this.photoUrl,
       isBookmarked: isBookmarked ?? this.isBookmarked,
       type: type ?? this.type,
       createdAt: createdAt,

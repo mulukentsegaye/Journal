@@ -4,6 +4,10 @@
 <dict>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Daily Reflection uses Face ID to protect your private journal.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Daily Reflection uses the camera to capture mindful daily moments for your journal.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Daily Reflection accesses your photo library to attach photos to your daily reflections.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

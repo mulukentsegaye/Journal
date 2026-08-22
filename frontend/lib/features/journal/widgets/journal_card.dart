@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../shared/widgets/photo_viewer_dialog.dart';
 import '../models/journal_entry.dart';
 
 /// Card component representing a single journal entry item.
@@ -38,6 +40,59 @@ class JournalCard extends StatelessWidget {
       return 'Yesterday';
     }
     return '${_months[d.month - 1]} ${d.day}, ${d.year}';
+  }
+
+  Widget _buildPhotoThumbnail(BuildContext context) {
+    if (entry.photoUrl == null || entry.photoUrl!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final isNetwork = entry.photoUrl!.startsWith('http://') || entry.photoUrl!.startsWith('https://');
+    final imageProvider = isNetwork
+        ? NetworkImage(entry.photoUrl!) as ImageProvider
+        : FileImage(File(entry.photoUrl!));
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: GestureDetector(
+        onTap: () => PhotoViewerDialog.show(
+          context,
+          photoUrl: entry.photoUrl!,
+          caption: entry.title,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Stack(
+            alignment: Alignment.bottomRight,
+            children: [
+              Image(
+                image: imageProvider,
+                height: 140,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+              ),
+              Container(
+                margin: const EdgeInsets.all(8),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.zoom_in_rounded, color: Colors.white, size: 14),
+                    SizedBox(width: 4),
+                    Text('Moment', style: TextStyle(color: Colors.white, fontSize: 10)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -191,6 +246,9 @@ class JournalCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 14),
+
+            // ── Photo Thumbnail (if attached) ─────────────────
+            _buildPhotoThumbnail(context),
 
             // ── Title ─────────────────────────────────────────
             Text(

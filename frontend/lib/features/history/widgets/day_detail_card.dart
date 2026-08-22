@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../shared/widgets/photo_viewer_dialog.dart';
 import '../pages/history_page.dart';
 
 /// Detail card shown below the calendar when a day is selected.
@@ -61,12 +63,12 @@ class DayDetailCard extends StatelessWidget {
             ),
           ],
         ),
-        child: entry != null ? _buildFilledState() : _buildEmptyState(),
+        child: entry != null ? _buildFilledState(context) : _buildEmptyState(),
       ),
     );
   }
 
-  Widget _buildFilledState() {
+  Widget _buildFilledState(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -99,6 +101,57 @@ class DayDetailCard extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 14),
+
+        // ── Photo Attachment (if present) ────────────────
+        if (entry!.photoUrl != null && entry!.photoUrl!.isNotEmpty) ...[
+          GestureDetector(
+            onTap: () => PhotoViewerDialog.show(
+              context,
+              photoUrl: entry!.photoUrl!,
+              caption: entry!.summary,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  entry!.photoUrl!.startsWith('http://') || entry!.photoUrl!.startsWith('https://')
+                      ? Image.network(
+                          entry!.photoUrl!,
+                          height: 140,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                        )
+                      : Image.file(
+                          File(entry!.photoUrl!),
+                          height: 140,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                        ),
+                  Container(
+                    margin: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.zoom_in_rounded, color: Colors.white, size: 14),
+                        SizedBox(width: 4),
+                        Text('Moment', style: TextStyle(color: Colors.white, fontSize: 10)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
 
         // ── Summary text ─────────────────────────────────
         Text(
