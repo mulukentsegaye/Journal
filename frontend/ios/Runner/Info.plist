@@ -8,6 +8,10 @@
 	<string>Daily Reflection uses the camera to capture mindful daily moments for your journal.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Daily Reflection accesses your photo library to attach photos to your daily reflections.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Daily Reflection uses speech recognition to transcribe your spoken voice reflections into written journal text.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Daily Reflection uses the microphone for voice-to-text audio journaling.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

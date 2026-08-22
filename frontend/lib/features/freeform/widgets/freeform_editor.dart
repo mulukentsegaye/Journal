@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 
+import '../../../shared/widgets/voice_input_button.dart';
+
 /// Card containing title and multi-line body editor for freeform reflection.
 class FreeformEditor extends StatelessWidget {
   final TextEditingController titleController;
@@ -169,28 +171,16 @@ class FreeformEditor extends StatelessWidget {
             ),
           ),
 
-          // ── Footer (Word count & Peace note) ───────────────
+          // ── Voice Input & Word Count Bar ──────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.spa_outlined,
-                      size: 13,
-                      color: AppColors.textHint.withValues(alpha: 0.6),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      'No rules or expectations',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textHint.withValues(alpha: 0.7),
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
+                VoiceInputButton(
+                  controller: contentController,
+                  label: 'Speak your thoughts',
+                  onTextChanged: onContentChanged,
                 ),
                 Text(
                   '$_wordCount words',
@@ -198,6 +188,28 @@ class FreeformEditor extends StatelessWidget {
                     color: AppColors.textHint,
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Footer (Peace note) ───────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.spa_outlined,
+                  size: 13,
+                  color: AppColors.textHint.withValues(alpha: 0.6),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  'No rules or expectations',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textHint.withValues(alpha: 0.7),
+                    fontSize: 11,
                   ),
                 ),
               ],
