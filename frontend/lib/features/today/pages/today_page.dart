@@ -13,6 +13,8 @@ import '../../summary/pages/summary_page.dart';
 import '../../reflection/models/reflection_entry_model.dart';
 import '../../reflection/services/reflection_service.dart';
 
+import '../../../core/services/settings_service.dart';
+
 /// The main "Today" screen — the home page of Daily Reflection.
 /// Dynamically connected to Firestore for past summary cards.
 class TodayPage extends StatelessWidget {
@@ -22,13 +24,16 @@ class TodayPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final reflectionService = ReflectionService();
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          child: Column(
+    return ListenableBuilder(
+      listenable: SettingsService(),
+      builder: (context, _) {
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          body: SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ── Greeting ──────────────────────────────────
@@ -174,5 +179,7 @@ class TodayPage extends StatelessWidget {
         ),
       ),
     );
-  }
+  },
+);
+}
 }

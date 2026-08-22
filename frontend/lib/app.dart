@@ -88,24 +88,30 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
 
-  static const _pages = <Widget>[
-    TodayPage(),   // 0 — Today Sanctuary
-    JournalPage(), // 1 — Unified Journal (Timeline & Calendar)
-  ];
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: AppShell.scaffoldKey,
-      endDrawer: const ProfileDrawer(),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
-      bottomNavigationBar: AppBottomNavBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-      ),
+    return ListenableBuilder(
+      listenable: SettingsService(),
+      builder: (context, _) {
+        final currentTheme = SettingsService().themeMode;
+        final pages = <Widget>[
+          TodayPage(key: ValueKey('today_$currentTheme')),
+          JournalPage(key: ValueKey('journal_$currentTheme')),
+        ];
+
+        return Scaffold(
+          key: AppShell.scaffoldKey,
+          endDrawer: const ProfileDrawer(),
+          body: IndexedStack(
+            index: _currentIndex,
+            children: pages,
+          ),
+          bottomNavigationBar: AppBottomNavBar(
+            currentIndex: _currentIndex,
+            onTap: (index) => setState(() => _currentIndex = index),
+          ),
+        );
+      },
     );
   }
 }

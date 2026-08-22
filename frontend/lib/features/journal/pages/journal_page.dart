@@ -8,6 +8,7 @@ import '../../../core/utils/streak_calculator.dart';
 import '../models/journal_entry.dart';
 import '../widgets/journal_card.dart';
 import '../widgets/journal_filter_chips.dart';
+import '../../../core/services/settings_service.dart';
 import '../../history/pages/history_page.dart';
 import '../../history/widgets/calendar_grid.dart';
 import '../../history/widgets/month_header.dart';
@@ -215,7 +216,7 @@ class _JournalPageState extends State<JournalPage> {
       ),
       body: SafeArea(
         child: ListenableBuilder(
-          listenable: _reflectionService,
+          listenable: Listenable.merge([_reflectionService, SettingsService()]),
           builder: (context, _) {
             final models = _reflectionService.entries;
             final rawEntries = models.map((m) => m.toJournalEntry()).toList();
