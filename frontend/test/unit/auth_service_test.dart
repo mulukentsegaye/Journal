@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:daily_reflection/features/auth/services/auth_service.dart';
-import 'package:daily_reflection/features/reflection/services/firestore_service.dart';
+import 'package:daily_reflection/features/reflection/services/database_service.dart';
 import 'package:daily_reflection/features/reflection/models/reflection_entry_model.dart';
 
 void main() {
@@ -12,7 +12,7 @@ void main() {
   });
 
   group('AuthService Guest Mode & Fallback Tests', () {
-    test('signInAnonymously activates guest mode when Firebase is unavailable', () async {
+    test('signInAnonymously activates guest mode when Supabase is unconfigured/offline', () async {
       final auth = AuthService();
       await auth.signInAnonymously();
 
@@ -41,11 +41,11 @@ void main() {
       expect(auth.isLocalGuest, isFalse);
     });
 
-    test('FirestoreService saves and streams local reflections in Guest Mode', () async {
+    test('DatabaseService saves and streams local reflections in Guest Mode', () async {
       final auth = AuthService();
       await auth.signInAnonymously();
 
-      final firestoreService = FirestoreService();
+      final dbService = DatabaseService();
       final now = DateTime.now();
       final entry = ReflectionEntryModel(
         id: 'guest_test_entry_1',
@@ -57,22 +57,22 @@ void main() {
         createdAt: now,
       );
 
-      await firestoreService.saveReflection(entry);
+      await dbService.saveReflection(entry);
 
-      final latest = await firestoreService.getYesterdayOrLatestReflection();
+      final latest = await dbService.getYesterdayOrLatestReflection();
       expect(latest, isNotNull);
       expect(latest!.id, equals('guest_test_entry_1'));
       expect(latest.mood, equals('Grateful'));
       expect(latest.freeformNote, equals('A restful evening.'));
 
       // Toggle bookmark
-      await firestoreService.toggleBookmark('guest_test_entry_1', false);
-      final bookmarked = await firestoreService.getYesterdayOrLatestReflection();
+      await dbService.toggleBookmark('guest_test_entry_1', false);
+      final bookmarked = await dbService.getYesterdayOrLatestReflection();
       expect(bookmarked!.isBookmarked, isTrue);
 
       // Delete reflection
-      await firestoreService.deleteReflection('guest_test_entry_1');
-      final afterDelete = await firestoreService.getYesterdayOrLatestReflection();
+      await dbService.deleteReflection('guest_test_entry_1');
+      final afterDelete = await dbService.getYesterdayOrLatestReflection();
       expect(afterDelete, isNull);
     });
   });

@@ -4,16 +4,16 @@ import '../models/reflection_entry_model.dart';
 import '../../journal/models/journal_entry.dart';
 import '../../../core/utils/streak_calculator.dart';
 import '../../auth/services/auth_service.dart';
-import 'firestore_service.dart';
+import 'database_service.dart';
 
 /// Centralized state management and repository for user reflections.
-/// Prevents redundant Firestore stream subscriptions and provides reactive
-/// updates across the app.
+/// Connects to DatabaseService (Local-First + Supabase Sync) and provides
+/// reactive updates across the app.
 class ReflectionService extends ChangeNotifier {
   static final ReflectionService _instance = ReflectionService._internal();
-  factory ReflectionService([FirestoreService? firestoreService]) {
-    if (firestoreService != null) {
-      _instance._firestoreService = firestoreService;
+  factory ReflectionService([DatabaseService? databaseService]) {
+    if (databaseService != null) {
+      _instance._databaseService = databaseService;
     }
     return _instance;
   }
@@ -25,7 +25,7 @@ class ReflectionService extends ChangeNotifier {
     });
   }
 
-  FirestoreService _firestoreService = FirestoreService();
+  DatabaseService _databaseService = DatabaseService();
   StreamSubscription<List<ReflectionEntryModel>>? _subscription;
   StreamSubscription<bool>? _authSubscription;
 
@@ -60,7 +60,7 @@ class ReflectionService extends ChangeNotifier {
     _isLoading = true;
 
     try {
-      _subscription = _firestoreService.streamReflections().listen(
+      _subscription = _databaseService.streamReflections().listen(
         (data) {
           _entries = data;
           _isLoading = false;
@@ -80,24 +80,25 @@ class ReflectionService extends ChangeNotifier {
     }
   }
 
-  /// Refreshes the reflections stream subscription.
+  /// Refreshes the reflections stream subscription and syncs with cloud.
   void refresh() {
     _initStream();
+    _databaseService.syncPendingChanges();
   }
 
   /// Save or update a reflection.
   Future<void> saveReflection(ReflectionEntryModel entry) async {
-    await _firestoreService.saveReflection(entry);
+    await _databaseService.saveReflection(entry);
   }
 
   /// Delete a reflection by document ID.
   Future<void> deleteReflection(String docId) async {
-    await _firestoreService.deleteReflection(docId);
+    await _databaseService.deleteReflection(docId);
   }
 
   /// Toggle bookmark status.
   Future<void> toggleBookmark(String docId, bool currentBookmark) async {
-    await _firestoreService.toggleBookmark(docId, currentBookmark);
+    await _databaseService.toggleBookmark(docId, currentBookmark);
   }
 
   /// Fetch the latest or yesterday's reflection for the home card.
@@ -112,7 +113,7 @@ class ReflectionService extends ChangeNotifier {
       }
       return _entries.first;
     }
-    return await _firestoreService.getYesterdayOrLatestReflection();
+    return await _databaseService.getYesterdayOrLatestReflection();
   }
 
   @override

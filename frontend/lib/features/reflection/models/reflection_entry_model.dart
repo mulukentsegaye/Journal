@@ -35,7 +35,7 @@ class ReflectionEntryModel {
     required this.createdAt,
   });
 
-  /// Convert to Firestore Map
+  /// Convert to local/JSON Map
   Map<String, dynamic> toMap() {
     return {
       'date': date.toIso8601String(),
@@ -50,11 +50,32 @@ class ReflectionEntryModel {
     };
   }
 
-  /// Create from Firestore Map
+  /// Convert to Supabase PostgreSQL table row format (snake_case)
+  Map<String, dynamic> toSupabaseMap({String? userId}) {
+    final map = <String, dynamic>{
+      'id': id,
+      'date': date.toIso8601String(),
+      'mood': mood,
+      'mood_emoji': moodEmoji,
+      'answers': answers.map((k, v) => MapEntry(k.toString(), v)),
+      'freeform_title': freeformTitle,
+      'freeform_note': freeformNote,
+      'is_bookmarked': isBookmarked,
+      'type': type.name,
+      'created_at': createdAt.toIso8601String(),
+    };
+    if (userId != null && userId.isNotEmpty) {
+      map['user_id'] = userId;
+    }
+    return map;
+  }
+
+  /// Create from JSON Map (supports both camelCase and snake_case keys)
   factory ReflectionEntryModel.fromMap(Map<String, dynamic> map, String docId) {
     Map<int, String> parsedAnswers = {};
-    if (map['answers'] != null && map['answers'] is Map) {
-      (map['answers'] as Map).forEach((k, v) {
+    final rawAnswers = map['answers'];
+    if (rawAnswers != null && rawAnswers is Map) {
+      rawAnswers.forEach((k, v) {
         final parsedKey = int.tryParse(k.toString());
         if (parsedKey != null) {
           parsedAnswers[parsedKey] = v.toString();
@@ -62,27 +83,35 @@ class ReflectionEntryModel {
       });
     }
 
-    final typeStr = map['type']?.toString();
+    final typeStr = (map['type'] ?? map['entry_type'])?.toString();
     final parsedType = typeStr == 'freeform'
         ? ReflectionType.freeform
         : ReflectionType.guided;
 
+    final dateStr = map['date']?.toString();
+    final createdStr = (map['createdAt'] ?? map['created_at'])?.toString();
+
     return ReflectionEntryModel(
       id: docId,
-      date: map['date'] != null
-          ? DateTime.tryParse(map['date'].toString()) ?? DateTime.now()
+      date: dateStr != null
+          ? DateTime.tryParse(dateStr) ?? DateTime.now()
           : DateTime.now(),
       mood: map['mood']?.toString() ?? 'Calm',
-      moodEmoji: map['moodEmoji']?.toString() ?? '🌿',
+      moodEmoji: (map['moodEmoji'] ?? map['mood_emoji'])?.toString() ?? '🌿',
       answers: parsedAnswers,
-      freeformTitle: map['freeformTitle']?.toString(),
-      freeformNote: map['freeformNote']?.toString(),
-      isBookmarked: map['isBookmarked'] == true,
+      freeformTitle: (map['freeformTitle'] ?? map['freeform_title'])?.toString(),
+      freeformNote: (map['freeformNote'] ?? map['freeform_note'])?.toString(),
+      isBookmarked: (map['isBookmarked'] ?? map['is_bookmarked']) == true,
       type: parsedType,
-      createdAt: map['createdAt'] != null
-          ? DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now()
+      createdAt: createdStr != null
+          ? DateTime.tryParse(createdStr) ?? DateTime.now()
           : DateTime.now(),
     );
+  }
+
+  /// Create from Supabase row
+  factory ReflectionEntryModel.fromSupabase(Map<String, dynamic> row) {
+    return ReflectionEntryModel.fromMap(row, row['id']?.toString() ?? '');
   }
 
   /// Convenience method to convert to JournalEntry

@@ -1,9 +1,0 @@
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // User reflections collection: ensure users can only read/write their own entries
-    match /users/{userId}/reflections/{reflectionId} {
-      allow read, write, delete: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}

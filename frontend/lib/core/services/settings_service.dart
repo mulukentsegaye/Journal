@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import '../constants/app_strings.dart';
-import '../../features/reflection/services/firestore_service.dart';
+import '../../features/reflection/services/database_service.dart';
 
 /// App-wide settings and preference manager.
 class SettingsService extends ChangeNotifier {
@@ -100,8 +100,8 @@ class SettingsService extends ChangeNotifier {
 
   /// Exports all saved reflections as a structured Markdown document.
   Future<String> exportAllReflectionsMarkdown() async {
-    final firestore = FirestoreService();
-    final entries = await firestore.streamReflections().first;
+    final db = DatabaseService();
+    final entries = await db.streamReflections().first;
 
     if (entries.isEmpty) {
       return '# Daily Reflection Journal Backup\n\nNo reflection entries found yet.';
