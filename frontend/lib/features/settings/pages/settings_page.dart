@@ -306,8 +306,8 @@ class _SettingsPageState extends State<SettingsPage> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            user?.isAnonymous == true
-                                ? 'Guest Mode (Anonymous)'
+                            _authService.isGuest
+                                ? (_authService.isLocalGuest ? 'Guest Mode (Local)' : 'Guest Mode (Anonymous)')
                                 : (user?.email ?? 'Connected'),
                             style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
                           ),
@@ -321,10 +321,18 @@ class _SettingsPageState extends State<SettingsPage> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.cloud_done_rounded, size: 12, color: AppColors.calmTagText),
+                                Icon(
+                                  _authService.isLocalGuest
+                                      ? Icons.phone_android_rounded
+                                      : Icons.cloud_done_rounded,
+                                  size: 12,
+                                  color: AppColors.calmTagText,
+                                ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  'Cloud Sync Active',
+                                  _authService.isLocalGuest
+                                      ? 'Local Storage Active'
+                                      : 'Cloud Sync Active',
                                   style: AppTextStyles.badge.copyWith(
                                     color: AppColors.calmTagText,
                                     fontSize: 10,

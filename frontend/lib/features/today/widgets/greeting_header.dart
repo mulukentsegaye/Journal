@@ -127,12 +127,14 @@ class GreetingHeader extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              user?.email ?? 'Connected',
+              auth.isGuest
+                  ? (auth.isLocalGuest ? 'Guest Mode (Local)' : 'Guest Mode (Anonymous)')
+                  : (user?.email ?? 'Connected'),
               style: AppTextStyles.subtitle.copyWith(fontSize: 14),
             ),
             const SizedBox(height: 8),
 
-            // Cloud Sync Status Badge
+            // Cloud / Local Sync Status Badge
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
@@ -143,13 +145,17 @@ class GreetingHeader extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.cloud_done_rounded,
+                    auth.isLocalGuest
+                        ? Icons.phone_android_rounded
+                        : Icons.cloud_done_rounded,
                     size: 14,
                     color: AppColors.calmTagText,
                   ),
                   const SizedBox(width: 5),
                   Text(
-                    'Cloud Sync Active',
+                    auth.isLocalGuest
+                        ? 'Local Storage Active'
+                        : 'Cloud Sync Active',
                     style: AppTextStyles.badge.copyWith(
                       color: AppColors.calmTagText,
                     ),

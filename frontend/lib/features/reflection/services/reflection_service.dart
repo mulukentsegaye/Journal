@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/reflection_entry_model.dart';
 import '../../journal/models/journal_entry.dart';
 import '../../../core/utils/streak_calculator.dart';
+import '../../auth/services/auth_service.dart';
 import 'firestore_service.dart';
 
 /// Centralized state management and repository for user reflections.
@@ -19,10 +20,14 @@ class ReflectionService extends ChangeNotifier {
 
   ReflectionService._internal() {
     _initStream();
+    _authSubscription = AuthService().isLoggedInStream.listen((_) {
+      _initStream();
+    });
   }
 
   FirestoreService _firestoreService = FirestoreService();
   StreamSubscription<List<ReflectionEntryModel>>? _subscription;
+  StreamSubscription<bool>? _authSubscription;
 
   List<ReflectionEntryModel> _entries = [];
   bool _isLoading = true;
@@ -49,7 +54,7 @@ class ReflectionService extends ChangeNotifier {
     return map;
   }
 
-  /// Initialize and listen to the single shared Firestore stream.
+  /// Initialize and listen to the single shared reflections stream.
   void _initStream() {
     _subscription?.cancel();
     _isLoading = true;
@@ -75,7 +80,7 @@ class ReflectionService extends ChangeNotifier {
     }
   }
 
-  /// Refreshes the Firestore stream subscription.
+  /// Refreshes the reflections stream subscription.
   void refresh() {
     _initStream();
   }
@@ -112,6 +117,7 @@ class ReflectionService extends ChangeNotifier {
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
     _subscription?.cancel();
     super.dispose();
   }

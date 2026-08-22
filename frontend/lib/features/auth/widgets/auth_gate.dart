@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../../app.dart';
 import '../../../core/theme/app_colors.dart';
@@ -12,11 +11,13 @@ class AuthGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: AuthService().authStateChanges,
+    return StreamBuilder<bool>(
+      stream: AuthService().isLoggedInStream,
+      initialData: AuthService().isLoggedIn,
       builder: (context, snapshot) {
-        // While checking initial auth state
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        // While checking initial persisted session state
+        if (!AuthService().isSessionLoaded &&
+            snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
             backgroundColor: AppColors.background,
             body: Center(
@@ -28,8 +29,8 @@ class AuthGate extends StatelessWidget {
           );
         }
 
-        // If user is authenticated, show the main app
-        if (snapshot.hasData && snapshot.data != null) {
+        // If user is authenticated (Firebase or Local Guest), show the main app
+        if (AuthService().isLoggedIn) {
           return const AppShell();
         }
 
@@ -39,3 +40,4 @@ class AuthGate extends StatelessWidget {
     );
   }
 }
+
