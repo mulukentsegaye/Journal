@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/smooth_page_route.dart';
 import '../../../shared/widgets/photo_viewer_dialog.dart';
 import '../widgets/energy_selector.dart';
 import '../widgets/freeform_editor.dart';
@@ -229,7 +230,7 @@ class _FreeformPageState extends State<FreeformPage> {
       } else if (widget.isStandalone) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
+          SmoothPageRoute(
             builder: (_) => SummaryPage(
               id: docId,
               mood: selectedEnergyState.label,

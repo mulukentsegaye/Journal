@@ -1,10 +1,21 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'app_colors.dart';
 
-/// Assembles the app-wide [ThemeData].
+/// Assembles the app-wide [ThemeData] with crisp, native, natural page transitions.
 class AppTheme {
   AppTheme._();
+
+  static const _pageTransitionsTheme = PageTransitionsTheme(
+    builders: {
+      TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
+    },
+  );
 
   static ThemeData get lightTheme {
     return ThemeData(
@@ -30,6 +41,7 @@ class AppTheme {
         systemOverlayStyle: SystemUiOverlayStyle.dark,
         iconTheme: IconThemeData(color: AppColors.lightTextPrimary),
       ),
+      pageTransitionsTheme: _pageTransitionsTheme,
       splashColor: AppColors.lightPrimary.withValues(alpha: 0.08),
       highlightColor: AppColors.lightPrimary.withValues(alpha: 0.05),
     );
@@ -59,6 +71,7 @@ class AppTheme {
         systemOverlayStyle: SystemUiOverlayStyle.light,
         iconTheme: IconThemeData(color: AppColors.darkTextPrimary),
       ),
+      pageTransitionsTheme: _pageTransitionsTheme,
       splashColor: AppColors.darkPrimary.withValues(alpha: 0.12),
       highlightColor: AppColors.darkPrimary.withValues(alpha: 0.08),
     );

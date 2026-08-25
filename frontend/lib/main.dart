@@ -3,12 +3,16 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'core/config/supabase_config.dart';
+import 'core/services/notification_service.dart';
 import 'core/services/settings_service.dart';
 import 'core/services/security_service.dart';
 import 'features/auth/services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize notifications & timezone support
+  await NotificationService().initialize();
 
   // Initialize Supabase if configured, or fail gracefully to local-first mode
   if (SupabaseConfig.isConfigured) {

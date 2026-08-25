@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import '../constants/app_strings.dart';
+import 'notification_service.dart';
 import '../../features/reflection/services/database_service.dart';
 
 /// App-wide settings and preference manager.
@@ -52,6 +53,11 @@ class SettingsService extends ChangeNotifier {
       final minute = prefs.getInt(_keyReminderMinute) ?? 0;
       _reminderTime = TimeOfDay(hour: hour, minute: minute);
 
+      // Reschedule or initialize the reminder according to loaded preference
+      if (_reminderEnabled) {
+        NotificationService().scheduleDailyReminder(_reminderTime);
+      }
+
       _isInitialized = true;
       notifyListeners();
     } catch (_) {
@@ -78,6 +84,12 @@ class SettingsService extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_keyReminderEnabled, enabled);
     } catch (_) {}
+
+    if (enabled) {
+      await NotificationService().scheduleDailyReminder(_reminderTime);
+    } else {
+      await NotificationService().cancelReminder();
+    }
   }
 
   /// Set the time for daily reflection reminders.
@@ -89,6 +101,10 @@ class SettingsService extends ChangeNotifier {
       await prefs.setInt(_keyReminderHour, time.hour);
       await prefs.setInt(_keyReminderMinute, time.minute);
     } catch (_) {}
+
+    if (_reminderEnabled) {
+      await NotificationService().scheduleDailyReminder(time);
+    }
   }
 
   /// Format reminder time nicely e.g. "6:00 PM".

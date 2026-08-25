@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../app.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/smooth_page_route.dart';
 import '../../../core/utils/streak_calculator.dart';
 import '../models/journal_entry.dart';
 import '../widgets/journal_card.dart';
@@ -159,7 +160,7 @@ class _JournalPageState extends State<JournalPage> {
   void _editReflection(ReflectionEntryModel model) {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      SmoothPageRoute(
         builder: (_) => FreeformPage(
           id: model.id,
           date: model.date,
@@ -178,7 +179,7 @@ class _JournalPageState extends State<JournalPage> {
   void _viewSummary(ReflectionEntryModel model) {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      SmoothPageRoute(
         builder: (_) => SummaryPage(
           id: model.id,
           mood: model.mood,
@@ -200,7 +201,7 @@ class _JournalPageState extends State<JournalPage> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(
+            SmoothPageRoute(
               builder: (_) => const FreeformPage(isStandalone: true),
             ),
           );
@@ -366,221 +367,245 @@ class _JournalPageState extends State<JournalPage> {
                   ),
                   const SizedBox(height: 18),
 
-                  // ── VIEW 1: TIMELINE FEED ──────────────────────────
-                  if (_viewMode == JournalViewMode.timeline) ...[
-                    // Search Bar
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.cardBackground,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: AppColors.divider.withValues(alpha: 0.8),
-                          width: 1,
+                  // ── VIEW SWITCHER (TIMELINE FEED / CALENDAR GRID) ──
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 220),
+                    switchInCurve: Curves.easeInOutCubic,
+                    switchOutCurve: Curves.easeInOutCubic,
+                    transitionBuilder: (child, animation) {
+                      return FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0, 0.015),
+                            end: Offset.zero,
+                          ).animate(animation),
+                          child: child,
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (val) =>
-                            setState(() => _searchQuery = val.trim()),
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: AppColors.textPrimary,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'Search past thoughts or moods...',
-                          hintStyle: GoogleFonts.inter(
-                            fontSize: 14,
-                            color: AppColors.textHint.withValues(alpha: 0.7),
-                          ),
-                          prefixIcon: Icon(
-                            Icons.search_rounded,
-                            size: 20,
-                            color: AppColors.textHint,
-                          ),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? GestureDetector(
-                                  onTap: () {
-                                    _searchController.clear();
-                                    setState(() => _searchQuery = '');
-                                  },
-                                  child: Icon(
-                                    Icons.close_rounded,
-                                    size: 18,
-                                    color: AppColors.textHint,
+                      );
+                    },
+                    child: _viewMode == JournalViewMode.timeline
+                        ? Column(
+                            key: const ValueKey('view_timeline'),
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Search Bar
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: AppColors.cardBackground,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: AppColors.divider.withValues(alpha: 0.8),
+                                    width: 1,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.02),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: TextField(
+                                  controller: _searchController,
+                                  onChanged: (val) =>
+                                      setState(() => _searchQuery = val.trim()),
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: 'Search past thoughts or moods...',
+                                    hintStyle: GoogleFonts.inter(
+                                      fontSize: 14,
+                                      color: AppColors.textHint.withValues(alpha: 0.7),
+                                    ),
+                                    prefixIcon: Icon(
+                                      Icons.search_rounded,
+                                      size: 20,
+                                      color: AppColors.textHint,
+                                    ),
+                                    suffixIcon: _searchQuery.isNotEmpty
+                                        ? GestureDetector(
+                                            onTap: () {
+                                              _searchController.clear();
+                                              setState(() => _searchQuery = '');
+                                            },
+                                            child: Icon(
+                                              Icons.close_rounded,
+                                              size: 18,
+                                              color: AppColors.textHint,
+                                            ),
+                                          )
+                                        : null,
+                                    border: InputBorder.none,
+                                    contentPadding:
+                                        const EdgeInsets.symmetric(vertical: 14),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+
+                              // Filter Chips
+                              JournalFilterChips(
+                                selectedFilter: _selectedFilter,
+                                onSelected: (id) =>
+                                    setState(() => _selectedFilter = id),
+                              ),
+                              const SizedBox(height: 18),
+
+                              // Entries Feed List
+                              if (_reflectionService.isLoading && rawEntries.isEmpty)
+                                Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 40),
+                                    child: CircularProgressIndicator(
+                                      color: AppColors.primary,
+                                      strokeWidth: 2,
+                                    ),
                                   ),
                                 )
-                              : null,
-                          border: InputBorder.none,
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
+                              else if (filtered.isEmpty)
+                                Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 48),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.spa_outlined,
+                                          size: 48,
+                                          color: AppColors.textHint.withValues(alpha: 0.4),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          _searchQuery.isNotEmpty ||
+                                                  _selectedFilter != 'all'
+                                              ? 'No reflections match your filters'
+                                              : 'Your journal is peaceful and waiting',
+                                          style: GoogleFonts.lora(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.textPrimary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          _searchQuery.isNotEmpty ||
+                                                  _selectedFilter != 'all'
+                                              ? 'Try adjusting your search query or selected mood.'
+                                              : 'Reflect tonight or tap New Entry to write freely.',
+                                          style: AppTextStyles.bodySmall.copyWith(
+                                            color: AppColors.textSecondary,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              else
+                                ListView.separated(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: filtered.length,
+                                  separatorBuilder: (_, _) =>
+                                      const SizedBox(height: 16),
+                                  itemBuilder: (context, index) {
+                                    final entry = filtered[index];
+                                    final matchingModel = models.firstWhere(
+                                      (m) => m.id == entry.id,
+                                      orElse: () => ReflectionEntryModel(
+                                        id: entry.id,
+                                        date: entry.date,
+                                        mood: entry.mood,
+                                        moodEmoji: entry.moodEmoji,
+                                        freeformTitle: entry.title,
+                                        freeformNote: entry.contentSnippet,
+                                        answers: const {},
+                                        createdAt: entry.date,
+                                      ),
+                                    );
 
-                    // Filter Chips
-                    JournalFilterChips(
-                      selectedFilter: _selectedFilter,
-                      onSelected: (id) =>
-                          setState(() => _selectedFilter = id),
-                    ),
-                    const SizedBox(height: 18),
-
-                    // Entries Feed List
-                    if (_reflectionService.isLoading && rawEntries.isEmpty)
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 40),
-                          child: CircularProgressIndicator(
-                            color: AppColors.primary,
-                            strokeWidth: 2,
-                          ),
-                        ),
-                      )
-                    else if (filtered.isEmpty)
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 48),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
+                                    return JournalCard(
+                                      entry: entry,
+                                      onTap: () => _viewSummary(matchingModel),
+                                      onBookmarkToggle: () => _toggleBookmark(
+                                        entry.id,
+                                        entry.isBookmarked,
+                                      ),
+                                      onDelete: () => _confirmDelete(entry.id),
+                                      onEdit: () => _editReflection(matchingModel),
+                                    );
+                                  },
+                                ),
+                            ],
+                          )
+                        : Column(
+                            key: const ValueKey('view_calendar'),
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(
-                                Icons.spa_outlined,
-                                size: 48,
-                                color: AppColors.textHint.withValues(alpha: 0.4),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                _searchQuery.isNotEmpty ||
-                                        _selectedFilter != 'all'
-                                    ? 'No reflections match your filters'
-                                    : 'Your journal is peaceful and waiting',
-                                style: GoogleFonts.lora(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textPrimary,
+                              // Streak banner
+                              StreakBanner(
+                                completedDays: completedDaysThisMonth,
+                                totalDays: DateUtils.getDaysInMonth(
+                                  _focusedMonth.year,
+                                  _focusedMonth.month,
                                 ),
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                _searchQuery.isNotEmpty ||
-                                        _selectedFilter != 'all'
-                                    ? 'Try adjusting your search query or selected mood.'
-                                    : 'Reflect tonight or tap New Entry to write freely.',
-                                style: AppTextStyles.bodySmall.copyWith(
-                                  color: AppColors.textSecondary,
+                              const SizedBox(height: 18),
+
+                              // Calendar container
+                              Container(
+                                padding: const EdgeInsets.all(18),
+                                decoration: BoxDecoration(
+                                  color: AppColors.cardBackground,
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.shadow,
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
                                 ),
-                                textAlign: TextAlign.center,
+                                child: Column(
+                                  children: [
+                                    MonthHeader(
+                                      focusedMonth: _focusedMonth,
+                                      onPrevious: _goToPreviousMonth,
+                                      onNext: _goToNextMonth,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    CalendarGrid(
+                                      focusedMonth: _focusedMonth,
+                                      selectedDay: _selectedDay,
+                                      reflectionDays: reflectionData.keys.toSet(),
+                                      onDaySelected: _onDaySelected,
+                                    ),
+                                  ],
+                                ),
                               ),
+                              const SizedBox(height: 18),
+
+                              // Selected day card details
+                              if (_selectedDay != null)
+                                DayDetailCard(
+                                  day: _selectedDay!,
+                                  entry: selectedEntry,
+                                  onView: selectedModel != null
+                                      ? () => _viewSummary(selectedModel)
+                                      : null,
+                                  onEdit: selectedModel != null
+                                      ? () => _editReflection(selectedModel)
+                                      : null,
+                                  onDelete: selectedModel != null
+                                      ? () => _confirmDelete(selectedModel.id)
+                                      : null,
+                                ),
                             ],
                           ),
-                        ),
-                      )
-                    else
-                      ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(height: 16),
-                        itemBuilder: (context, index) {
-                          final entry = filtered[index];
-                          final matchingModel = models.firstWhere(
-                            (m) => m.id == entry.id,
-                            orElse: () => ReflectionEntryModel(
-                              id: entry.id,
-                              date: entry.date,
-                              mood: entry.mood,
-                              moodEmoji: entry.moodEmoji,
-                              freeformTitle: entry.title,
-                              freeformNote: entry.contentSnippet,
-                              answers: const {},
-                              createdAt: entry.date,
-                            ),
-                          );
-
-                          return JournalCard(
-                            entry: entry,
-                            onTap: () => _viewSummary(matchingModel),
-                            onBookmarkToggle: () => _toggleBookmark(
-                              entry.id,
-                              entry.isBookmarked,
-                            ),
-                            onDelete: () => _confirmDelete(entry.id),
-                            onEdit: () => _editReflection(matchingModel),
-                          );
-                        },
-                      ),
-                  ]
-
-                  // ── VIEW 2: CALENDAR GRID ──────────────────────────
-                  else ...[
-                    // Streak banner
-                    StreakBanner(
-                      completedDays: completedDaysThisMonth,
-                      totalDays: DateUtils.getDaysInMonth(
-                        _focusedMonth.year,
-                        _focusedMonth.month,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-
-                    // Calendar container
-                    Container(
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: AppColors.cardBackground,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.shadow,
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          MonthHeader(
-                            focusedMonth: _focusedMonth,
-                            onPrevious: _goToPreviousMonth,
-                            onNext: _goToNextMonth,
-                          ),
-                          const SizedBox(height: 16),
-                          CalendarGrid(
-                            focusedMonth: _focusedMonth,
-                            selectedDay: _selectedDay,
-                            reflectionDays: reflectionData.keys.toSet(),
-                            onDaySelected: _onDaySelected,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-
-                    // Selected day card details
-                    if (_selectedDay != null)
-                      DayDetailCard(
-                        day: _selectedDay!,
-                        entry: selectedEntry,
-                        onView: selectedModel != null
-                            ? () => _viewSummary(selectedModel)
-                            : null,
-                        onEdit: selectedModel != null
-                            ? () => _editReflection(selectedModel)
-                            : null,
-                        onDelete: selectedModel != null
-                            ? () => _confirmDelete(selectedModel.id)
-                            : null,
-                      ),
-                  ],
+                  ),
 
                   const SizedBox(height: 72),
                 ],

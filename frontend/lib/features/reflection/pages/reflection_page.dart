@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/smooth_page_route.dart';
 import '../widgets/reflection_progress_bar.dart';
 import '../widgets/question_card.dart';
 import '../widgets/reflection_nav_buttons.dart';
@@ -152,7 +153,7 @@ class _ReflectionPageState extends State<ReflectionPage> {
     }
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      SmoothPageRoute(
         builder: (_) => FreeformPage(
           isStandalone: true,
           reflectionAnswers: answers,

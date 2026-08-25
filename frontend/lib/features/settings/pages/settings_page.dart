@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/services/settings_service.dart';
+import '../../../core/services/notification_service.dart';
 import '../../auth/services/auth_service.dart';
 import '../../reflection/services/reflection_service.dart';
 
@@ -19,6 +20,26 @@ class _SettingsPageState extends State<SettingsPage> {
   final _settingsService = SettingsService();
   final _authService = AuthService();
   final _reflectionService = ReflectionService();
+  final _notificationService = NotificationService();
+  bool _isSendingTest = false;
+
+  Future<void> _toggleReminder(bool enabled) async {
+    await _settingsService.setReminderEnabled(enabled);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: AppColors.primary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        content: Text(
+          enabled
+              ? 'Evening reminder active for ${_settingsService.formattedReminderTime} 🌙'
+              : 'Evening reminder disabled.',
+        ),
+      ),
+    );
+  }
 
   Future<void> _selectReminderTime() async {
     final picked = await showTimePicker(
@@ -41,8 +62,40 @@ class _SettingsPageState extends State<SettingsPage> {
 
     if (picked != null) {
       await _settingsService.setReminderTime(picked);
-      if (mounted) setState(() {});
+      if (mounted) {
+        setState(() {});
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.primary,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            content: Text('Reminder set for ${_settingsService.formattedReminderTime} 🌙'),
+          ),
+        );
+      }
     }
+  }
+
+  Future<void> _sendTestNotification() async {
+    setState(() => _isSendingTest = true);
+    final sent = await _notificationService.sendTestNotification();
+    if (!mounted) return;
+    setState(() => _isSendingTest = false);
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: sent ? AppColors.primary : Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        content: Text(
+          sent
+              ? 'Test reminder delivered! Check your notifications ✨'
+              : 'Could not deliver test notification. Please verify notification permissions.',
+        ),
+      ),
+    );
   }
 
   void _optimizeCache() {
@@ -118,8 +171,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         activeTrackColor:
                             AppColors.primary.withValues(alpha: 0.4),
                         value: _settingsService.reminderEnabled,
-                        onChanged: (val) =>
-                            _settingsService.setReminderEnabled(val),
+                        onChanged: _toggleReminder,
                       ),
                       if (_settingsService.reminderEnabled) ...[
                         Divider(height: 1, color: AppColors.divider),
@@ -155,6 +207,42 @@ class _SettingsPageState extends State<SettingsPage> {
                             ),
                           ),
                           onTap: _selectReminderTime,
+                        ),
+                        Divider(height: 1, color: AppColors.divider),
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 2),
+                          leading: Icon(Icons.notifications_active_outlined,
+                              color: AppColors.primary, size: 20),
+                          title: Text(
+                            'Send Test Notification',
+                            style: AppTextStyles.body.copyWith(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 13.5,
+                            ),
+                          ),
+                          subtitle: Text(
+                            'Preview notification delivery immediately',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.textSecondary,
+                              fontSize: 11.5,
+                            ),
+                          ),
+                          trailing: _isSendingTest
+                              ? SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.primary,
+                                  ),
+                                )
+                              : Icon(
+                                  Icons.send_rounded,
+                                  size: 18,
+                                  color: AppColors.primary,
+                                ),
+                          onTap: _isSendingTest ? null : _sendTestNotification,
                         ),
                       ],
                     ],

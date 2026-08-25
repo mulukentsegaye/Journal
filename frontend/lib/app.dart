@@ -87,6 +87,15 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
+  int _previousIndex = 0;
+
+  void _onTabTapped(int index) {
+    if (index == _currentIndex) return;
+    setState(() {
+      _previousIndex = _currentIndex;
+      _currentIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -94,6 +103,9 @@ class _AppShellState extends State<AppShell> {
       listenable: SettingsService(),
       builder: (context, _) {
         final currentTheme = SettingsService().themeMode;
+        // Direction: positive = moving right (Journal), negative = moving left (Today)
+        final goingForward = _currentIndex > _previousIndex;
+
         final pages = <Widget>[
           TodayPage(key: ValueKey('today_$currentTheme')),
           JournalPage(key: ValueKey('journal_$currentTheme')),
@@ -102,13 +114,36 @@ class _AppShellState extends State<AppShell> {
         return Scaffold(
           key: AppShell.scaffoldKey,
           endDrawer: const ProfileDrawer(),
-          body: IndexedStack(
-            index: _currentIndex,
-            children: pages,
+          body: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            switchInCurve: Curves.easeInOutCubic,
+            switchOutCurve: Curves.easeInOutCubic,
+            transitionBuilder: (child, animation) {
+              // Determine if this child is the incoming or outgoing widget
+              final isIncoming = animation.status == AnimationStatus.forward;
+              final slideBegin = isIncoming
+                  ? Offset(goingForward ? 0.06 : -0.06, 0.0)
+                  : Offset(goingForward ? -0.06 : 0.06, 0.0);
+
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: slideBegin,
+                  end: Offset.zero,
+                ).animate(animation),
+                child: FadeTransition(
+                  opacity: animation,
+                  child: child,
+                ),
+              );
+            },
+            child: KeyedSubtree(
+              key: ValueKey('tab_${_currentIndex}_$currentTheme'),
+              child: pages[_currentIndex],
+            ),
           ),
           bottomNavigationBar: AppBottomNavBar(
             currentIndex: _currentIndex,
-            onTap: (index) => setState(() => _currentIndex = index),
+            onTap: _onTabTapped,
           ),
         );
       },

@@ -4,13 +4,13 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/security_service.dart';
 import '../../core/services/settings_service.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
+import '../../core/theme/smooth_page_route.dart';
 import '../../features/auth/services/auth_service.dart';
 import '../../features/reflection/services/reflection_service.dart';
 import '../../features/settings/pages/settings_page.dart';
 import '../../features/settings/widgets/pdf_export_dialog.dart';
 
-/// Clean, professional right-side navigation drawer with standard options.
+/// Clean, professional right-side navigation drawer with instant reactive theme updates.
 class ProfileDrawer extends StatefulWidget {
   const ProfileDrawer({super.key});
 
@@ -36,106 +36,128 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   }
 
   void _showProfileSheet() {
-    final user = _authService.currentUser;
-    final isGuest = _authService.isGuest;
-
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.cardBackground,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.divider,
-                borderRadius: BorderRadius.circular(2),
-              ),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => ListenableBuilder(
+        listenable: _settingsService,
+        builder: (context, _) {
+          final isDark = _settingsService.isDarkMode;
+          final user = _authService.currentUser;
+          final isGuest = _authService.isGuest;
+          final cardBg = isDark ? AppColors.darkCardBackground : AppColors.lightCardBackground;
+          final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+          final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+          final divider = isDark ? AppColors.darkDivider : AppColors.lightDivider;
+          final primary = isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
+
+          return Container(
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            const SizedBox(height: 20),
-            CircleAvatar(
-              radius: 32,
-              backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-              child: Text(
-                _authService.userName.isNotEmpty
-                    ? _authService.userName[0].toUpperCase()
-                    : 'U',
-                style: AppTextStyles.greeting.copyWith(
-                  fontSize: 26,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              _authService.userName,
-              style: AppTextStyles.greeting.copyWith(fontSize: 20),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              isGuest
-                  ? (_authService.isLocalGuest
-                      ? 'Local Guest Account'
-                      : 'Anonymous Guest')
-                  : (user?.email ?? 'Connected'),
-              style: AppTextStyles.subtitle.copyWith(fontSize: 13),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.calmTagBg,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    isGuest ? Icons.phone_android_rounded : Icons.cloud_done_rounded,
-                    size: 14,
-                    color: AppColors.calmTagText,
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: divider,
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    isGuest ? 'Client AES-256 E2EE (Local)' : 'Cloud Synced & Encrypted',
-                    style: AppTextStyles.badge.copyWith(
-                      color: AppColors.calmTagText,
-                      fontSize: 11,
+                ),
+                const SizedBox(height: 20),
+                CircleAvatar(
+                  radius: 32,
+                  backgroundColor: primary.withValues(alpha: 0.15),
+                  child: Text(
+                    _authService.userName.isNotEmpty
+                        ? _authService.userName[0].toUpperCase()
+                        : 'U',
+                    style: GoogleFonts.lora(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w600,
+                      color: primary,
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 46,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  _showEditNameDialog();
-                },
-                icon: const Icon(Icons.edit_outlined, size: 18),
-                label: const Text('Edit Display Name',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _authService.userName,
+                  style: GoogleFonts.lora(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: textPrimary,
                   ),
                 ),
-              ),
+                const SizedBox(height: 4),
+                Text(
+                  isGuest
+                      ? (_authService.isLocalGuest
+                          ? 'Local Guest Account'
+                          : 'Anonymous Guest')
+                      : (user?.email ?? 'Connected'),
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkCalmTagBg : AppColors.lightCalmTagBg,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isGuest ? Icons.phone_android_rounded : Icons.cloud_done_rounded,
+                        size: 14,
+                        color: isDark ? AppColors.darkCalmTagText : AppColors.lightCalmTagText,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        isGuest ? 'Client AES-256 E2EE (Local)' : 'Cloud Synced & Encrypted',
+                        style: GoogleFonts.inter(
+                          color: isDark ? AppColors.darkCalmTagText : AppColors.lightCalmTagText,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 46,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _showEditNameDialog();
+                    },
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: const Text('Edit Display Name',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -143,15 +165,23 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   void _showThemeSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.cardBackground,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setSheetState) {
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => ListenableBuilder(
+        listenable: _settingsService,
+        builder: (context, _) {
+          final isDark = _settingsService.isDarkMode;
           final currentMode = _settingsService.themeMode;
+          final sheetBg = isDark ? AppColors.darkCardBackground : AppColors.lightCardBackground;
+          final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+          final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+          final dividerColor = isDark ? AppColors.darkDivider : AppColors.lightDivider;
 
-          return Padding(
+          return Container(
+            decoration: BoxDecoration(
+              color: sheetBg,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -162,7 +192,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.divider,
+                      color: dividerColor,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -173,14 +203,15 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   style: GoogleFonts.lora(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: textPrimary,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Choose how Daily Reflection looks for your quiet space.',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: textSecondary,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -189,9 +220,9 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   subtitle: 'Match your device light / dark setting',
                   icon: Icons.brightness_auto_rounded,
                   isSelected: currentMode == ThemeMode.system,
+                  isDark: isDark,
                   onTap: () {
                     _settingsService.setThemeMode(ThemeMode.system);
-                    setSheetState(() {});
                     if (mounted) setState(() {});
                   },
                 ),
@@ -201,9 +232,9 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   subtitle: 'Paper texture and soothing morning tones',
                   icon: Icons.light_mode_rounded,
                   isSelected: currentMode == ThemeMode.light,
+                  isDark: isDark,
                   onTap: () {
                     _settingsService.setThemeMode(ThemeMode.light);
-                    setSheetState(() {});
                     if (mounted) setState(() {});
                   },
                 ),
@@ -213,9 +244,9 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   subtitle: 'Gentle charcoal shades for peaceful evening reflection',
                   icon: Icons.dark_mode_rounded,
                   isSelected: currentMode == ThemeMode.dark,
+                  isDark: isDark,
                   onTap: () {
                     _settingsService.setThemeMode(ThemeMode.dark);
-                    setSheetState(() {});
                     if (mounted) setState(() {});
                   },
                 ),
@@ -230,14 +261,24 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   void _showPrivacySheet() {
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      backgroundColor: AppColors.cardBackground,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setSheetState) {
-          return Padding(
+      builder: (ctx) => ListenableBuilder(
+        listenable: Listenable.merge([_settingsService, _securityService]),
+        builder: (context, _) {
+          final isDark = _settingsService.isDarkMode;
+          final sheetBg = isDark ? AppColors.darkCardBackground : AppColors.lightCardBackground;
+          final surface = isDark ? AppColors.darkSurface : AppColors.lightSurface;
+          final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+          final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+          final divider = isDark ? AppColors.darkDivider : AppColors.lightDivider;
+          final primary = isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
+
+          return Container(
+            decoration: BoxDecoration(
+              color: sheetBg,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -248,7 +289,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.divider,
+                      color: divider,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -259,22 +300,23 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   style: GoogleFonts.lora(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: textPrimary,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Your journal is encrypted and protected with biometric security.',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: textSecondary,
                   ),
                 ),
                 const SizedBox(height: 20),
                 Container(
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: surface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.divider),
+                    border: Border.all(color: divider),
                   ),
                   child: Column(
                     children: [
@@ -283,17 +325,21 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                             const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                         title: Text(
                           'App Lock',
-                          style: AppTextStyles.body
-                              .copyWith(fontWeight: FontWeight.w600),
+                          style: GoogleFonts.inter(
+                            color: textPrimary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
                         ),
                         subtitle: Text(
                           'Require biometrics or PIN on resume',
-                          style: AppTextStyles.bodySmall
-                              .copyWith(color: AppColors.textSecondary),
+                          style: GoogleFonts.inter(
+                            color: textSecondary,
+                            fontSize: 12,
+                          ),
                         ),
-                        activeThumbColor: AppColors.primary,
-                        activeTrackColor:
-                            AppColors.primary.withValues(alpha: 0.4),
+                        activeThumbColor: primary,
+                        activeTrackColor: primary.withValues(alpha: 0.4),
                         value: _securityService.isLockEnabled,
                         onChanged: (val) {
                           if (val) {
@@ -302,52 +348,56 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                               _showSetPinDialog();
                             } else {
                               _securityService.setLockEnabled(true);
-                              setSheetState(() {});
                               if (mounted) setState(() {});
                             }
                           } else {
                             _securityService.setLockEnabled(false);
-                            setSheetState(() {});
                             if (mounted) setState(() {});
                           }
                         },
                       ),
                       if (_securityService.isLockEnabled) ...[
-                        Divider(height: 1, color: AppColors.divider),
+                        Divider(height: 1, color: divider),
                         SwitchListTile(
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 4),
                           title: Text(
                             'Biometric Unlock',
-                            style: AppTextStyles.body
-                                .copyWith(fontWeight: FontWeight.w500),
+                            style: GoogleFonts.inter(
+                              color: textPrimary,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 14,
+                            ),
                           ),
                           subtitle: Text(
                             'Face ID / Fingerprint recognition',
-                            style: AppTextStyles.bodySmall
-                                .copyWith(color: AppColors.textSecondary),
+                            style: GoogleFonts.inter(
+                              color: textSecondary,
+                              fontSize: 12,
+                            ),
                           ),
-                          activeThumbColor: AppColors.primary,
-                          activeTrackColor:
-                              AppColors.primary.withValues(alpha: 0.4),
+                          activeThumbColor: primary,
+                          activeTrackColor: primary.withValues(alpha: 0.4),
                           value: _securityService.isBiometricsEnabled,
                           onChanged: (val) {
                             _securityService.setBiometricsEnabled(val);
-                            setSheetState(() {});
                             if (mounted) setState(() {});
                           },
                         ),
-                        Divider(height: 1, color: AppColors.divider),
+                        Divider(height: 1, color: divider),
                         ListTile(
                           contentPadding:
                               const EdgeInsets.symmetric(horizontal: 16),
                           title: Text(
                             'Change PIN Code',
-                            style: AppTextStyles.body
-                                .copyWith(fontWeight: FontWeight.w500),
+                            style: GoogleFonts.inter(
+                              color: textPrimary,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 14,
+                            ),
                           ),
                           trailing: Icon(Icons.chevron_right_rounded,
-                              size: 18, color: AppColors.textHint),
+                              size: 18, color: textSecondary),
                           onTap: () {
                             Navigator.pop(ctx);
                             _showSetPinDialog();
@@ -368,149 +418,183 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   void _showKeepsakesSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.cardBackground,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.divider,
-                  borderRadius: BorderRadius.circular(2),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => ListenableBuilder(
+        listenable: _settingsService,
+        builder: (context, _) {
+          final isDark = _settingsService.isDarkMode;
+          final sheetBg = isDark ? AppColors.darkCardBackground : AppColors.lightCardBackground;
+          final surface = isDark ? AppColors.darkSurface : AppColors.lightSurface;
+          final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+          final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+          final divider = isDark ? AppColors.darkDivider : AppColors.lightDivider;
+          final primary = isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
+
+          return Container(
+            decoration: BoxDecoration(
+              color: sheetBg,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: divider,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 18),
-            Text(
-              'Keepsakes & Data Export',
-              style: GoogleFonts.lora(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Preserve your reflections as physical books or digital text.',
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.divider),
-              ),
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(Icons.menu_book_rounded,
-                          color: AppColors.primary, size: 20),
-                    ),
-                    title: Text(
-                      'Export Keepsake PDF Book',
-                      style: AppTextStyles.body
-                          .copyWith(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text(
-                      'Printable layout with photos & quotes',
-                      style: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
-                    ),
-                    trailing: Icon(Icons.chevron_right_rounded,
-                        size: 18, color: AppColors.textHint),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      PdfExportDialog.show(context);
-                    },
+                const SizedBox(height: 18),
+                Text(
+                  'Keepsakes & Data Export',
+                  style: GoogleFonts.lora(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: textPrimary,
                   ),
-                  Divider(height: 1, color: AppColors.divider),
-                  ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(Icons.download_rounded,
-                          color: AppColors.primary, size: 20),
-                    ),
-                    title: Text(
-                      'Backup All (Markdown)',
-                      style: AppTextStyles.body
-                          .copyWith(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text(
-                      'Copy entire text history to clipboard',
-                      style: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
-                    ),
-                    trailing: Icon(Icons.copy_rounded,
-                        size: 16, color: AppColors.textHint),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      _exportMarkdownBackup();
-                    },
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Preserve your reflections as physical books or digital text.',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: textSecondary,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  decoration: BoxDecoration(
+                    color: surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: divider),
+                  ),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.menu_book_rounded,
+                              color: primary, size: 20),
+                        ),
+                        title: Text(
+                          'Export Keepsake PDF Book',
+                          style: GoogleFonts.inter(
+                            color: textPrimary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Printable layout with photos & quotes',
+                          style: GoogleFonts.inter(
+                            color: textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                        trailing: Icon(Icons.chevron_right_rounded,
+                            size: 18, color: textSecondary),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          PdfExportDialog.show(context);
+                        },
+                      ),
+                      Divider(height: 1, color: divider),
+                      ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.download_rounded,
+                              color: primary, size: 20),
+                        ),
+                        title: Text(
+                          'Backup All (Markdown)',
+                          style: GoogleFonts.inter(
+                            color: textPrimary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Copy entire text history to clipboard',
+                          style: GoogleFonts.inter(
+                            color: textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                        trailing: Icon(Icons.copy_rounded,
+                            size: 16, color: textSecondary),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          _exportMarkdownBackup();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
   void _showEditNameDialog() {
+    final isDark = _settingsService.isDarkMode;
+    final cardBg = isDark ? AppColors.darkCardBackground : AppColors.lightCardBackground;
+    final surface = isDark ? AppColors.darkSurface : AppColors.lightSurface;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final divider = isDark ? AppColors.darkDivider : AppColors.lightDivider;
+    final primary = isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
+
     final controller = TextEditingController(text: _authService.userName);
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.cardBackground,
+        backgroundColor: cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'Edit Display Name',
           style: GoogleFonts.lora(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+            color: textPrimary,
           ),
         ),
         content: TextField(
           controller: controller,
           autofocus: true,
-          style: TextStyle(color: AppColors.textPrimary),
+          style: TextStyle(color: textPrimary),
           decoration: InputDecoration(
             hintText: 'Your name',
             filled: true,
-            fillColor: AppColors.surface,
+            fillColor: surface,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColors.divider),
+              borderSide: BorderSide(color: divider),
             ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text('Cancel', style: TextStyle(color: textSecondary)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -522,7 +606,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               if (ctx.mounted) Navigator.pop(ctx);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: primary,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             ),
@@ -534,6 +618,14 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   }
 
   void _showSetPinDialog() {
+    final isDark = _settingsService.isDarkMode;
+    final cardBg = isDark ? AppColors.darkCardBackground : AppColors.lightCardBackground;
+    final surface = isDark ? AppColors.darkSurface : AppColors.lightSurface;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final divider = isDark ? AppColors.darkDivider : AppColors.lightDivider;
+    final primary = isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
+
     final pinController = TextEditingController();
     final confirmController = TextEditingController();
     String? errorText;
@@ -542,7 +634,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: AppColors.cardBackground,
+          backgroundColor: cardBg,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Row(
             children: [
@@ -553,7 +645,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 style: GoogleFonts.lora(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  color: textPrimary,
                 ),
               ),
             ],
@@ -563,7 +655,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
             children: [
               Text(
                 'Enter a 4-digit code to protect your reflections.',
-                style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                style: GoogleFonts.inter(fontSize: 12, color: textSecondary),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -573,16 +665,16 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 maxLength: 4,
                 obscureText: true,
                 style: TextStyle(
-                    color: AppColors.textPrimary, letterSpacing: 8, fontSize: 18),
+                    color: textPrimary, letterSpacing: 8, fontSize: 18),
                 textAlign: TextAlign.center,
                 decoration: InputDecoration(
                   counterText: '',
                   hintText: 'PIN',
                   filled: true,
-                  fillColor: AppColors.surface,
+                  fillColor: surface,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppColors.divider),
+                    borderSide: BorderSide(color: divider),
                   ),
                 ),
               ),
@@ -593,16 +685,16 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 maxLength: 4,
                 obscureText: true,
                 style: TextStyle(
-                    color: AppColors.textPrimary, letterSpacing: 8, fontSize: 18),
+                    color: textPrimary, letterSpacing: 8, fontSize: 18),
                 textAlign: TextAlign.center,
                 decoration: InputDecoration(
                   counterText: '',
                   hintText: 'Confirm PIN',
                   filled: true,
-                  fillColor: AppColors.surface,
+                  fillColor: surface,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppColors.divider),
+                    borderSide: BorderSide(color: divider),
                   ),
                 ),
               ),
@@ -618,7 +710,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+              child: Text('Cancel', style: TextStyle(color: textSecondary)),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -639,7 +731,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 if (mounted) setState(() {});
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               ),
@@ -686,24 +778,29 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   }
 
   void _confirmSignOut() {
+    final isDark = _settingsService.isDarkMode;
+    final cardBg = isDark ? AppColors.darkCardBackground : AppColors.lightCardBackground;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.cardBackground,
+        backgroundColor: cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Sign Out?',
             style: GoogleFonts.lora(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary)),
+                color: textPrimary)),
         content: Text(
           'Your reflections will remain safely encrypted in local storage and synced with your account.',
-          style: AppTextStyles.body,
+          style: GoogleFonts.inter(color: textSecondary, fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text('Cancel', style: TextStyle(color: textSecondary)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -725,17 +822,25 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
 
   @override
   Widget build(BuildContext context) {
-    final user = _authService.currentUser;
-    final isGuest = _authService.isGuest;
+    return ListenableBuilder(
+      listenable: Listenable.merge([_settingsService, _securityService]),
+      builder: (context, _) {
+        final isDark = _settingsService.isDarkMode;
+        final user = _authService.currentUser;
+        final isGuest = _authService.isGuest;
 
-    return Drawer(
-      backgroundColor: AppColors.background,
-      width: MediaQuery.of(context).size.width * 0.82,
-      child: SafeArea(
-        child: ListenableBuilder(
-          listenable: Listenable.merge([_settingsService, _securityService]),
-          builder: (context, _) {
-            return Column(
+        final bg = isDark ? AppColors.darkBackground : AppColors.lightBackground;
+        final cardBg = isDark ? AppColors.darkCardBackground : AppColors.lightCardBackground;
+        final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+        final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+        final divider = isDark ? AppColors.darkDivider : AppColors.lightDivider;
+        final primary = isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
+
+        return Drawer(
+          backgroundColor: bg,
+          width: MediaQuery.of(context).size.width * 0.82,
+          child: SafeArea(
+            child: Column(
               children: [
                 // ── Drawer Header & Profile Card ─────────────
                 Padding(
@@ -751,13 +856,13 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                             style: GoogleFonts.lora(
                               fontSize: 20,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
+                              color: textPrimary,
                             ),
                           ),
                           IconButton(
                             onPressed: () => Navigator.pop(context),
                             icon: Icon(Icons.close_rounded,
-                                size: 22, color: AppColors.textSecondary),
+                                size: 22, color: textSecondary),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           ),
@@ -771,23 +876,23 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: AppColors.cardBackground,
+                            color: cardBg,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.divider),
+                            border: Border.all(color: divider),
                           ),
                           child: Row(
                             children: [
                               CircleAvatar(
                                 radius: 22,
-                                backgroundColor:
-                                    AppColors.primary.withValues(alpha: 0.15),
+                                backgroundColor: primary.withValues(alpha: 0.15),
                                 child: Text(
                                   _authService.userName.isNotEmpty
                                       ? _authService.userName[0].toUpperCase()
                                       : 'U',
-                                  style: AppTextStyles.greeting.copyWith(
+                                  style: GoogleFonts.lora(
                                     fontSize: 17,
-                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w600,
+                                    color: primary,
                                   ),
                                 ),
                               ),
@@ -798,9 +903,10 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                                   children: [
                                     Text(
                                       _authService.userName,
-                                      style: AppTextStyles.body.copyWith(
+                                      style: GoogleFonts.inter(
                                         fontWeight: FontWeight.w700,
                                         fontSize: 14.5,
+                                        color: textPrimary,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -812,8 +918,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                                               ? 'Local Guest'
                                               : 'Guest Mode')
                                           : (user?.email ?? 'Connected'),
-                                      style: AppTextStyles.bodySmall.copyWith(
-                                        color: AppColors.textSecondary,
+                                      style: GoogleFonts.inter(
+                                        color: textSecondary,
                                         fontSize: 11.5,
                                       ),
                                       maxLines: 1,
@@ -823,7 +929,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                                 ),
                               ),
                               Icon(Icons.chevron_right_rounded,
-                                  size: 18, color: AppColors.textHint),
+                                  size: 18, color: textSecondary),
                             ],
                           ),
                         ),
@@ -831,7 +937,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                     ],
                   ),
                 ),
-                Divider(height: 1, color: AppColors.divider),
+                Divider(height: 1, color: divider),
 
                 // ── Main Menu Options List ───────────────────
                 Expanded(
@@ -843,6 +949,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         icon: Icons.person_outline_rounded,
                         title: 'Profile',
                         subtitle: 'Name & Account Details',
+                        isDark: isDark,
                         onTap: _showProfileSheet,
                       ),
                       const SizedBox(height: 6),
@@ -850,6 +957,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         icon: Icons.palette_outlined,
                         title: 'Theme',
                         subtitle: _getThemeName(_settingsService.themeMode),
+                        isDark: isDark,
                         onTap: _showThemeSheet,
                       ),
                       const SizedBox(height: 6),
@@ -859,6 +967,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         subtitle: _securityService.isLockEnabled
                             ? 'App Lock Active'
                             : 'Biometrics & Encryption',
+                        isDark: isDark,
                         onTap: _showPrivacySheet,
                       ),
                       const SizedBox(height: 6),
@@ -866,6 +975,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         icon: Icons.menu_book_rounded,
                         title: 'Keepsakes & Export',
                         subtitle: 'PDF Book & Backup',
+                        isDark: isDark,
                         onTap: _showKeepsakesSheet,
                       ),
                       const SizedBox(height: 6),
@@ -873,11 +983,12 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         icon: Icons.settings_outlined,
                         title: 'Settings',
                         subtitle: 'Reminders & Preferences',
+                        isDark: isDark,
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
+                            SmoothPageRoute(
                                 builder: (_) => const SettingsPage()),
                           );
                         },
@@ -887,7 +998,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 ),
 
                 // ── Drawer Footer with Sign Out ──────────────
-                Divider(height: 1, color: AppColors.divider),
+                Divider(height: 1, color: divider),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
                   child: Column(
@@ -917,8 +1028,8 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                       const SizedBox(height: 6),
                       Text(
                         'Daily Reflection · Peaceful Mind',
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.textHint.withValues(alpha: 0.7),
+                        style: GoogleFonts.inter(
+                          color: textSecondary.withValues(alpha: 0.7),
                           fontSize: 10.5,
                         ),
                       ),
@@ -926,10 +1037,10 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                   ),
                 ),
               ],
-            );
-          },
-        ),
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -938,22 +1049,30 @@ class _DrawerMenuItem extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
+  final bool isDark;
   final VoidCallback onTap;
 
   const _DrawerMenuItem({
     required this.icon,
     required this.title,
     required this.subtitle,
+    required this.isDark,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final cardBg = isDark ? AppColors.darkCardBackground : AppColors.lightCardBackground;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final divider = isDark ? AppColors.darkDivider : AppColors.lightDivider;
+    final primary = isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
+        color: cardBg,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.divider.withValues(alpha: 0.6)),
+        border: Border.all(color: divider.withValues(alpha: 0.6)),
       ),
       child: ListTile(
         onTap: () {
@@ -963,27 +1082,28 @@ class _DrawerMenuItem extends StatelessWidget {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.08),
+            color: primary.withValues(alpha: isDark ? 0.16 : 0.08),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, color: AppColors.primary, size: 19),
+          child: Icon(icon, color: primary, size: 19),
         ),
         title: Text(
           title,
-          style: AppTextStyles.body.copyWith(
+          style: GoogleFonts.inter(
             fontWeight: FontWeight.w600,
             fontSize: 13.5,
+            color: textPrimary,
           ),
         ),
         subtitle: Text(
           subtitle,
-          style: AppTextStyles.bodySmall.copyWith(
-            color: AppColors.textSecondary,
+          style: GoogleFonts.inter(
+            color: textSecondary,
             fontSize: 11,
           ),
         ),
         trailing: Icon(Icons.chevron_right_rounded,
-            size: 18, color: AppColors.textHint),
+            size: 18, color: textSecondary),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
       ),
@@ -996,6 +1116,7 @@ class _ThemeSelectionTile extends StatelessWidget {
   final String subtitle;
   final IconData icon;
   final bool isSelected;
+  final bool isDark;
   final VoidCallback onTap;
 
   const _ThemeSelectionTile({
@@ -1003,23 +1124,32 @@ class _ThemeSelectionTile extends StatelessWidget {
     required this.subtitle,
     required this.icon,
     required this.isSelected,
+    required this.isDark,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final primary = isDark ? AppColors.darkPrimary : AppColors.lightPrimary;
+    final surface = isDark ? AppColors.darkSurface : AppColors.lightSurface;
+    final cardBg = isDark ? AppColors.darkCardBackground : AppColors.lightCardBackground;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final divider = isDark ? AppColors.darkDivider : AppColors.lightDivider;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.08)
-              : AppColors.surface,
+              ? primary.withValues(alpha: isDark ? 0.18 : 0.09)
+              : surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.divider,
+            color: isSelected ? primary : divider,
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -1029,13 +1159,13 @@ class _ThemeSelectionTile extends StatelessWidget {
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? AppColors.primary.withValues(alpha: 0.15)
-                    : AppColors.cardBackground,
+                    ? primary.withValues(alpha: isDark ? 0.25 : 0.15)
+                    : cardBg,
                 shape: BoxShape.circle,
               ),
               child: Icon(icon,
                   size: 18,
-                  color: isSelected ? AppColors.primary : AppColors.textSecondary),
+                  color: isSelected ? primary : textSecondary),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -1044,17 +1174,17 @@ class _ThemeSelectionTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: AppTextStyles.body.copyWith(
+                    style: GoogleFonts.inter(
                       fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                       fontSize: 13.5,
-                      color: AppColors.textPrimary,
+                      color: textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
+                    style: GoogleFonts.inter(
+                      color: textSecondary,
                       fontSize: 11,
                     ),
                   ),
@@ -1063,7 +1193,7 @@ class _ThemeSelectionTile extends StatelessWidget {
             ),
             if (isSelected)
               Icon(Icons.check_circle_rounded,
-                  color: AppColors.primary, size: 20),
+                  color: primary, size: 20),
           ],
         ),
       ),
