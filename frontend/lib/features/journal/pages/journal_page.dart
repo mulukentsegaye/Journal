@@ -223,6 +223,11 @@ class _JournalPageState extends State<JournalPage> {
             final rawEntries = models.map((m) => m.toJournalEntry()).toList();
             final filtered = _applyFilters(rawEntries);
 
+            // Pre-index models into Map for fast O(1) lookups during lazy rendering
+            final Map<String, ReflectionEntryModel> modelById = {
+              for (final m in models) m.id: m,
+            };
+
             // Calendar data maps
             final Map<DateTime, ReflectionEntry> reflectionData = {};
             final Map<DateTime, ReflectionEntryModel> modelByDate = {};
@@ -247,369 +252,377 @@ class _JournalPageState extends State<JournalPage> {
             final selectedModel =
                 selectedKey != null ? modelByDate[selectedKey] : null;
 
-            return SingleChildScrollView(
+            return CustomScrollView(
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Header Row (Title + PDF & Profile Drawer) ─────
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Your Journal', style: AppTextStyles.greeting),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Past thoughts, reflections, and quiet moments.',
-                            style: AppTextStyles.subtitle,
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          // PDF Export shortcut
-                          IconButton(
-                            onPressed: () => PdfExportDialog.show(
-                              context,
-                              initialMonth: _focusedMonth,
-                            ),
-                            icon: Container(
-                              padding: const EdgeInsets.all(7),
-                              decoration: BoxDecoration(
-                                color: AppColors.surface,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: AppColors.divider),
-                              ),
-                              child: Icon(
-                                Icons.picture_as_pdf_outlined,
-                                size: 18,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            tooltip: 'Export Keepsake PDF',
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                          const SizedBox(width: 8),
-                          // 3-Line Menu Drawer Button
-                          GestureDetector(
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              AppShell.openDrawer();
-                            },
-                            child: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: AppColors.cardBackground,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: AppColors.divider,
-                                  width: 1,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.03),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Center(
-                                child: Icon(
-                                  Icons.menu_rounded,
-                                  size: 20,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-
-                  // ── View Mode Switcher Pill ────────────────────────
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.divider),
-                    ),
-                    child: Row(
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                  sliver: SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: _ViewModeTab(
-                            label: 'Timeline Feed',
-                            icon: Icons.list_alt_rounded,
-                            isActive: _viewMode == JournalViewMode.timeline,
-                            onTap: () => setState(
-                                () => _viewMode = JournalViewMode.timeline),
-                          ),
-                        ),
-                        Expanded(
-                          child: _ViewModeTab(
-                            label: 'Calendar Grid',
-                            icon: Icons.calendar_month_rounded,
-                            isActive: _viewMode == JournalViewMode.calendar,
-                            onTap: () => setState(
-                                () => _viewMode = JournalViewMode.calendar),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  // ── VIEW SWITCHER (TIMELINE FEED / CALENDAR GRID) ──
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 220),
-                    switchInCurve: Curves.easeInOutCubic,
-                    switchOutCurve: Curves.easeInOutCubic,
-                    transitionBuilder: (child, animation) {
-                      return FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0, 0.015),
-                            end: Offset.zero,
-                          ).animate(animation),
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: _viewMode == JournalViewMode.timeline
-                        ? Column(
-                            key: const ValueKey('view_timeline'),
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Search Bar
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: AppColors.cardBackground,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: AppColors.divider.withValues(alpha: 0.8),
-                                    width: 1,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.02),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
+                        // ── Header Row (Title + PDF & Profile Drawer) ─────
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Your Journal', style: AppTextStyles.greeting),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Past thoughts, reflections, and quiet moments.',
+                                  style: AppTextStyles.subtitle,
                                 ),
-                                child: TextField(
-                                  controller: _searchController,
-                                  onChanged: (val) =>
-                                      setState(() => _searchQuery = val.trim()),
-                                  style: GoogleFonts.inter(
-                                    fontSize: 14,
-                                    color: AppColors.textPrimary,
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                // PDF Export shortcut
+                                IconButton(
+                                  onPressed: () => PdfExportDialog.show(
+                                    context,
+                                    initialMonth: _focusedMonth,
                                   ),
-                                  decoration: InputDecoration(
-                                    hintText: 'Search past thoughts or moods...',
-                                    hintStyle: GoogleFonts.inter(
-                                      fontSize: 14,
-                                      color: AppColors.textHint.withValues(alpha: 0.7),
+                                  icon: Container(
+                                    padding: const EdgeInsets.all(7),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.surface,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: AppColors.divider),
                                     ),
-                                    prefixIcon: Icon(
-                                      Icons.search_rounded,
-                                      size: 20,
-                                      color: AppColors.textHint,
-                                    ),
-                                    suffixIcon: _searchQuery.isNotEmpty
-                                        ? GestureDetector(
-                                            onTap: () {
-                                              _searchController.clear();
-                                              setState(() => _searchQuery = '');
-                                            },
-                                            child: Icon(
-                                              Icons.close_rounded,
-                                              size: 18,
-                                              color: AppColors.textHint,
-                                            ),
-                                          )
-                                        : null,
-                                    border: InputBorder.none,
-                                    contentPadding:
-                                        const EdgeInsets.symmetric(vertical: 14),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 14),
-
-                              // Filter Chips
-                              JournalFilterChips(
-                                selectedFilter: _selectedFilter,
-                                onSelected: (id) =>
-                                    setState(() => _selectedFilter = id),
-                              ),
-                              const SizedBox(height: 18),
-
-                              // Entries Feed List
-                              if (_reflectionService.isLoading && rawEntries.isEmpty)
-                                Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 40),
-                                    child: CircularProgressIndicator(
+                                    child: Icon(
+                                      Icons.picture_as_pdf_outlined,
+                                      size: 18,
                                       color: AppColors.primary,
-                                      strokeWidth: 2,
                                     ),
                                   ),
-                                )
-                              else if (filtered.isEmpty)
-                                Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 48),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.spa_outlined,
-                                          size: 48,
-                                          color: AppColors.textHint.withValues(alpha: 0.4),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        Text(
-                                          _searchQuery.isNotEmpty ||
-                                                  _selectedFilter != 'all'
-                                              ? 'No reflections match your filters'
-                                              : 'Your journal is peaceful and waiting',
-                                          style: GoogleFonts.lora(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.textPrimary,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          _searchQuery.isNotEmpty ||
-                                                  _selectedFilter != 'all'
-                                              ? 'Try adjusting your search query or selected mood.'
-                                              : 'Reflect tonight or tap New Entry to write freely.',
-                                          style: AppTextStyles.bodySmall.copyWith(
-                                            color: AppColors.textSecondary,
-                                          ),
-                                          textAlign: TextAlign.center,
+                                  tooltip: 'Export Keepsake PDF',
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                ),
+                                const SizedBox(width: 8),
+                                // 3-Line Menu Drawer Button
+                                GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    AppShell.openDrawer();
+                                  },
+                                  child: Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.cardBackground,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: AppColors.divider,
+                                        width: 1,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.03),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
                                         ),
                                       ],
                                     ),
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.menu_rounded,
+                                        size: 20,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
                                   ),
-                                )
-                              else
-                                ListView.separated(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: filtered.length,
-                                  separatorBuilder: (_, _) =>
-                                      const SizedBox(height: 16),
-                                  itemBuilder: (context, index) {
-                                    final entry = filtered[index];
-                                    final matchingModel = models.firstWhere(
-                                      (m) => m.id == entry.id,
-                                      orElse: () => ReflectionEntryModel(
-                                        id: entry.id,
-                                        date: entry.date,
-                                        mood: entry.mood,
-                                        moodEmoji: entry.moodEmoji,
-                                        freeformTitle: entry.title,
-                                        freeformNote: entry.contentSnippet,
-                                        answers: const {},
-                                        createdAt: entry.date,
-                                      ),
-                                    );
-
-                                    return JournalCard(
-                                      entry: entry,
-                                      onTap: () => _viewSummary(matchingModel),
-                                      onBookmarkToggle: () => _toggleBookmark(
-                                        entry.id,
-                                        entry.isBookmarked,
-                                      ),
-                                      onDelete: () => _confirmDelete(entry.id),
-                                      onEdit: () => _editReflection(matchingModel),
-                                    );
-                                  },
                                 ),
-                            ],
-                          )
-                        : Column(
-                            key: const ValueKey('view_calendar'),
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 18),
+
+                        // ── View Mode Switcher Pill ────────────────────────
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: AppColors.divider),
+                          ),
+                          child: Row(
                             children: [
-                              // Streak banner
-                              StreakBanner(
-                                completedDays: completedDaysThisMonth,
-                                totalDays: DateUtils.getDaysInMonth(
-                                  _focusedMonth.year,
-                                  _focusedMonth.month,
+                              Expanded(
+                                child: _ViewModeTab(
+                                  label: 'Timeline Feed',
+                                  icon: Icons.list_alt_rounded,
+                                  isActive: _viewMode == JournalViewMode.timeline,
+                                  onTap: () => setState(
+                                      () => _viewMode = JournalViewMode.timeline),
                                 ),
                               ),
-                              const SizedBox(height: 18),
-
-                              // Calendar container
-                              Container(
-                                padding: const EdgeInsets.all(18),
-                                decoration: BoxDecoration(
-                                  color: AppColors.cardBackground,
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.shadow,
-                                      blurRadius: 16,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  children: [
-                                    MonthHeader(
-                                      focusedMonth: _focusedMonth,
-                                      onPrevious: _goToPreviousMonth,
-                                      onNext: _goToNextMonth,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    CalendarGrid(
-                                      focusedMonth: _focusedMonth,
-                                      selectedDay: _selectedDay,
-                                      reflectionDays: reflectionData.keys.toSet(),
-                                      onDaySelected: _onDaySelected,
-                                    ),
-                                  ],
+                              Expanded(
+                                child: _ViewModeTab(
+                                  label: 'Calendar Grid',
+                                  icon: Icons.calendar_month_rounded,
+                                  isActive: _viewMode == JournalViewMode.calendar,
+                                  onTap: () => setState(
+                                      () => _viewMode = JournalViewMode.calendar),
                                 ),
                               ),
-                              const SizedBox(height: 18),
-
-                              // Selected day card details
-                              if (_selectedDay != null)
-                                DayDetailCard(
-                                  day: _selectedDay!,
-                                  entry: selectedEntry,
-                                  onView: selectedModel != null
-                                      ? () => _viewSummary(selectedModel)
-                                      : null,
-                                  onEdit: selectedModel != null
-                                      ? () => _editReflection(selectedModel)
-                                      : null,
-                                  onDelete: selectedModel != null
-                                      ? () => _confirmDelete(selectedModel.id)
-                                      : null,
-                                ),
                             ],
                           ),
+                        ),
+                        const SizedBox(height: 18),
+                      ],
+                    ),
+                  ),
+                ),
+
+                if (_viewMode == JournalViewMode.timeline) ...[
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    sliver: SliverToBoxAdapter(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Search Bar
+                          Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.cardBackground,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: AppColors.divider.withValues(alpha: 0.8),
+                                width: 1,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.02),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: TextField(
+                              controller: _searchController,
+                              onChanged: (val) =>
+                                  setState(() => _searchQuery = val.trim()),
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                color: AppColors.textPrimary,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'Search past thoughts or moods...',
+                                hintStyle: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  color: AppColors.textHint.withValues(alpha: 0.7),
+                                ),
+                                prefixIcon: Icon(
+                                  Icons.search_rounded,
+                                  size: 20,
+                                  color: AppColors.textHint,
+                                ),
+                                suffixIcon: _searchQuery.isNotEmpty
+                                    ? GestureDetector(
+                                        onTap: () {
+                                          _searchController.clear();
+                                          setState(() => _searchQuery = '');
+                                        },
+                                        child: Icon(
+                                          Icons.close_rounded,
+                                          size: 18,
+                                          color: AppColors.textHint,
+                                        ),
+                                      )
+                                    : null,
+                                border: InputBorder.none,
+                                contentPadding:
+                                    const EdgeInsets.symmetric(vertical: 14),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Filter Chips
+                          JournalFilterChips(
+                            selectedFilter: _selectedFilter,
+                            onSelected: (id) =>
+                                setState(() => _selectedFilter = id),
+                          ),
+                          const SizedBox(height: 18),
+                        ],
+                      ),
+                    ),
                   ),
 
-                  const SizedBox(height: 72),
+                  // Entries Feed List (Virtualized Lazy SliverList)
+                  if (_reflectionService.isLoading && rawEntries.isEmpty)
+                    SliverToBoxAdapter(
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      ),
+                    )
+                  else if (filtered.isEmpty)
+                    SliverToBoxAdapter(
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 48, horizontal: 24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.spa_outlined,
+                                size: 48,
+                                color:
+                                    AppColors.textHint.withValues(alpha: 0.4),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                _searchQuery.isNotEmpty ||
+                                        _selectedFilter != 'all'
+                                    ? 'No reflections match your filters'
+                                    : 'Your journal is peaceful and waiting',
+                                style: GoogleFonts.lora(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _searchQuery.isNotEmpty ||
+                                        _selectedFilter != 'all'
+                                    ? 'Try adjusting your search query or selected mood.'
+                                    : 'Reflect tonight or tap New Entry to write freely.',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      sliver: SliverList.separated(
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, _) =>
+                            const SizedBox(height: 16),
+                        itemBuilder: (context, index) {
+                          final entry = filtered[index];
+                          final matchingModel = modelById[entry.id] ??
+                              ReflectionEntryModel(
+                                id: entry.id,
+                                date: entry.date,
+                                mood: entry.mood,
+                                moodEmoji: entry.moodEmoji,
+                                freeformTitle: entry.title,
+                                freeformNote: entry.contentSnippet,
+                                answers: const {},
+                                createdAt: entry.date,
+                              );
+
+                          return JournalCard(
+                            key: ValueKey(entry.id),
+                            entry: entry,
+                            onTap: () => _viewSummary(matchingModel),
+                            onBookmarkToggle: () => _toggleBookmark(
+                              entry.id,
+                              entry.isBookmarked,
+                            ),
+                            onDelete: () => _confirmDelete(entry.id),
+                            onEdit: () =>
+                                _editReflection(matchingModel),
+                          );
+                        },
+                      ),
+                    ),
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: 88),
+                  ),
+                ] else ...[
+                  // ── Calendar View Slivers ──
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    sliver: SliverToBoxAdapter(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Streak banner
+                          StreakBanner(
+                            completedDays: completedDaysThisMonth,
+                            totalDays: DateUtils.getDaysInMonth(
+                              _focusedMonth.year,
+                              _focusedMonth.month,
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+
+                          // Calendar container
+                          Container(
+                            padding: const EdgeInsets.all(18),
+                            decoration: BoxDecoration(
+                              color: AppColors.cardBackground,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.shadow,
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              children: [
+                                MonthHeader(
+                                  focusedMonth: _focusedMonth,
+                                  onPrevious: _goToPreviousMonth,
+                                  onNext: _goToNextMonth,
+                                ),
+                                const SizedBox(height: 16),
+                                CalendarGrid(
+                                  focusedMonth: _focusedMonth,
+                                  selectedDay: _selectedDay,
+                                  reflectionDays: reflectionData.keys.toSet(),
+                                  onDaySelected: _onDaySelected,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+
+                          // Selected day card details
+                          if (_selectedDay != null)
+                            DayDetailCard(
+                              day: _selectedDay!,
+                              entry: selectedEntry,
+                              onView: selectedModel != null
+                                  ? () => _viewSummary(selectedModel)
+                                  : null,
+                              onEdit: selectedModel != null
+                                  ? () => _editReflection(selectedModel)
+                                  : null,
+                              onDelete: selectedModel != null
+                                  ? () => _confirmDelete(selectedModel.id)
+                                  : null,
+                            ),
+                          const SizedBox(height: 88),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
-              ),
+              ],
             );
           },
         ),
