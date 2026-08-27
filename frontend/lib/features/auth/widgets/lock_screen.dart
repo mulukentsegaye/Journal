@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -12,11 +13,13 @@ class LockScreen extends StatefulWidget {
   State<LockScreen> createState() => _LockScreenState();
 }
 
-class _LockScreenState extends State<LockScreen> with SingleTickerProviderStateMixin {
+class _LockScreenState extends State<LockScreen>
+    with SingleTickerProviderStateMixin {
   final _securityService = SecurityService();
   String _enteredPin = '';
   String? _errorMessage;
   bool _isCheckingBiometrics = false;
+  Timer? _countdownTimer;
 
   late AnimationController _shakeController;
   late Animation<double> _shakeAnimation;
@@ -33,14 +36,39 @@ class _LockScreenState extends State<LockScreen> with SingleTickerProviderStateM
         .chain(CurveTween(curve: Curves.elasticIn))
         .animate(_shakeController);
 
-    // Auto-prompt biometrics when screen opens
+    // Auto-prompt biometrics when screen opens if not rate-limited
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _triggerBiometrics();
+      if (!_securityService.isRateLimited) {
+        _triggerBiometrics();
+      } else {
+        _startLockoutCountdown();
+      }
+    });
+  }
+
+  void _startLockoutCountdown() {
+    _countdownTimer?.cancel();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (!_securityService.isRateLimited) {
+        timer.cancel();
+        setState(() {
+          _errorMessage = null;
+        });
+      } else {
+        setState(() {
+          _errorMessage =
+              'Too many failed attempts. Try again in ${_securityService.lockoutSecondsRemaining}s';
+        });
+      }
     });
   }
 
   Future<void> _triggerBiometrics() async {
-    if (_isCheckingBiometrics) return;
+    if (_isCheckingBiometrics || _securityService.isRateLimited) return;
     setState(() => _isCheckingBiometrics = true);
     await _securityService.authenticateWithBiometrics();
     if (mounted) {
@@ -49,6 +77,14 @@ class _LockScreenState extends State<LockScreen> with SingleTickerProviderStateM
   }
 
   void _onDigitPressed(String digit) {
+    if (_securityService.isRateLimited) {
+      setState(() {
+        _errorMessage =
+            'Locked out. Please wait ${_securityService.lockoutSecondsRemaining}s';
+      });
+      return;
+    }
+
     if (_enteredPin.length >= 4) return;
     HapticFeedback.lightImpact();
 
@@ -63,7 +99,7 @@ class _LockScreenState extends State<LockScreen> with SingleTickerProviderStateM
   }
 
   void _onDeletePressed() {
-    if (_enteredPin.isEmpty) return;
+    if (_enteredPin.isEmpty || _securityService.isRateLimited) return;
     HapticFeedback.selectionClick();
     setState(() {
       _enteredPin = _enteredPin.substring(0, _enteredPin.length - 1);
@@ -71,13 +107,21 @@ class _LockScreenState extends State<LockScreen> with SingleTickerProviderStateM
     });
   }
 
-  void _verifyPin() {
-    final success = _securityService.verifyPin(_enteredPin);
+  Future<void> _verifyPin() async {
+    final success = await _securityService.verifyPin(_enteredPin);
+    if (!mounted) return;
+
     if (!success) {
       HapticFeedback.heavyImpact();
       _shakeController.forward(from: 0.0);
       setState(() {
-        _errorMessage = 'Incorrect PIN code';
+        if (_securityService.isRateLimited) {
+          _errorMessage =
+              'Too many failed attempts. Try again in ${_securityService.lockoutSecondsRemaining}s';
+          _startLockoutCountdown();
+        } else {
+          _errorMessage = 'Incorrect PIN code';
+        }
         _enteredPin = '';
       });
     }
@@ -85,6 +129,7 @@ class _LockScreenState extends State<LockScreen> with SingleTickerProviderStateM
 
   @override
   void dispose() {
+    _countdownTimer?.cancel();
     _shakeController.dispose();
     super.dispose();
   }
@@ -145,7 +190,8 @@ class _LockScreenState extends State<LockScreen> with SingleTickerProviderStateM
                   animation: _shakeAnimation,
                   builder: (context, child) {
                     final offset = _shakeController.isAnimating
-                        ? (_shakeAnimation.value * (_shakeController.value.isNegative ? -1 : 1))
+                        ? (_shakeAnimation.value *
+                            (_shakeController.value.isNegative ? -1 : 1))
                         : 0.0;
                     return Transform.translate(
                       offset: Offset(offset, 0),
@@ -167,7 +213,8 @@ class _LockScreenState extends State<LockScreen> with SingleTickerProviderStateM
                               ? AppColors.primary
                               : AppColors.divider.withValues(alpha: 0.6),
                           border: Border.all(
-                            color: isFilled ? AppColors.primary : AppColors.divider,
+                            color:
+                                isFilled ? AppColors.primary : AppColors.divider,
                             width: 2,
                           ),
                         ),
@@ -180,6 +227,7 @@ class _LockScreenState extends State<LockScreen> with SingleTickerProviderStateM
                   const SizedBox(height: 16),
                   Text(
                     _errorMessage!,
+                    textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Colors.redAccent,
                       fontSize: 13,
@@ -238,14 +286,17 @@ class _LockScreenState extends State<LockScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildDigitButton(String digit) {
+    final isLockedOut = _securityService.isRateLimited;
     return InkWell(
-      onTap: () => _onDigitPressed(digit),
+      onTap: isLockedOut ? null : () => _onDigitPressed(digit),
       borderRadius: BorderRadius.circular(40),
       child: Container(
         width: 72,
         height: 72,
         decoration: BoxDecoration(
-          color: AppColors.cardBackground,
+          color: isLockedOut
+              ? AppColors.cardBackground.withValues(alpha: 0.5)
+              : AppColors.cardBackground,
           shape: BoxShape.circle,
           border: Border.all(color: AppColors.divider.withValues(alpha: 0.4)),
           boxShadow: [
@@ -262,7 +313,9 @@ class _LockScreenState extends State<LockScreen> with SingleTickerProviderStateM
             style: GoogleFonts.lora(
               fontSize: 26,
               fontWeight: FontWeight.w500,
-              color: AppColors.textPrimary,
+              color: isLockedOut
+                  ? AppColors.textHint
+                  : AppColors.textPrimary,
             ),
           ),
         ),
@@ -285,7 +338,9 @@ class _LockScreenState extends State<LockScreen> with SingleTickerProviderStateM
           child: Icon(
             icon,
             size: 28,
-            color: AppColors.primary,
+            color: _securityService.isRateLimited
+                ? AppColors.textHint
+                : AppColors.primary,
           ),
         ),
       ),
