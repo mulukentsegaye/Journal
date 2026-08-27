@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/config/supabase_config.dart';
@@ -7,8 +8,30 @@ import '../../../core/services/encryption_service.dart';
 import '../../auth/services/auth_service.dart';
 import '../models/reflection_entry_model.dart';
 
+/// Top-level isolate function for deserializing reflection entries from JSON.
+/// Executed off the main UI thread via [compute] to prevent UI jank.
+List<ReflectionEntryModel> parseEntriesFromJsonStrings(List<String> rawList) {
+  final entries = <ReflectionEntryModel>[];
+  for (final str in rawList) {
+    try {
+      final map = jsonDecode(str) as Map<String, dynamic>;
+      final id = map['id']?.toString() ??
+          '${DateTime.now().millisecondsSinceEpoch}';
+      entries.add(ReflectionEntryModel.fromMap(map, id));
+    } catch (_) {}
+  }
+  entries.sort((a, b) => b.date.compareTo(a.date));
+  return entries;
+}
+
+/// Top-level isolate function for serializing reflection entries to JSON.
+/// Executed off the main UI thread via [compute] to prevent UI jank.
+List<String> serializeEntriesToJsonStrings(List<Map<String, dynamic>> entryMaps) {
+  return entryMaps.map((m) => jsonEncode(m)).toList();
+}
+
 /// Database service with Local-First offline persistence, AES-256 Client-Side
-/// End-to-End Encryption (E2EE), and automatic background synchronization to Supabase.
+/// End-to-End Encryption (E2EE), paginated Supabase synchronization, and background isolate processing.
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
   factory DatabaseService([SupabaseClient? client]) {
@@ -25,6 +48,7 @@ class DatabaseService {
   static const String _keyLocalReflections = 'daily_reflections_local_cache';
   static const String _keyPendingWrites = 'daily_reflections_pending_writes';
   static const String _keyPendingDeletes = 'daily_reflections_pending_deletes';
+  static const int defaultPageSize = 50;
 
   final StreamController<List<ReflectionEntryModel>> _streamController =
       StreamController<List<ReflectionEntryModel>>.broadcast();
@@ -47,20 +71,15 @@ class DatabaseService {
     return client != null && user != null && !AuthService().isLocalGuest;
   }
 
-  // ── Local Storage Helpers ────────────────────────────────────
+  // ── Local Storage Helpers (Isolate-Offloaded) ────────────────
 
   Future<List<ReflectionEntryModel>> _loadLocalEntries() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final rawList = prefs.getStringList(_keyLocalReflections) ?? [];
-      final entries = rawList.map((str) {
-        final map = jsonDecode(str) as Map<String, dynamic>;
-        final id = map['id']?.toString() ??
-            '${DateTime.now().millisecondsSinceEpoch}';
-        return ReflectionEntryModel.fromMap(map, id);
-      }).toList();
-      entries.sort((a, b) => b.date.compareTo(a.date));
-      return entries;
+      if (rawList.isEmpty) return [];
+
+      return await compute(parseEntriesFromJsonStrings, rawList);
     } catch (_) {
       return [];
     }
@@ -68,12 +87,14 @@ class DatabaseService {
 
   Future<void> _persistLocalEntries(List<ReflectionEntryModel> entries) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final rawList = entries.map((e) {
+      final entryMaps = entries.map((e) {
         final map = e.toMap();
         map['id'] = e.id;
-        return jsonEncode(map);
+        return map;
       }).toList();
+
+      final rawList = await compute(serializeEntriesToJsonStrings, entryMaps);
+      final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList(_keyLocalReflections, rawList);
       _streamController.add(entries);
     } catch (_) {}
@@ -89,8 +110,12 @@ class DatabaseService {
       map['id'] = entry.id;
       final encoded = jsonEncode(map);
       pending.removeWhere((item) {
-        final m = jsonDecode(item) as Map<String, dynamic>;
-        return m['id'] == entry.id;
+        try {
+          final m = jsonDecode(item) as Map<String, dynamic>;
+          return m['id'] == entry.id;
+        } catch (_) {
+          return false;
+        }
       });
       pending.add(encoded);
       await prefs.setStringList(_keyPendingWrites, pending);
@@ -108,8 +133,12 @@ class DatabaseService {
       // Also remove from pending writes if present
       final pendingWrites = prefs.getStringList(_keyPendingWrites) ?? [];
       pendingWrites.removeWhere((item) {
-        final m = jsonDecode(item) as Map<String, dynamic>;
-        return m['id'] == docId;
+        try {
+          final m = jsonDecode(item) as Map<String, dynamic>;
+          return m['id'] == docId;
+        } catch (_) {
+          return false;
+        }
       });
       await prefs.setStringList(_keyPendingWrites, pendingWrites);
     } catch (_) {}
@@ -160,32 +189,54 @@ class DatabaseService {
         await prefs.setStringList(_keyPendingWrites, pendingWrites);
       }
 
-      // 3. Fetch latest from Supabase, decrypt on device, and merge
+      // 3. Fetch latest from Supabase with paginated batches, decrypt on device, and merge
       await _pullRemoteChanges();
     } catch (_) {}
   }
 
-  /// Pulls remote reflections from Supabase, decrypts on-device,
-  /// and merges into local repository.
-  Future<void> _pullRemoteChanges() async {
+  /// Pulls remote reflections from Supabase using paginated batches (pageSize: 50),
+  /// decrypts on-device, and merges into local repository.
+  Future<void> _pullRemoteChanges({
+    int pageSize = defaultPageSize,
+    int maxPages = 4,
+  }) async {
     if (!_isOnlineAndAuth) return;
     final client = _client;
     final user = AuthService().currentUser;
     if (client == null || user == null) return;
 
     try {
-      final response = await client
-          .from('reflections')
-          .select()
-          .order('date', ascending: false);
-
-      final remoteRows = response as List;
       final remoteEntries = <ReflectionEntryModel>[];
+      int page = 0;
+      bool hasMore = true;
 
-      for (final row in remoteRows) {
-        final rawEntry = ReflectionEntryModel.fromSupabase(row as Map<String, dynamic>);
-        final decryptedEntry = await _encryption.decryptEntry(rawEntry);
-        remoteEntries.add(decryptedEntry);
+      while (hasMore && page < maxPages) {
+        final from = page * pageSize;
+        final to = from + pageSize - 1;
+
+        final response = await client
+            .from('reflections')
+            .select()
+            .order('date', ascending: false)
+            .range(from, to);
+
+        final remoteRows = response as List;
+        if (remoteRows.isEmpty) {
+          hasMore = false;
+          break;
+        }
+
+        for (final row in remoteRows) {
+          final rawEntry = ReflectionEntryModel.fromSupabase(row as Map<String, dynamic>);
+          final decryptedEntry = await _encryption.decryptEntry(rawEntry);
+          remoteEntries.add(decryptedEntry);
+        }
+
+        if (remoteRows.length < pageSize) {
+          hasMore = false;
+        } else {
+          page++;
+        }
       }
 
       if (remoteEntries.isNotEmpty) {
@@ -203,6 +254,41 @@ class DatabaseService {
         await _persistLocalEntries(merged);
       }
     } catch (_) {}
+  }
+
+  /// Fetches a specific paginated window of reflections from Supabase on demand.
+  Future<List<ReflectionEntryModel>> fetchRemotePage({
+    int page = 0,
+    int pageSize = defaultPageSize,
+  }) async {
+    if (!_isOnlineAndAuth) return [];
+    final client = _client;
+    if (client == null) return [];
+
+    try {
+      final from = page * pageSize;
+      final to = from + pageSize - 1;
+
+      final response = await client
+          .from('reflections')
+          .select()
+          .order('date', ascending: false)
+          .range(from, to);
+
+      final rows = response as List;
+      final entries = <ReflectionEntryModel>[];
+
+      for (final row in rows) {
+        final rawEntry = ReflectionEntryModel.fromSupabase(row as Map<String, dynamic>);
+        final decrypted = await _encryption.decryptEntry(rawEntry);
+        entries.add(decrypted);
+      }
+
+      return entries;
+    } catch (e) {
+      debugPrint('Failed to fetch remote page $page: $e');
+      return [];
+    }
   }
 
   // ── Public CRUD Methods ──────────────────────────────────────
