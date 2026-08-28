@@ -97,6 +97,8 @@ class QuestionCard extends StatelessWidget {
                 TextField(
                   controller: controller,
                   focusNode: focusNode,
+                  maxLength: 3000,
+                  buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
                   maxLines: null,
                   minLines: 5,
                   textCapitalization: TextCapitalization.sentences,
@@ -118,12 +120,28 @@ class QuestionCard extends StatelessWidget {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                  padding: const EdgeInsets.fromLTRB(14, 0, 16, 14),
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       VoiceInputButton(
                         controller: controller,
                         label: 'Speak answer',
+                      ),
+                      ListenableBuilder(
+                        listenable: controller,
+                        builder: (context, _) {
+                          final len = controller.text.length;
+                          return Text(
+                            '$len/3,000',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: len > 2800
+                                  ? const Color(0xFFE53935)
+                                  : AppColors.textHint,
+                              fontSize: 11,
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),

@@ -117,6 +117,8 @@ class FreeformEditor extends StatelessWidget {
             child: TextField(
               controller: titleController,
               focusNode: titleFocusNode,
+              maxLength: 120,
+              buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
               textCapitalization: TextCapitalization.sentences,
               style: GoogleFonts.lora(
                 fontSize: 20,
@@ -148,6 +150,8 @@ class FreeformEditor extends StatelessWidget {
               controller: contentController,
               focusNode: contentFocusNode,
               onChanged: onContentChanged,
+              maxLength: 10000,
+              buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
               maxLines: null,
               minLines: 8,
               textCapitalization: TextCapitalization.sentences,
@@ -183,9 +187,11 @@ class FreeformEditor extends StatelessWidget {
                   onTextChanged: onContentChanged,
                 ),
                 Text(
-                  '$_wordCount words',
+                  '${contentController.text.length}/10,000 • $_wordCount words',
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textHint,
+                    color: contentController.text.length > 9500
+                        ? const Color(0xFFE53935)
+                        : AppColors.textHint,
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),

@@ -466,6 +466,7 @@ class _AuthPageState extends State<AuthPage> {
                       _buildTextField(
                         controller: _nameController,
                         focusNode: _nameFocusNode,
+                        maxLength: 50,
                         label: 'Your Name (optional)',
                         hint: 'e.g. Alex',
                         icon: Icons.person_outline,
@@ -480,6 +481,7 @@ class _AuthPageState extends State<AuthPage> {
                     _buildTextField(
                       controller: _emailController,
                       focusNode: _emailFocusNode,
+                      maxLength: 100,
                       label: 'Email',
                       hint: 'your.email@example.com',
                       icon: Icons.mail_outline,
@@ -503,6 +505,7 @@ class _AuthPageState extends State<AuthPage> {
                     _buildTextField(
                       controller: _passwordController,
                       focusNode: _passwordFocusNode,
+                      maxLength: 100,
                       label: 'Password',
                       hint: '••••••••',
                       icon: Icons.lock_outline,
@@ -659,6 +662,7 @@ class _AuthPageState extends State<AuthPage> {
     required String hint,
     required IconData icon,
     bool obscureText = false,
+    int? maxLength,
     TextInputType? keyboardType,
     Widget? suffixIcon,
     String? Function(String?)? validator,
@@ -680,6 +684,8 @@ class _AuthPageState extends State<AuthPage> {
         TextFormField(
           controller: controller,
           focusNode: focusNode,
+          maxLength: maxLength,
+          buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
           textInputAction: textInputAction,
           onFieldSubmitted: onFieldSubmitted,
           obscureText: obscureText,

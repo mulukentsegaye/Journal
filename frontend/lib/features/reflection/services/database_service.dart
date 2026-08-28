@@ -583,14 +583,26 @@ class DatabaseService {
       }
     }
 
+    // Sanitize and cap field lengths to prevent layout breaking or excessive payloads
+    final sanitizedTitle = entry.freeformTitle != null
+        ? (entry.freeformTitle!.length > 120 ? entry.freeformTitle!.substring(0, 120) : entry.freeformTitle)
+        : null;
+    final sanitizedNote = entry.freeformNote != null
+        ? (entry.freeformNote!.length > 10000 ? entry.freeformNote!.substring(0, 10000) : entry.freeformNote)
+        : null;
+    final sanitizedAnswers = entry.answers.map((k, v) => MapEntry(
+      k,
+      v.length > 3000 ? v.substring(0, 3000) : v,
+    ));
+
     final entryWithId = ReflectionEntryModel(
       id: docId,
       date: entry.date,
       mood: entry.mood,
       moodEmoji: entry.moodEmoji,
-      answers: entry.answers,
-      freeformTitle: entry.freeformTitle,
-      freeformNote: entry.freeformNote,
+      answers: sanitizedAnswers,
+      freeformTitle: sanitizedTitle,
+      freeformNote: sanitizedNote,
       photoUrl: effectivePhotoUrl,
       isBookmarked: entry.isBookmarked,
       type: entry.type,
