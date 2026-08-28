@@ -44,5 +44,19 @@ void main() {
       expect(decryptedMap[1], equals(answers[1]));
       expect(decryptedMap[2], equals(answers[2]));
     });
+
+    test('cross-device simulated encryption and decryption on same account', () async {
+      // Simulate Device 1 (Phone)
+      final device1Service = EncryptionService();
+      const noteFromPhone = 'Reflecting from my mobile phone today!';
+      final encryptedOnPhone = await device1Service.encryptText(noteFromPhone);
+
+      // Simulate Device 2 (PC) with independent cache reset
+      final device2Service = EncryptionService();
+      device2Service.clearKeyCache();
+
+      final decryptedOnPC = await device2Service.decryptText(encryptedOnPhone);
+      expect(decryptedOnPC, equals(noteFromPhone));
+    });
   });
 }

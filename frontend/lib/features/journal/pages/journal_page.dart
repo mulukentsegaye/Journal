@@ -252,9 +252,18 @@ class _JournalPageState extends State<JournalPage> {
             final selectedModel =
                 selectedKey != null ? modelByDate[selectedKey] : null;
 
-            return CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
+            return RefreshIndicator(
+              color: AppColors.primary,
+              backgroundColor: AppColors.cardBackground,
+              onRefresh: () async {
+                _reflectionService.refresh();
+                await Future.delayed(const Duration(milliseconds: 600));
+              },
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
+                slivers: [
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
                   sliver: SliverToBoxAdapter(
@@ -623,8 +632,9 @@ class _JournalPageState extends State<JournalPage> {
                   ),
                 ],
               ],
-            );
-          },
+            ),
+          );
+        },
         ),
       ),
     );

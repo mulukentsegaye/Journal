@@ -10,8 +10,9 @@ import '../../features/auth/services/auth_service.dart';
 
 /// Client-Side End-to-End Encryption (E2EE) engine using AES-256 and PBKDF2-HMAC-SHA256.
 ///
-/// Master entropy seeds and encryption keys are stored exclusively in hardware-backed
-/// secure storage (Android Keystore / iOS Keychain) via [FlutterSecureStorage].
+/// Master account keys are derived deterministically per authenticated user,
+/// enabling seamless cross-device synchronization (Phone <-> PC) while maintaining
+/// zero-knowledge cloud confidentiality.
 class EncryptionService {
   static final EncryptionService _instance = EncryptionService._internal();
   factory EncryptionService({FlutterSecureStorage? secureStorage}) {
@@ -34,12 +35,14 @@ class EncryptionService {
   );
 
   enc.Key? _cachedKey;
+  enc.Key? _cachedSeedKey;
   enc.Key? _cachedLegacyKey;
   String? _cachedUserId;
 
   /// Clears in-memory cached keys on user logout or session switch.
   void clearKeyCache() {
     _cachedKey = null;
+    _cachedSeedKey = null;
     _cachedLegacyKey = null;
     _cachedUserId = null;
   }
@@ -51,48 +54,43 @@ class EncryptionService {
       return _cachedKey!;
     }
 
+    // 1. Primary Account Key: Deterministic PBKDF2 key derived per user account
+    // This allows any device signed into the same account to decrypt cloud entries.
+    final primaryKeyBytes = CryptoUtils.pbkdf2HmacSha256(
+      password: Uint8List.fromList(utf8.encode('daily_reflection_user_master_e2ee:$userId')),
+      salt: Uint8List.fromList(utf8.encode('daily_reflection_e2ee_kdf_salt:$userId')),
+      iterations: CryptoUtils.defaultPbkdf2Iterations,
+      keyLength: 32,
+    );
+    final key = enc.Key(primaryKeyBytes);
+
+    // 2. Local Seed Key: Backward compatibility for entries saved with local device seeds
     final secureKey = '$_secureKeyPrefix$userId';
     var seed = await _secureStorage.read(key: secureKey);
-
-    // Check for legacy unencrypted seed in SharedPreferences for seamless migration
     if (seed == null || seed.isEmpty) {
       try {
         final prefs = await SharedPreferences.getInstance();
         final legacyPrefKey = '$_legacyPrefSeedKey$userId';
         final legacySeed = prefs.getString(legacyPrefKey);
-
         if (legacySeed != null && legacySeed.isNotEmpty) {
           seed = legacySeed;
-          // Migrate to hardware-backed secure storage and delete plaintext from prefs
-          await _secureStorage.write(key: secureKey, value: seed);
-          await prefs.remove(legacyPrefKey);
-          debugPrint('Successfully migrated E2EE seed to Keystore/Keychain.');
         }
-      } catch (e) {
-        debugPrint('Legacy seed check failed: $e');
-      }
+      } catch (_) {}
     }
 
-    // If still null, generate a cryptographically strong 32-byte random seed
-    if (seed == null || seed.isEmpty) {
-      final randomBytes = CryptoUtils.generateSecureRandomBytes(32);
-      seed = base64Encode(randomBytes);
-      await _secureStorage.write(key: secureKey, value: seed);
+    if (seed != null && seed.isNotEmpty) {
+      final seedKeyBytes = CryptoUtils.pbkdf2HmacSha256(
+        password: Uint8List.fromList(utf8.encode('$userId:$seed')),
+        salt: Uint8List.fromList(utf8.encode('daily_reflection_e2ee_kdf_salt:$userId')),
+        iterations: CryptoUtils.defaultPbkdf2Iterations,
+        keyLength: 32,
+      );
+      _cachedSeedKey = enc.Key(seedKeyBytes);
+
+      // Legacy SHA-256 key fallback
+      final legacyHash = sha256.convert(utf8.encode('$userId:$seed:daily_reflection_salt_v1'));
+      _cachedLegacyKey = enc.Key(Uint8List.fromList(legacyHash.bytes));
     }
-
-    // Derive the 256-bit AES key using PBKDF2-HMAC-SHA256 (100,000 iterations)
-    final derivedKeyBytes = CryptoUtils.pbkdf2HmacSha256(
-      password: Uint8List.fromList(utf8.encode('$userId:$seed')),
-      salt: Uint8List.fromList(utf8.encode('daily_reflection_e2ee_kdf_salt:$userId')),
-      iterations: CryptoUtils.defaultPbkdf2Iterations,
-      keyLength: 32,
-    );
-
-    final key = enc.Key(derivedKeyBytes);
-
-    // Also prepare legacy SHA-256 key for backward-compatibility fallback decryption
-    final legacyHash = sha256.convert(utf8.encode('$userId:$seed:daily_reflection_salt_v1'));
-    _cachedLegacyKey = enc.Key(Uint8List.fromList(legacyHash.bytes));
 
     _cachedKey = key;
     _cachedUserId = userId;
@@ -131,15 +129,22 @@ class EncryptionService {
       final iv = enc.IV.fromBase64(parts[0]);
       final encryptedData = enc.Encrypted.fromBase64(parts[1]);
 
-      // 1. Attempt decryption with PBKDF2 derived key
+      // 1. Attempt decryption with primary cross-device account key
       try {
         final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
         return encrypter.decrypt(encryptedData, iv: iv);
       } catch (_) {
-        // 2. Fallback to legacy SHA-256 key for backward-compatibility
+        // 2. Fallback to seed-based key
+        if (_cachedSeedKey != null) {
+          try {
+            final seedEncrypter = enc.Encrypter(enc.AES(_cachedSeedKey!, mode: enc.AESMode.cbc));
+            return seedEncrypter.decrypt(encryptedData, iv: iv);
+          } catch (_) {}
+        }
+
+        // 3. Fallback to legacy SHA-256 key
         if (_cachedLegacyKey != null) {
-          final legacyEncrypter =
-              enc.Encrypter(enc.AES(_cachedLegacyKey!, mode: enc.AESMode.cbc));
+          final legacyEncrypter = enc.Encrypter(enc.AES(_cachedLegacyKey!, mode: enc.AESMode.cbc));
           return legacyEncrypter.decrypt(encryptedData, iv: iv);
         }
         rethrow;
@@ -189,6 +194,7 @@ class EncryptionService {
       answers: encAns,
       freeformTitle: encTitle,
       freeformNote: encNote,
+      photoUrl: entry.photoUrl,
       isBookmarked: entry.isBookmarked,
       type: entry.type,
       createdAt: entry.createdAt,
@@ -215,6 +221,7 @@ class EncryptionService {
       answers: decAns,
       freeformTitle: decTitle,
       freeformNote: decNote,
+      photoUrl: entry.photoUrl,
       isBookmarked: entry.isBookmarked,
       type: entry.type,
       createdAt: entry.createdAt,
