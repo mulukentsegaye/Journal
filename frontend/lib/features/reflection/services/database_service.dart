@@ -335,10 +335,22 @@ class DatabaseService {
       _setSyncStatus(SyncStatus.synced);
       debugPrint('[DatabaseService] ✓ Force sync completed successfully');
     } catch (e) {
-      debugPrint('[DatabaseService] ✗ Force sync failed: $e');
-      _setSyncStatus(SyncStatus.error, e.toString());
-      rethrow;
+      final formatted = _formatSyncError(e);
+      debugPrint('[DatabaseService] ✗ Force sync failed: $formatted (original: $e)');
+      _setSyncStatus(SyncStatus.error, formatted);
+      throw formatted;
     }
+  }
+
+  String _formatSyncError(Object e) {
+    final str = e.toString();
+    if (str.contains('42501') || str.contains('row-level security') || str.contains('USING expression')) {
+      return 'Supabase RLS policy requires update. Please run the updated db/schema.sql in your Supabase SQL Editor.';
+    }
+    if (str.contains('SocketException') || str.contains('Failed host lookup') || str.contains('Network')) {
+      return 'Network connection issue. Please check your internet connection.';
+    }
+    return str;
   }
 
   /// Pulls remote reflections from Supabase using paginated batches (pageSize: 50),
@@ -463,9 +475,11 @@ class DatabaseService {
 
   /// Save or update a reflection (instant local save + background E2EE cloud sync).
   Future<void> saveReflection(ReflectionEntryModel entry) async {
+    final user = AuthService().currentUser;
+    final userPrefix = user != null ? '${user.id.substring(0, 8)}_' : '';
     final docId = entry.id.isNotEmpty
         ? entry.id
-        : '${DateTime.now().millisecondsSinceEpoch}';
+        : '$userPrefix${DateTime.now().millisecondsSinceEpoch}';
 
     final entryWithId = ReflectionEntryModel(
       id: docId,

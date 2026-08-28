@@ -28,31 +28,19 @@ ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS photo_url TEXT;
 -- 3. Enable Row Level Security (RLS)
 ALTER TABLE public.reflections ENABLE ROW LEVEL SECURITY;
 
--- 4. Create RLS Policies (Users can only access their own private reflections)
+-- 4. Create RLS Policies (Users can only access and modify their own private reflections)
 DROP POLICY IF EXISTS "Users can view own reflections" ON public.reflections;
-CREATE POLICY "Users can view own reflections"
-    ON public.reflections
-    FOR SELECT
-    USING (auth.uid() = user_id);
-
 DROP POLICY IF EXISTS "Users can insert own reflections" ON public.reflections;
-CREATE POLICY "Users can insert own reflections"
-    ON public.reflections
-    FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
-
 DROP POLICY IF EXISTS "Users can update own reflections" ON public.reflections;
-CREATE POLICY "Users can update own reflections"
+DROP POLICY IF EXISTS "Users can delete own reflections" ON public.reflections;
+DROP POLICY IF EXISTS "Users can manage own reflections" ON public.reflections;
+
+CREATE POLICY "Users can manage own reflections"
     ON public.reflections
-    FOR UPDATE
+    FOR ALL
+    TO authenticated
     USING (auth.uid() = user_id)
     WITH CHECK (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "Users can delete own reflections" ON public.reflections;
-CREATE POLICY "Users can delete own reflections"
-    ON public.reflections
-    FOR DELETE
-    USING (auth.uid() = user_id);
 
 -- 5. Performance Indexes
 CREATE INDEX IF NOT EXISTS idx_reflections_user_date 
