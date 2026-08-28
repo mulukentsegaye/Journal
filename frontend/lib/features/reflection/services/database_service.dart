@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -18,7 +19,9 @@ List<ReflectionEntryModel> parseEntriesFromJsonStrings(List<String> rawList) {
       final id = map['id']?.toString() ??
           '${DateTime.now().millisecondsSinceEpoch}';
       entries.add(ReflectionEntryModel.fromMap(map, id));
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[DatabaseService] Failed to parse cached entry: $e');
+    }
   }
   entries.sort((a, b) => b.date.compareTo(a.date));
   return entries;
@@ -28,6 +31,22 @@ List<ReflectionEntryModel> parseEntriesFromJsonStrings(List<String> rawList) {
 /// Executed off the main UI thread via [compute] to prevent UI jank.
 List<String> serializeEntriesToJsonStrings(List<Map<String, dynamic>> entryMaps) {
   return entryMaps.map((m) => jsonEncode(m)).toList();
+}
+
+/// Describes the current cloud sync state.
+enum SyncStatus {
+  /// Idle — no sync in progress, local cache is current.
+  idle,
+  /// Actively syncing with Supabase cloud.
+  syncing,
+  /// All local changes have been pushed and remote changes pulled.
+  synced,
+  /// There are pending writes queued for upload.
+  pendingChanges,
+  /// Sync failed with an error.
+  error,
+  /// User is offline or not authenticated — cloud sync is disabled.
+  offline,
 }
 
 /// Database service with Local-First offline persistence, AES-256 Client-Side
@@ -53,12 +72,29 @@ class DatabaseService {
   final StreamController<List<ReflectionEntryModel>> _streamController =
       StreamController<List<ReflectionEntryModel>>.broadcast();
 
+  // ── Sync Status ─────────────────────────────────────────────────
+  SyncStatus _syncStatus = SyncStatus.idle;
+  String? _lastSyncError;
+  final StreamController<SyncStatus> _syncStatusController =
+      StreamController<SyncStatus>.broadcast();
+
+  SyncStatus get syncStatus => _syncStatus;
+  String? get lastSyncError => _lastSyncError;
+  Stream<SyncStatus> get syncStatusStream => _syncStatusController.stream;
+
+  void _setSyncStatus(SyncStatus status, [String? error]) {
+    _syncStatus = status;
+    _lastSyncError = error;
+    _syncStatusController.add(status);
+  }
+
   SupabaseClient? get _client {
     if (_injectedClient != null) return _injectedClient;
     if (!SupabaseConfig.isConfigured) return null;
     try {
       return Supabase.instance.client;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[DatabaseService] Supabase client unavailable: $e');
       return null;
     }
   }
@@ -80,7 +116,8 @@ class DatabaseService {
       if (rawList.isEmpty) return [];
 
       return await compute(parseEntriesFromJsonStrings, rawList);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[DatabaseService] Failed to load local entries: $e');
       return [];
     }
   }
@@ -97,7 +134,9 @@ class DatabaseService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList(_keyLocalReflections, rawList);
       _streamController.add(entries);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[DatabaseService] Failed to persist local entries: $e');
+    }
   }
 
   // ── Sync Queue Helpers ───────────────────────────────────────
@@ -119,7 +158,11 @@ class DatabaseService {
       });
       pending.add(encoded);
       await prefs.setStringList(_keyPendingWrites, pending);
-    } catch (_) {}
+      _setSyncStatus(SyncStatus.pendingChanges);
+      debugPrint('[DatabaseService] Queued write for entry ${entry.id} (${pending.length} total pending)');
+    } catch (e) {
+      debugPrint('[DatabaseService] Failed to queue write: $e');
+    }
   }
 
   Future<void> _queueDelete(String docId) async {
@@ -141,15 +184,41 @@ class DatabaseService {
         }
       });
       await prefs.setStringList(_keyPendingWrites, pendingWrites);
-    } catch (_) {}
+      _setSyncStatus(SyncStatus.pendingChanges);
+      debugPrint('[DatabaseService] Queued delete for $docId');
+    } catch (e) {
+      debugPrint('[DatabaseService] Failed to queue delete: $e');
+    }
+  }
+
+  /// Returns the number of pending writes and deletes waiting to be synced.
+  Future<int> getPendingCount() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final writes = prefs.getStringList(_keyPendingWrites) ?? [];
+      final deletes = prefs.getStringList(_keyPendingDeletes) ?? [];
+      return writes.length + deletes.length;
+    } catch (_) {
+      return 0;
+    }
   }
 
   /// Pushes any pending writes and deletes to Supabase (with client-side E2EE).
   Future<void> syncPendingChanges() async {
-    if (!_isOnlineAndAuth) return;
+    if (!_isOnlineAndAuth) {
+      _setSyncStatus(SyncStatus.offline);
+      debugPrint('[DatabaseService] Sync skipped: offline or not authenticated (isLocalGuest=${AuthService().isLocalGuest}, currentUser=${AuthService().currentUser?.id})');
+      return;
+    }
     final client = _client;
     final user = AuthService().currentUser;
-    if (client == null || user == null) return;
+    if (client == null || user == null) {
+      _setSyncStatus(SyncStatus.offline);
+      debugPrint('[DatabaseService] Sync skipped: client=$client, user=$user');
+      return;
+    }
+
+    _setSyncStatus(SyncStatus.syncing);
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -157,11 +226,14 @@ class DatabaseService {
       // 1. Process pending deletes
       final pendingDeletes = prefs.getStringList(_keyPendingDeletes) ?? [];
       if (pendingDeletes.isNotEmpty) {
+        debugPrint('[DatabaseService] Processing ${pendingDeletes.length} pending deletes...');
         for (final id in List<String>.from(pendingDeletes)) {
           try {
-            await client.from('reflections').delete().eq('id', id);
+            await client.from('reflections').delete().eq('id', id).eq('user_id', user.id);
             pendingDeletes.remove(id);
-          } catch (_) {
+            debugPrint('[DatabaseService] ✓ Deleted $id from cloud');
+          } catch (e) {
+            debugPrint('[DatabaseService] ✗ Failed to delete $id: $e');
             break; // Network issue, retry later
           }
         }
@@ -171,6 +243,7 @@ class DatabaseService {
       // 2. Process pending writes (encrypt before uploading)
       final pendingWrites = prefs.getStringList(_keyPendingWrites) ?? [];
       if (pendingWrites.isNotEmpty) {
+        debugPrint('[DatabaseService] Processing ${pendingWrites.length} pending writes...');
         for (final item in List<String>.from(pendingWrites)) {
           try {
             final map = jsonDecode(item) as Map<String, dynamic>;
@@ -182,7 +255,9 @@ class DatabaseService {
               onConflict: 'id',
             );
             pendingWrites.remove(item);
-          } catch (_) {
+            debugPrint('[DatabaseService] ✓ Upserted pending entry ${entry.id} to cloud');
+          } catch (e) {
+            debugPrint('[DatabaseService] ✗ Failed to upsert pending entry: $e');
             break;
           }
         }
@@ -191,14 +266,86 @@ class DatabaseService {
 
       // 3. Fetch latest from Supabase with paginated batches, decrypt on device, and merge
       await _pullRemoteChanges();
-    } catch (_) {}
+
+      final remaining = await getPendingCount();
+      if (remaining > 0) {
+        _setSyncStatus(SyncStatus.pendingChanges);
+      } else {
+        _setSyncStatus(SyncStatus.synced);
+      }
+    } catch (e) {
+      debugPrint('[DatabaseService] ✗ Sync failed: $e');
+      _setSyncStatus(SyncStatus.error, e.toString());
+    }
+  }
+
+  /// Force a full sync cycle — intended for user-triggered refresh.
+  /// Unlike [syncPendingChanges], this throws errors instead of swallowing them
+  /// so the caller can show user-facing feedback.
+  Future<void> forceSyncNow() async {
+    if (!_isOnlineAndAuth) {
+      _setSyncStatus(SyncStatus.offline);
+      throw 'You are offline or not signed in. Please sign in with your email to enable cloud sync.';
+    }
+    final client = _client;
+    final user = AuthService().currentUser;
+    if (client == null || user == null) {
+      _setSyncStatus(SyncStatus.offline);
+      throw 'Cloud connection unavailable. Please check your internet connection.';
+    }
+
+    _setSyncStatus(SyncStatus.syncing);
+    debugPrint('[DatabaseService] Force sync triggered by user');
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // 1. Process pending deletes
+      final pendingDeletes = prefs.getStringList(_keyPendingDeletes) ?? [];
+      if (pendingDeletes.isNotEmpty) {
+        for (final id in List<String>.from(pendingDeletes)) {
+          await client.from('reflections').delete().eq('id', id).eq('user_id', user.id);
+          pendingDeletes.remove(id);
+          debugPrint('[DatabaseService] ✓ Force-synced delete: $id');
+        }
+        await prefs.setStringList(_keyPendingDeletes, pendingDeletes);
+      }
+
+      // 2. Process pending writes
+      final pendingWrites = prefs.getStringList(_keyPendingWrites) ?? [];
+      if (pendingWrites.isNotEmpty) {
+        for (final item in List<String>.from(pendingWrites)) {
+          final map = jsonDecode(item) as Map<String, dynamic>;
+          final entry = ReflectionEntryModel.fromMap(map, map['id']?.toString() ?? '');
+          final encryptedEntry = await _encryption.encryptEntry(entry);
+
+          await client.from('reflections').upsert(
+            encryptedEntry.toSupabaseMap(userId: user.id),
+            onConflict: 'id',
+          );
+          pendingWrites.remove(item);
+          debugPrint('[DatabaseService] ✓ Force-synced write: ${entry.id}');
+        }
+        await prefs.setStringList(_keyPendingWrites, pendingWrites);
+      }
+
+      // 3. Full remote pull
+      await _pullRemoteChanges(maxPages: 20);
+
+      _setSyncStatus(SyncStatus.synced);
+      debugPrint('[DatabaseService] ✓ Force sync completed successfully');
+    } catch (e) {
+      debugPrint('[DatabaseService] ✗ Force sync failed: $e');
+      _setSyncStatus(SyncStatus.error, e.toString());
+      rethrow;
+    }
   }
 
   /// Pulls remote reflections from Supabase using paginated batches (pageSize: 50),
   /// decrypts on-device, and merges into local repository.
   Future<void> _pullRemoteChanges({
     int pageSize = defaultPageSize,
-    int maxPages = 4,
+    int maxPages = 10,
   }) async {
     if (!_isOnlineAndAuth) return;
     final client = _client;
@@ -210,6 +357,8 @@ class DatabaseService {
       int page = 0;
       bool hasMore = true;
 
+      debugPrint('[DatabaseService] Pulling remote changes for user ${user.id}...');
+
       while (hasMore && page < maxPages) {
         final from = page * pageSize;
         final to = from + pageSize - 1;
@@ -217,19 +366,26 @@ class DatabaseService {
         final response = await client
             .from('reflections')
             .select()
+            .eq('user_id', user.id)
             .order('date', ascending: false)
             .range(from, to);
 
         final remoteRows = response as List;
+        debugPrint('[DatabaseService] Page $page: fetched ${remoteRows.length} rows');
+
         if (remoteRows.isEmpty) {
           hasMore = false;
           break;
         }
 
         for (final row in remoteRows) {
-          final rawEntry = ReflectionEntryModel.fromSupabase(row as Map<String, dynamic>);
-          final decryptedEntry = await _encryption.decryptEntry(rawEntry);
-          remoteEntries.add(decryptedEntry);
+          try {
+            final rawEntry = ReflectionEntryModel.fromSupabase(row as Map<String, dynamic>);
+            final decryptedEntry = await _encryption.decryptEntry(rawEntry);
+            remoteEntries.add(decryptedEntry);
+          } catch (e) {
+            debugPrint('[DatabaseService] Failed to decrypt remote entry: $e');
+          }
         }
 
         if (remoteRows.length < pageSize) {
@@ -238,6 +394,8 @@ class DatabaseService {
           page++;
         }
       }
+
+      debugPrint('[DatabaseService] Total remote entries pulled: ${remoteEntries.length}');
 
       if (remoteEntries.isNotEmpty) {
         final localEntries = await _loadLocalEntries();
@@ -252,8 +410,12 @@ class DatabaseService {
         final merged = map.values.toList();
         merged.sort((a, b) => b.date.compareTo(a.date));
         await _persistLocalEntries(merged);
+        debugPrint('[DatabaseService] Merged ${merged.length} total entries (${localEntries.length} local + ${remoteEntries.length} remote)');
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[DatabaseService] ✗ Pull remote changes failed: $e');
+      rethrow;
+    }
   }
 
   /// Fetches a specific paginated window of reflections from Supabase on demand.
@@ -263,7 +425,8 @@ class DatabaseService {
   }) async {
     if (!_isOnlineAndAuth) return [];
     final client = _client;
-    if (client == null) return [];
+    final user = AuthService().currentUser;
+    if (client == null || user == null) return [];
 
     try {
       final from = page * pageSize;
@@ -272,6 +435,7 @@ class DatabaseService {
       final response = await client
           .from('reflections')
           .select()
+          .eq('user_id', user.id)
           .order('date', ascending: false)
           .range(from, to);
 
@@ -279,14 +443,18 @@ class DatabaseService {
       final entries = <ReflectionEntryModel>[];
 
       for (final row in rows) {
-        final rawEntry = ReflectionEntryModel.fromSupabase(row as Map<String, dynamic>);
-        final decrypted = await _encryption.decryptEntry(rawEntry);
-        entries.add(decrypted);
+        try {
+          final rawEntry = ReflectionEntryModel.fromSupabase(row as Map<String, dynamic>);
+          final decrypted = await _encryption.decryptEntry(rawEntry);
+          entries.add(decrypted);
+        } catch (e) {
+          debugPrint('[DatabaseService] Failed to decrypt remote entry in fetchRemotePage: $e');
+        }
       }
 
       return entries;
     } catch (e) {
-      debugPrint('Failed to fetch remote page $page: $e');
+      debugPrint('[DatabaseService] Failed to fetch remote page $page: $e');
       return [];
     }
   }
@@ -307,6 +475,7 @@ class DatabaseService {
       answers: entry.answers,
       freeformTitle: entry.freeformTitle,
       freeformNote: entry.freeformNote,
+      photoUrl: entry.photoUrl,
       isBookmarked: entry.isBookmarked,
       type: entry.type,
       createdAt: entry.createdAt,
@@ -322,8 +491,9 @@ class DatabaseService {
     }
     entries.sort((a, b) => b.date.compareTo(a.date));
     await _persistLocalEntries(entries);
+    debugPrint('[DatabaseService] ✓ Saved entry $docId locally');
 
-    // 2. Queue write or sync encrypted payload to Supabase
+    // 2. Push encrypted payload to Supabase immediately, or queue for later
     if (_isOnlineAndAuth) {
       try {
         final user = AuthService().currentUser;
@@ -332,10 +502,16 @@ class DatabaseService {
           encrypted.toSupabaseMap(userId: user?.id),
           onConflict: 'id',
         );
-      } catch (_) {
+        debugPrint('[DatabaseService] ✓ Pushed entry $docId to Supabase cloud');
+        _setSyncStatus(SyncStatus.synced);
+      } catch (e) {
+        debugPrint('[DatabaseService] ✗ Cloud push failed for $docId, queuing: $e');
         await _queueWrite(entryWithId);
+        // Schedule a retry
+        _scheduleRetrySync();
       }
     } else {
+      debugPrint('[DatabaseService] Offline — queuing entry $docId for later sync');
       await _queueWrite(entryWithId);
     }
   }
@@ -348,6 +524,8 @@ class DatabaseService {
     // Trigger background sync when stream is listened
     if (_isOnlineAndAuth) {
       unawaited(syncPendingChanges());
+    } else {
+      _setSyncStatus(SyncStatus.offline);
     }
 
     yield* _streamController.stream;
@@ -368,7 +546,9 @@ class DatabaseService {
           await _client!
               .from('reflections')
               .update({'is_bookmarked': !currentBookmark}).eq('id', docId);
-        } catch (_) {
+          debugPrint('[DatabaseService] ✓ Updated bookmark for $docId in cloud');
+        } catch (e) {
+          debugPrint('[DatabaseService] ✗ Bookmark cloud update failed: $e');
           await _queueWrite(updated);
         }
       } else {
@@ -386,7 +566,9 @@ class DatabaseService {
     if (_isOnlineAndAuth) {
       try {
         await _client!.from('reflections').delete().eq('id', docId);
-      } catch (_) {
+        debugPrint('[DatabaseService] ✓ Deleted $docId from cloud');
+      } catch (e) {
+        debugPrint('[DatabaseService] ✗ Cloud delete failed for $docId: $e');
         await _queueDelete(docId);
       }
     } else {
@@ -419,6 +601,32 @@ class DatabaseService {
       await prefs.remove(_keyPendingWrites);
       await prefs.remove(_keyPendingDeletes);
       _streamController.add([]);
-    } catch (_) {}
+      _setSyncStatus(SyncStatus.idle);
+      debugPrint('[DatabaseService] Local cache cleared');
+    } catch (e) {
+      debugPrint('[DatabaseService] Failed to clear local cache: $e');
+    }
+  }
+
+  // ── Retry Logic ─────────────────────────────────────────────────
+
+  Timer? _retryTimer;
+  int _retryAttempt = 0;
+
+  void _scheduleRetrySync() {
+    _retryTimer?.cancel();
+    _retryAttempt++;
+    // Exponential backoff: 5s, 10s, 20s, 40s, max 60s
+    final delaySeconds = min(5 * pow(2, _retryAttempt - 1).toInt(), 60);
+    debugPrint('[DatabaseService] Scheduling retry sync in ${delaySeconds}s (attempt $_retryAttempt)');
+    _retryTimer = Timer(Duration(seconds: delaySeconds), () {
+      if (_isOnlineAndAuth) {
+        syncPendingChanges().then((_) {
+          if (_syncStatus == SyncStatus.synced) {
+            _retryAttempt = 0;
+          }
+        });
+      }
+    });
   }
 }

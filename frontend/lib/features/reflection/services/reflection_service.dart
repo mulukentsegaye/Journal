@@ -9,7 +9,10 @@ import 'database_service.dart';
 /// Centralized state management and repository for user reflections.
 /// Connects to DatabaseService (Local-First + Supabase Sync) and provides
 /// reactive updates across the app.
-class ReflectionService extends ChangeNotifier {
+///
+/// Implements [WidgetsBindingObserver] to automatically trigger cloud sync
+/// when the app resumes from background.
+class ReflectionService extends ChangeNotifier with WidgetsBindingObserver {
   static final ReflectionService _instance = ReflectionService._internal();
   factory ReflectionService([DatabaseService? databaseService]) {
     if (databaseService != null) {
@@ -23,19 +26,34 @@ class ReflectionService extends ChangeNotifier {
     _authSubscription = AuthService().isLoggedInStream.listen((_) {
       _initStream();
     });
+    // Register lifecycle observer for auto-sync on resume
+    WidgetsBinding.instance.addObserver(this);
+    // Listen to sync status changes
+    _syncStatusSubscription = _databaseService.syncStatusStream.listen((status) {
+      _syncStatus = status;
+      notifyListeners();
+    });
   }
 
   DatabaseService _databaseService = DatabaseService();
   StreamSubscription<List<ReflectionEntryModel>>? _subscription;
   StreamSubscription<bool>? _authSubscription;
+  StreamSubscription<SyncStatus>? _syncStatusSubscription;
 
   List<ReflectionEntryModel> _entries = [];
   bool _isLoading = true;
   String? _error;
+  SyncStatus _syncStatus = SyncStatus.idle;
 
   List<ReflectionEntryModel> get entries => List.unmodifiable(_entries);
   bool get isLoading => _isLoading;
   String? get error => _error;
+
+  /// Current cloud sync status.
+  SyncStatus get syncStatus => _syncStatus;
+
+  /// Last sync error message, if any.
+  String? get lastSyncError => _databaseService.lastSyncError;
 
   /// Reactive streak computed from current cached entries.
   int get streakCount => StreakCalculator.calculateStreak(_entries);
@@ -52,6 +70,15 @@ class ReflectionService extends ChangeNotifier {
       map[key] = e;
     }
     return map;
+  }
+
+  /// Auto-sync when app resumes from background.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      debugPrint('[ReflectionService] App resumed — triggering cloud sync');
+      _databaseService.syncPendingChanges();
+    }
   }
 
   /// Initialize and listen to the single shared reflections stream.
@@ -86,6 +113,17 @@ class ReflectionService extends ChangeNotifier {
     _databaseService.syncPendingChanges();
   }
 
+  /// Force a full cloud sync with error reporting.
+  /// Throws an error string if sync fails, for user-facing feedback.
+  Future<void> forceSyncNow() async {
+    await _databaseService.forceSyncNow();
+  }
+
+  /// Returns the number of pending writes/deletes waiting to sync.
+  Future<int> getPendingCount() async {
+    return await _databaseService.getPendingCount();
+  }
+
   /// Save or update a reflection.
   Future<void> saveReflection(ReflectionEntryModel entry) async {
     await _databaseService.saveReflection(entry);
@@ -118,8 +156,10 @@ class ReflectionService extends ChangeNotifier {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _authSubscription?.cancel();
     _subscription?.cancel();
+    _syncStatusSubscription?.cancel();
     super.dispose();
   }
 }

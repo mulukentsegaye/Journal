@@ -19,6 +19,7 @@ import '../../summary/pages/summary_page.dart';
 import '../../freeform/pages/freeform_page.dart';
 import '../../reflection/models/reflection_entry_model.dart';
 import '../../reflection/services/reflection_service.dart';
+import '../../reflection/services/database_service.dart';
 import '../../settings/widgets/pdf_export_dialog.dart';
 
 enum JournalViewMode {
@@ -193,6 +194,111 @@ class _JournalPageState extends State<JournalPage> {
     );
   }
 
+  Widget _buildSyncStatusChip() {
+    final status = _reflectionService.syncStatus;
+    IconData icon;
+    String label;
+    Color color;
+
+    switch (status) {
+      case SyncStatus.synced:
+        icon = Icons.cloud_done_rounded;
+        label = 'Synced';
+        color = const Color(0xFF4CAF50);
+        break;
+      case SyncStatus.syncing:
+        icon = Icons.cloud_sync_rounded;
+        label = 'Syncing...';
+        color = AppColors.primary;
+        break;
+      case SyncStatus.pendingChanges:
+        icon = Icons.cloud_upload_rounded;
+        label = 'Pending sync';
+        color = const Color(0xFFFF9800);
+        break;
+      case SyncStatus.error:
+        icon = Icons.cloud_off_rounded;
+        label = 'Sync error';
+        color = const Color(0xFFE53935);
+        break;
+      case SyncStatus.offline:
+        icon = Icons.cloud_off_rounded;
+        label = 'Offline';
+        color = AppColors.textHint;
+        break;
+      case SyncStatus.idle:
+        icon = Icons.cloud_outlined;
+        label = 'Cloud';
+        color = AppColors.textHint;
+        break;
+    }
+
+    return GestureDetector(
+      onTap: () async {
+        try {
+          await _reflectionService.forceSyncNow();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Row(
+                  children: [
+                    Icon(Icons.cloud_done_rounded, color: Colors.white, size: 18),
+                    SizedBox(width: 8),
+                    Text('Synced with cloud ✓'),
+                  ],
+                ),
+                backgroundColor: const Color(0xFF2E7D32),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.cloud_off_rounded, color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text('$e')),
+                  ],
+                ),
+                backgroundColor: const Color(0xFFD32F2F),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -256,8 +362,44 @@ class _JournalPageState extends State<JournalPage> {
               color: AppColors.primary,
               backgroundColor: AppColors.cardBackground,
               onRefresh: () async {
-                _reflectionService.refresh();
-                await Future.delayed(const Duration(milliseconds: 600));
+                try {
+                  await _reflectionService.forceSyncNow();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Row(
+                          children: [
+                            Icon(Icons.cloud_done_rounded, color: Colors.white, size: 18),
+                            SizedBox(width: 8),
+                            Text('Synced with cloud ✓'),
+                          ],
+                        ),
+                        backgroundColor: const Color(0xFF2E7D32),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            const Icon(Icons.cloud_off_rounded, color: Colors.white, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text('Sync failed: $e')),
+                          ],
+                        ),
+                        backgroundColor: const Color(0xFFD32F2F),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        duration: const Duration(seconds: 4),
+                      ),
+                    );
+                  }
+                }
               },
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(
@@ -284,6 +426,8 @@ class _JournalPageState extends State<JournalPage> {
                                   'Past thoughts, reflections, and quiet moments.',
                                   style: AppTextStyles.subtitle,
                                 ),
+                                const SizedBox(height: 6),
+                                _buildSyncStatusChip(),
                               ],
                             ),
                             Row(
