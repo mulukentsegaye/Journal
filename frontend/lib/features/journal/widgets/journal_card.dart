@@ -53,7 +53,7 @@ class JournalCard extends StatelessWidget {
         : FileImage(File(entry.photoUrl!));
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.only(bottom: 14.0),
       child: GestureDetector(
         onTap: () => PhotoViewerDialog.show(
           context,
@@ -61,30 +61,43 @@ class JournalCard extends StatelessWidget {
           caption: entry.title,
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           child: Stack(
             alignment: Alignment.bottomRight,
             children: [
               Image(
                 image: imageProvider,
-                height: 140,
+                height: 160,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                errorBuilder: (context, error, stackTrace) => Container(
+                  height: 100,
+                  width: double.infinity,
+                  color: AppColors.surface,
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.photo_camera_outlined, color: AppColors.textSecondary, size: 20),
+                      const SizedBox(width: 8),
+                      Text('Moment Photo Attached', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                    ],
+                  ),
+                ),
               ),
               Container(
-                margin: const EdgeInsets.all(8),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                margin: const EdgeInsets.all(10),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.black.withValues(alpha: 0.65),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.zoom_in_rounded, color: Colors.white, size: 14),
                     SizedBox(width: 4),
-                    Text('Moment', style: TextStyle(color: Colors.white, fontSize: 10)),
+                    Text('Tap to zoom', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500)),
                   ],
                 ),
               ),
@@ -171,6 +184,33 @@ class JournalCard extends StatelessWidget {
                     ],
                   ),
                 ),
+
+                // Photo indicator badge
+                if (entry.photoUrl != null && entry.photoUrl!.isNotEmpty) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.photo_camera_rounded, size: 12, color: AppColors.primary),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Photo',
+                          style: AppTextStyles.tag.copyWith(
+                            color: AppColors.primary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
 
                 const Spacer(),
 

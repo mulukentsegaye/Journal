@@ -627,8 +627,8 @@ class _SummaryPageState extends State<SummaryPage> {
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.04),
-                                blurRadius: 16,
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 18,
                                 offset: const Offset(0, 6),
                               ),
                             ],
@@ -637,6 +637,56 @@ class _SummaryPageState extends State<SummaryPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              // Card Top Header
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Icon(
+                                        Icons.photo_camera_rounded,
+                                        size: 16,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Captured Moment Photo',
+                                            style: GoogleFonts.lora(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14.5,
+                                              color: AppColors.textPrimary,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Tap anywhere on the photo to expand & zoom',
+                                            style: GoogleFonts.inter(
+                                              fontSize: 11,
+                                              color: AppColors.textSecondary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.fullscreen_rounded,
+                                      size: 20,
+                                      color: AppColors.primary,
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Image Container
                               Stack(
                                 alignment: Alignment.bottomRight,
                                 children: [
@@ -644,27 +694,25 @@ class _SummaryPageState extends State<SummaryPage> {
                                           widget.photoUrl!.startsWith('https://')
                                       ? Image.network(
                                           widget.photoUrl!,
-                                          height: 200,
+                                          height: 240,
                                           width: double.infinity,
                                           fit: BoxFit.cover,
-                                          errorBuilder: (ctx, err, stack) =>
-                                              const SizedBox.shrink(),
+                                          errorBuilder: (ctx, err, stack) => _buildPhotoFallback(),
                                         )
                                       : Image.file(
                                           File(widget.photoUrl!),
-                                          height: 200,
+                                          height: 240,
                                           width: double.infinity,
                                           fit: BoxFit.cover,
-                                          errorBuilder: (ctx, err, stack) =>
-                                              const SizedBox.shrink(),
+                                          errorBuilder: (ctx, err, stack) => _buildPhotoFallback(),
                                         ),
                                   Container(
-                                    margin: const EdgeInsets.all(10),
+                                    margin: const EdgeInsets.all(12),
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 5),
+                                        horizontal: 10, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: Colors.black54,
-                                      borderRadius: BorderRadius.circular(10),
+                                      color: Colors.black.withValues(alpha: 0.65),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: const Row(
                                       mainAxisSize: MainAxisSize.min,
@@ -672,31 +720,15 @@ class _SummaryPageState extends State<SummaryPage> {
                                         Icon(Icons.zoom_in_rounded,
                                             color: Colors.white, size: 14),
                                         SizedBox(width: 4),
-                                        Text('View Photo',
+                                        Text('Pinch to Zoom',
                                             style: TextStyle(
                                                 color: Colors.white,
+                                                fontWeight: FontWeight.w500,
                                                 fontSize: 11)),
                                       ],
                                     ),
                                   ),
                                 ],
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(14),
-                                child: Row(
-                                  children: [
-                                    const Text('📸',
-                                        style: TextStyle(fontSize: 16)),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Daily Moment Captured',
-                                      style: AppTextStyles.bodySmall.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
                               ),
                             ],
                           ),
@@ -854,6 +886,39 @@ class _SummaryPageState extends State<SummaryPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPhotoFallback() {
+    return Container(
+      height: 180,
+      width: double.infinity,
+      color: AppColors.surface,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.photo_library_outlined, size: 36, color: AppColors.textSecondary),
+          const SizedBox(height: 8),
+          Text(
+            'Moment Photo Attached',
+            style: GoogleFonts.inter(
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Original photo captured on your mobile device',
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              color: AppColors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }

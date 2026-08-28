@@ -153,6 +153,7 @@ class TodayPage extends StatelessWidget {
                             date: dateText,
                             mood: mood,
                             moodEmoji: moodEmoji,
+                            photoUrl: entry.photoUrl,
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -165,6 +166,7 @@ class TodayPage extends StatelessWidget {
                                         'Daily Reflection',
                                     freeformNote: entry.freeformNote,
                                     answers: entry.answers,
+                                    photoUrl: entry.photoUrl,
                                   ),
                                 ),
                               );
