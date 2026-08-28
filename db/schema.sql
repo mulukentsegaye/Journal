@@ -66,6 +66,34 @@ CREATE TRIGGER trigger_set_updated_at
     EXECUTE FUNCTION public.handle_updated_at();
 
 -- ==============================================================================
+-- 7. Supabase Storage Bucket Setup for Attached Moment Photos
+-- ==============================================================================
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('reflection_photos', 'reflection_photos', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- Storage RLS Policies
+DROP POLICY IF EXISTS "Authenticated users can upload photos" ON storage.objects;
+CREATE POLICY "Authenticated users can upload photos"
+    ON storage.objects FOR INSERT TO authenticated
+    WITH CHECK (bucket_id = 'reflection_photos');
+
+DROP POLICY IF EXISTS "Authenticated users can update photos" ON storage.objects;
+CREATE POLICY "Authenticated users can update photos"
+    ON storage.objects FOR UPDATE TO authenticated
+    USING (bucket_id = 'reflection_photos');
+
+DROP POLICY IF EXISTS "Public can view reflection photos" ON storage.objects;
+CREATE POLICY "Public can view reflection photos"
+    ON storage.objects FOR SELECT
+    USING (bucket_id = 'reflection_photos');
+
+DROP POLICY IF EXISTS "Authenticated users can delete photos" ON storage.objects;
+CREATE POLICY "Authenticated users can delete photos"
+    ON storage.objects FOR DELETE TO authenticated
+    USING (bucket_id = 'reflection_photos');
+
+-- ==============================================================================
 -- Optional: AI Semantic Search with pgvector (Ready for future activation)
 -- ==============================================================================
 -- To enable semantic search:

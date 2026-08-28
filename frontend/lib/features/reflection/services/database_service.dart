@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -203,6 +204,87 @@ class DatabaseService {
     }
   }
 
+  /// Uploads an attached local photo to Supabase Storage bucket ('reflection_photos')
+  /// and returns the public HTTP URL.
+  Future<String?> uploadReflectionPhoto(String localPath, String entryId, String userId) async {
+    if (!_isOnlineAndAuth) return null;
+    final client = _client;
+    if (client == null) return null;
+
+    try {
+      final file = File(localPath);
+      if (!await file.exists()) return null;
+
+      final bytes = await file.readAsBytes();
+      if (bytes.isEmpty) return null;
+
+      final filename = '${entryId}_moment.jpg';
+      final storagePath = '$userId/$filename';
+
+      await client.storage.from('reflection_photos').uploadBinary(
+        storagePath,
+        bytes,
+        fileOptions: const FileOptions(
+          upsert: true,
+          contentType: 'image/jpeg',
+        ),
+      );
+
+      final publicUrl = client.storage.from('reflection_photos').getPublicUrl(storagePath);
+      debugPrint('[DatabaseService] ✓ Uploaded photo to Supabase storage: $publicUrl');
+      return publicUrl;
+    } catch (e) {
+      debugPrint('[DatabaseService] ✗ Photo upload to storage failed: $e');
+      return null;
+    }
+  }
+
+  /// Scans local entries for any photos stored as local file paths on this device
+  /// and uploads them to Supabase Storage, updating the cloud photo_url.
+  Future<void> _uploadPendingLocalPhotos(String userId) async {
+    if (!_isOnlineAndAuth) return;
+    try {
+      final entries = await _loadLocalEntries();
+      bool modified = false;
+
+      for (int i = 0; i < entries.length; i++) {
+        final entry = entries[i];
+        if (entry.photoUrl != null &&
+            entry.photoUrl!.isNotEmpty &&
+            !entry.photoUrl!.startsWith('http://') &&
+            !entry.photoUrl!.startsWith('https://')) {
+          final file = File(entry.photoUrl!);
+          if (file.existsSync()) {
+            final cloudUrl = await uploadReflectionPhoto(entry.photoUrl!, entry.id, userId);
+            if (cloudUrl != null && cloudUrl.isNotEmpty) {
+              final updated = entry.copyWith(photoUrl: cloudUrl);
+              entries[i] = updated;
+              modified = true;
+
+              // Also update Supabase database row with new photo_url
+              try {
+                await _client!
+                    .from('reflections')
+                    .update({'photo_url': cloudUrl})
+                    .eq('id', entry.id)
+                    .eq('user_id', userId);
+                debugPrint('[DatabaseService] ✓ Updated reflection ${entry.id} with cloud photo URL in Supabase');
+              } catch (e) {
+                debugPrint('[DatabaseService] ✗ Failed to update photo_url in reflections table: $e');
+              }
+            }
+          }
+        }
+      }
+
+      if (modified) {
+        await _persistLocalEntries(entries);
+      }
+    } catch (e) {
+      debugPrint('[DatabaseService] Error in _uploadPendingLocalPhotos: $e');
+    }
+  }
+
   /// Pushes any pending writes and deletes to Supabase (with client-side E2EE).
   Future<void> syncPendingChanges() async {
     if (!_isOnlineAndAuth) {
@@ -222,6 +304,9 @@ class DatabaseService {
 
     try {
       final prefs = await SharedPreferences.getInstance();
+
+      // 0. Upload any pending local photos to Supabase Storage
+      await _uploadPendingLocalPhotos(user.id);
 
       // 1. Process pending deletes
       final pendingDeletes = prefs.getStringList(_keyPendingDeletes) ?? [];
@@ -299,6 +384,9 @@ class DatabaseService {
 
     try {
       final prefs = await SharedPreferences.getInstance();
+
+      // 0. Upload any pending local photos to Supabase Storage
+      await _uploadPendingLocalPhotos(user.id);
 
       // 1. Process pending deletes
       final pendingDeletes = prefs.getStringList(_keyPendingDeletes) ?? [];
@@ -481,6 +569,20 @@ class DatabaseService {
         ? entry.id
         : '$userPrefix${DateTime.now().millisecondsSinceEpoch}';
 
+    // If photo is a local file, upload to Supabase Storage for multi-device sync
+    String? effectivePhotoUrl = entry.photoUrl;
+    if (_isOnlineAndAuth &&
+        user != null &&
+        effectivePhotoUrl != null &&
+        effectivePhotoUrl.isNotEmpty &&
+        !effectivePhotoUrl.startsWith('http://') &&
+        !effectivePhotoUrl.startsWith('https://')) {
+      final cloudUrl = await uploadReflectionPhoto(effectivePhotoUrl, docId, user.id);
+      if (cloudUrl != null && cloudUrl.isNotEmpty) {
+        effectivePhotoUrl = cloudUrl;
+      }
+    }
+
     final entryWithId = ReflectionEntryModel(
       id: docId,
       date: entry.date,
@@ -489,7 +591,7 @@ class DatabaseService {
       answers: entry.answers,
       freeformTitle: entry.freeformTitle,
       freeformNote: entry.freeformNote,
-      photoUrl: entry.photoUrl,
+      photoUrl: effectivePhotoUrl,
       isBookmarked: entry.isBookmarked,
       type: entry.type,
       createdAt: entry.createdAt,
