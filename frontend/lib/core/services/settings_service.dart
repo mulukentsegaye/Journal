@@ -15,15 +15,18 @@ class SettingsService extends ChangeNotifier {
   static const String _keyReminderEnabled = 'settings_reminder_enabled';
   static const String _keyReminderHour = 'settings_reminder_hour';
   static const String _keyReminderMinute = 'settings_reminder_minute';
+  static const String _keyHasCompletedOnboarding = 'settings_has_completed_onboarding';
 
   ThemeMode _themeMode = ThemeMode.system;
   bool _reminderEnabled = true;
   TimeOfDay _reminderTime = const TimeOfDay(hour: 18, minute: 0); // 6:00 PM
+  bool _hasCompletedOnboarding = false;
   bool _isInitialized = false;
 
   ThemeMode get themeMode => _themeMode;
   bool get reminderEnabled => _reminderEnabled;
   TimeOfDay get reminderTime => _reminderTime;
+  bool get hasCompletedOnboarding => _hasCompletedOnboarding;
   bool get isInitialized => _isInitialized;
 
   /// Whether dark mode is currently active based on theme mode or system brightness.
@@ -52,6 +55,7 @@ class SettingsService extends ChangeNotifier {
       final hour = prefs.getInt(_keyReminderHour) ?? 18;
       final minute = prefs.getInt(_keyReminderMinute) ?? 0;
       _reminderTime = TimeOfDay(hour: hour, minute: minute);
+      _hasCompletedOnboarding = prefs.getBool(_keyHasCompletedOnboarding) ?? false;
 
       // Reschedule or initialize the reminder according to loaded preference
       if (_reminderEnabled) {
@@ -105,6 +109,26 @@ class SettingsService extends ChangeNotifier {
     if (_reminderEnabled) {
       await NotificationService().scheduleDailyReminder(time);
     }
+  }
+
+  /// Marks the first-time onboarding flow as completed.
+  Future<void> completeOnboarding() async {
+    _hasCompletedOnboarding = true;
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_keyHasCompletedOnboarding, true);
+    } catch (_) {}
+  }
+
+  /// Resets onboarding completion flag (allows replaying tour).
+  Future<void> resetOnboarding() async {
+    _hasCompletedOnboarding = false;
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_keyHasCompletedOnboarding, false);
+    } catch (_) {}
   }
 
   /// Format reminder time nicely e.g. "6:00 PM".

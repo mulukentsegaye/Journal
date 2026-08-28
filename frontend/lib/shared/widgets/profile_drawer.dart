@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/smooth_page_route.dart';
 import '../../features/auth/services/auth_service.dart';
 import '../../features/reflection/services/reflection_service.dart';
+import '../../features/onboarding/pages/onboarding_page.dart';
 import '../../features/settings/pages/settings_page.dart';
 import '../../features/settings/widgets/pdf_export_dialog.dart';
 
@@ -977,6 +978,22 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         subtitle: 'PDF Book & Backup',
                         isDark: isDark,
                         onTap: _showKeepsakesSheet,
+                      ),
+                      const SizedBox(height: 6),
+                      _DrawerMenuItem(
+                        icon: Icons.explore_outlined,
+                        title: 'App Tour & Guide',
+                        subtitle: 'Mindful features walkthrough',
+                        isDark: isDark,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            SmoothPageRoute(
+                                builder: (_) =>
+                                    const OnboardingPage(isStandaloneTour: true)),
+                          );
+                        },
                       ),
                       const SizedBox(height: 6),
                       _DrawerMenuItem(
