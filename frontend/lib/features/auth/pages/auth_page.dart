@@ -25,11 +25,18 @@ class _AuthPageState extends State<AuthPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  final _nameFocusNode = FocusNode();
+  final _emailFocusNode = FocusNode();
+  final _passwordFocusNode = FocusNode();
+
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _nameFocusNode.dispose();
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
     super.dispose();
   }
 
@@ -146,6 +153,43 @@ class _AuthPageState extends State<AuthPage> {
               TextFormField(
                 controller: resetEmailController,
                 keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.done,
+                onFieldSubmitted: (_) async {
+                  if (!isSending) {
+                    final email = resetEmailController.text.trim();
+                    if (email.isEmpty || !email.contains('@')) {
+                      setDialogState(() {
+                        resetError = 'Please enter a valid email address';
+                      });
+                      return;
+                    }
+                    setDialogState(() {
+                      isSending = true;
+                      resetError = null;
+                    });
+                    try {
+                      await _authService.sendPasswordResetEmail(email);
+                      if (ctx.mounted) Navigator.pop(ctx);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            backgroundColor: AppColors.textPrimary,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                            content:
+                                Text('Password reset link sent to $email.'),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      setDialogState(() {
+                        isSending = false;
+                        resetError = e.toString();
+                      });
+                    }
+                  }
+                },
                 decoration: InputDecoration(
                   hintText: 'your.email@example.com',
                   prefixIcon: const Icon(Icons.mail_outline, size: 18),
@@ -421,19 +465,29 @@ class _AuthPageState extends State<AuthPage> {
                     if (_isSignUp) ...[
                       _buildTextField(
                         controller: _nameController,
+                        focusNode: _nameFocusNode,
                         label: 'Your Name (optional)',
                         hint: 'e.g. Alex',
                         icon: Icons.person_outline,
+                        textInputAction: TextInputAction.next,
+                        onFieldSubmitted: (_) {
+                          FocusScope.of(context).requestFocus(_emailFocusNode);
+                        },
                       ),
                       const SizedBox(height: 14),
                     ],
 
                     _buildTextField(
                       controller: _emailController,
+                      focusNode: _emailFocusNode,
                       label: 'Email',
                       hint: 'your.email@example.com',
                       icon: Icons.mail_outline,
                       keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      onFieldSubmitted: (_) {
+                        FocusScope.of(context).requestFocus(_passwordFocusNode);
+                      },
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Please enter your email';
@@ -448,10 +502,13 @@ class _AuthPageState extends State<AuthPage> {
 
                     _buildTextField(
                       controller: _passwordController,
+                      focusNode: _passwordFocusNode,
                       label: 'Password',
                       hint: '••••••••',
                       icon: Icons.lock_outline,
                       obscureText: _obscurePassword,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _submit(),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword
@@ -605,6 +662,9 @@ class _AuthPageState extends State<AuthPage> {
     TextInputType? keyboardType,
     Widget? suffixIcon,
     String? Function(String?)? validator,
+    FocusNode? focusNode,
+    TextInputAction? textInputAction,
+    void Function(String)? onFieldSubmitted,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -619,6 +679,9 @@ class _AuthPageState extends State<AuthPage> {
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
+          focusNode: focusNode,
+          textInputAction: textInputAction,
+          onFieldSubmitted: onFieldSubmitted,
           obscureText: obscureText,
           keyboardType: keyboardType,
           validator: validator,
