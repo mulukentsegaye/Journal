@@ -181,6 +181,7 @@ class AuthService {
       final res = await client.signUp(
         email: email.trim(),
         password: password,
+        emailRedirectTo: 'dailyreflection://login-callback',
         data: displayName != null && displayName.trim().isNotEmpty
             ? {'display_name': displayName.trim()}
             : null,
@@ -196,7 +197,7 @@ class AuthService {
     }
   }
 
-  /// Send password reset link to given email.
+  /// Send password reset link to given email with deep link redirect.
   Future<void> sendPasswordResetEmail(String email) async {
     final client = _auth;
     if (client == null) {
@@ -204,7 +205,30 @@ class AuthService {
     }
 
     try {
-      await client.resetPasswordForEmail(email.trim());
+      await client.resetPasswordForEmail(
+        email.trim(),
+        redirectTo: 'dailyreflection://login-callback',
+      );
+    } on AuthException catch (e) {
+      throw _handleAuthException(e);
+    } catch (e) {
+      throw e.toString();
+    }
+  }
+
+  /// Update user's password (used during password recovery / reset deep link flow).
+  Future<UserResponse> updateUserPassword(String newPassword) async {
+    final client = _auth;
+    if (client == null) {
+      throw 'Supabase is not configured.';
+    }
+
+    try {
+      final res = await client.updateUser(
+        UserAttributes(password: newPassword.trim()),
+      );
+      _notifyAuthState();
+      return res;
     } on AuthException catch (e) {
       throw _handleAuthException(e);
     } catch (e) {
