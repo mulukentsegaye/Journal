@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/services/photo_save_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/photo_viewer_dialog.dart';
@@ -106,6 +108,68 @@ class JournalCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _savePhotoToDevice(BuildContext context, String photoUrl, String title) async {
+    HapticFeedback.lightImpact();
+    try {
+      final savedPath = await PhotoSaveService().savePhotoToDevice(
+        photoUrl: photoUrl,
+        customPrefix: title,
+      );
+      final filename = savedPath.split(Platform.pathSeparator).last;
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Photo saved to device!',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      Text(
+                        filename,
+                        style: const TextStyle(fontSize: 11, color: Colors.white70),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF2E7D32),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Colors.white, size: 18),
+                const SizedBox(width: 10),
+                Expanded(child: Text('Could not save photo: $e')),
+              ],
+            ),
+            backgroundColor: const Color(0xFFD32F2F),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -247,9 +311,26 @@ class JournalCard extends StatelessWidget {
                         onEdit!();
                       } else if (value == 'delete' && onDelete != null) {
                         onDelete!();
+                      } else if (value == 'save_photo' && entry.photoUrl != null) {
+                        _savePhotoToDevice(context, entry.photoUrl!, entry.title);
                       }
                     },
                     itemBuilder: (context) => [
+                      if (entry.photoUrl != null && entry.photoUrl!.isNotEmpty)
+                        PopupMenuItem(
+                          value: 'save_photo',
+                          child: Row(
+                            children: [
+                              Icon(Icons.file_download_outlined,
+                                  size: 18, color: AppColors.textPrimary),
+                              const SizedBox(width: 10),
+                              Text(
+                                Platform.isWindows ? 'Save Photo to PC' : 'Save Photo',
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ],
+                          ),
+                        ),
                       if (onEdit != null)
                         PopupMenuItem(
                           value: 'edit',

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../core/services/photo_save_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/photo_viewer_dialog.dart';
@@ -677,6 +678,33 @@ class _SummaryPageState extends State<SummaryPage> {
                                         ],
                                       ),
                                     ),
+                                    // Save Button
+                                    GestureDetector(
+                                      onTap: () => _savePhoto(context),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primary.withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.file_download_outlined, size: 14, color: AppColors.primary),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              Platform.isWindows ? 'Save to PC' : 'Save',
+                                              style: TextStyle(
+                                                color: AppColors.primary,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
                                     Icon(
                                       Icons.fullscreen_rounded,
                                       size: 20,
@@ -888,6 +916,70 @@ class _SummaryPageState extends State<SummaryPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _savePhoto(BuildContext context) async {
+    if (widget.photoUrl == null || widget.photoUrl!.isEmpty) return;
+    HapticFeedback.lightImpact();
+
+    try {
+      final savedPath = await PhotoSaveService().savePhotoToDevice(
+        photoUrl: widget.photoUrl!,
+        customPrefix: widget.freeformTitle ?? 'DailyReflection',
+      );
+      final filename = savedPath.split(Platform.pathSeparator).last;
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Photo saved to device!',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      Text(
+                        filename,
+                        style: const TextStyle(fontSize: 11, color: Colors.white70),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF2E7D32),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Colors.white, size: 18),
+                const SizedBox(width: 10),
+                Expanded(child: Text('Could not save photo: $e')),
+              ],
+            ),
+            backgroundColor: const Color(0xFFD32F2F),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildPhotoFallback() {

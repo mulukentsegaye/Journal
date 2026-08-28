@@ -1,8 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../../../core/services/photo_save_service.dart';
+import '../../../core/theme/app_colors.dart';
 
-/// Fullscreen or modal viewer for a daily moment photo.
-class PhotoViewerDialog extends StatelessWidget {
+/// Fullscreen or modal viewer for a daily moment photo with pinch-to-zoom and save-to-device capability.
+class PhotoViewerDialog extends StatefulWidget {
   final String photoUrl;
   final String? caption;
 
@@ -15,17 +18,97 @@ class PhotoViewerDialog extends StatelessWidget {
   static void show(BuildContext context, {required String photoUrl, String? caption}) {
     showDialog(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.85),
+      barrierColor: Colors.black.withValues(alpha: 0.88),
       builder: (ctx) => PhotoViewerDialog(photoUrl: photoUrl, caption: caption),
     );
   }
 
+  @override
+  State<PhotoViewerDialog> createState() => _PhotoViewerDialogState();
+}
+
+class _PhotoViewerDialogState extends State<PhotoViewerDialog> {
+  bool _isSaving = false;
+  bool _hasSaved = false;
+
+  Future<void> _savePhoto() async {
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
+    HapticFeedback.lightImpact();
+
+    try {
+      final savedPath = await PhotoSaveService().savePhotoToDevice(
+        photoUrl: widget.photoUrl,
+        customPrefix: widget.caption,
+      );
+
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+          _hasSaved = true;
+        });
+
+        final filename = savedPath.split(Platform.pathSeparator).last;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Photo saved to device!',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      Text(
+                        filename,
+                        style: const TextStyle(fontSize: 11, color: Colors.white70),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF2E7D32),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Colors.white, size: 18),
+                const SizedBox(width: 10),
+                Expanded(child: Text('Could not save photo: $e')),
+              ],
+            ),
+            backgroundColor: const Color(0xFFD32F2F),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildImage() {
-    final isNetwork = photoUrl.startsWith('http://') || photoUrl.startsWith('https://');
+    final isNetwork = widget.photoUrl.startsWith('http://') || widget.photoUrl.startsWith('https://');
 
     if (isNetwork) {
       return Image.network(
-        photoUrl,
+        widget.photoUrl,
         fit: BoxFit.contain,
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
@@ -41,7 +124,7 @@ class PhotoViewerDialog extends StatelessWidget {
       );
     }
 
-    final file = File(photoUrl);
+    final file = File(widget.photoUrl);
     if (file.existsSync()) {
       return Image.file(
         file,
@@ -50,7 +133,17 @@ class PhotoViewerDialog extends StatelessWidget {
     }
 
     return const Center(
-      child: Icon(Icons.image_not_supported_rounded, color: Colors.white54, size: 48),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.image_not_supported_rounded, color: Colors.white54, size: 48),
+          SizedBox(height: 8),
+          Text(
+            'Photo file not found locally',
+            style: TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+        ],
+      ),
     );
   }
 
@@ -58,28 +151,85 @@ class PhotoViewerDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Top bar with close button
-          Align(
-            alignment: Alignment.topRight,
-            child: IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  color: Colors.black45,
-                  shape: BoxShape.circle,
+          // ── Top Bar: Save Button & Close Button ─────────────────
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Save button
+              GestureDetector(
+                onTap: _savePhoto,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _hasSaved
+                        ? const Color(0xFF2E7D32)
+                        : AppColors.primary.withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_isSaving)
+                        const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      else
+                        Icon(
+                          _hasSaved
+                              ? Icons.check_circle_outline_rounded
+                              : Icons.file_download_outlined,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _hasSaved
+                            ? 'Saved'
+                            : (Platform.isWindows ? 'Save to PC' : 'Save Photo'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                child: const Icon(Icons.close_rounded, color: Colors.white, size: 22),
               ),
-              onPressed: () => Navigator.pop(context),
-            ),
+
+              // Close button
+              IconButton(
+                icon: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.close_rounded, color: Colors.white, size: 20),
+                ),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
 
-          // Zoomable photo view
+          // ── Zoomable photo view ────────────────────────────────
           Flexible(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
@@ -94,8 +244,9 @@ class PhotoViewerDialog extends StatelessWidget {
             ),
           ),
 
-          if (caption != null && caption!.isNotEmpty) ...[
-            const SizedBox(height: 12),
+          // ── Caption / Title Bar ────────────────────────────────
+          if (widget.caption != null && widget.caption!.isNotEmpty) ...[
+            const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
@@ -103,7 +254,7 @@ class PhotoViewerDialog extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
-                caption!,
+                widget.caption!,
                 style: const TextStyle(color: Colors.white, fontSize: 13),
                 textAlign: TextAlign.center,
               ),
