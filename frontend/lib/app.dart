@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/settings_service.dart';
 import 'core/services/security_service.dart';
@@ -61,6 +62,7 @@ class _DailyReflectionAppState extends State<DailyReflectionApp>
               ],
             );
           },
+          navigatorObservers: [SentryNavigatorObserver()],
           home: const AuthGate(),
         );
       },
