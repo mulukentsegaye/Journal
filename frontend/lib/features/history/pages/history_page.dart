@@ -133,6 +133,7 @@ class _HistoryPageState extends State<HistoryPage> {
       MaterialPageRoute(
         builder: (_) => SummaryPage(
           id: model.id,
+          date: model.date,
           mood: model.mood,
           moodEmoji: model.moodEmoji,
           freeformTitle: model.freeformTitle,

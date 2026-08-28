@@ -155,6 +155,23 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 10),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _confirmDeleteAccount();
+                  },
+                  icon: const Icon(Icons.delete_forever_rounded,
+                      size: 16, color: Color(0xFFE02424)),
+                  label: const Text(
+                    'Delete Account & Wipe Data',
+                    style: TextStyle(
+                      color: Color(0xFFE02424),
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
               ],
             ),
           );
@@ -815,6 +832,62 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             ),
             child: const Text('Sign Out'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteAccount() {
+    final isDark = _settingsService.isDarkMode;
+    final cardBg = isDark ? AppColors.darkCardBackground : AppColors.lightCardBackground;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: cardBg,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Color(0xFFE02424), size: 22),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Delete Account & Data?',
+                style: GoogleFonts.lora(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'This action is irreversible. All your reflections, attached photos, and account data will be permanently wiped.',
+          style: GoogleFonts.inter(color: textSecondary, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: TextStyle(color: textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              Navigator.pop(context);
+              await _reflectionService.clearAllReflections();
+              await _securityService.removePin();
+              await _authService.deleteAccount();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE02424),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            ),
+            child: const Text('Delete Permanently'),
           ),
         ],
       ),

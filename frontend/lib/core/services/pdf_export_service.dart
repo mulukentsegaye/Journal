@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart' show BuildContext;
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -48,12 +49,22 @@ class PdfExportService {
     final Map<String, pw.MemoryImage> loadedImages = {};
     if (includePhotos) {
       for (final entry in sortedEntries) {
-        if (entry.photoUrl != null && entry.photoUrl!.isNotEmpty) {
+        final url = entry.photoUrl;
+        if (url != null && url.isNotEmpty) {
           try {
-            final file = File(entry.photoUrl!);
-            if (file.existsSync()) {
-              final bytes = await file.readAsBytes();
-              loadedImages[entry.photoUrl!] = pw.MemoryImage(bytes);
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+              final response = await http.get(Uri.parse(url)).timeout(
+                const Duration(seconds: 10),
+              );
+              if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+                loadedImages[url] = pw.MemoryImage(response.bodyBytes);
+              }
+            } else {
+              final file = File(url);
+              if (file.existsSync()) {
+                final bytes = await file.readAsBytes();
+                loadedImages[url] = pw.MemoryImage(bytes);
+              }
             }
           } catch (_) {}
         }

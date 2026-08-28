@@ -19,6 +19,7 @@ import '../widgets/freeform_summary_card.dart';
 /// answers, freeform note, mood tag, moment photo, and share options.
 class SummaryPage extends StatefulWidget {
   final String? id;
+  final DateTime? date;
   final String mood;
   final String moodEmoji;
   final String? freeformTitle;
@@ -29,6 +30,7 @@ class SummaryPage extends StatefulWidget {
   const SummaryPage({
     super.key,
     this.id,
+    this.date,
     this.mood = 'Calm',
     this.moodEmoji = '🌿',
     this.freeformTitle,
@@ -55,10 +57,10 @@ class _SummaryPageState extends State<SummaryPage> {
   }
 
   void _saveToFirestore() {
-    final now = DateTime.now();
+    final entryDate = widget.date ?? DateTime.now();
     final entry = ReflectionEntryModel(
       id: _docId,
-      date: now,
+      date: entryDate,
       mood: widget.mood,
       moodEmoji: widget.moodEmoji,
       answers: widget.answers ?? {},
@@ -69,7 +71,7 @@ class _SummaryPageState extends State<SummaryPage> {
           ? widget.freeformNote!.trim()
           : null,
       photoUrl: widget.photoUrl,
-      createdAt: now,
+      createdAt: entryDate,
     );
 
     ReflectionService().saveReflection(entry);
@@ -441,6 +443,7 @@ class _SummaryPageState extends State<SummaryPage> {
       MaterialPageRoute(
         builder: (_) => FreeformPage(
           id: _docId,
+          date: widget.date,
           initialTitle: widget.freeformTitle,
           initialContent: widget.freeformNote ??
               (widget.answers != null && widget.answers!.isNotEmpty

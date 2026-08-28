@@ -139,6 +139,13 @@ class ReflectionService extends ChangeNotifier with WidgetsBindingObserver {
     await _databaseService.toggleBookmark(docId, currentBookmark);
   }
 
+  /// Clears all local reflections.
+  Future<void> clearAllReflections() async {
+    await _databaseService.clearLocalCache();
+    _entries = [];
+    notifyListeners();
+  }
+
   /// Fetch the latest or yesterday's reflection for the home card.
   Future<ReflectionEntryModel?> getYesterdayOrLatestReflection() async {
     if (_entries.isNotEmpty) {

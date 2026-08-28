@@ -233,6 +233,7 @@ class _FreeformPageState extends State<FreeformPage> {
           SmoothPageRoute(
             builder: (_) => SummaryPage(
               id: docId,
+              date: widget.date,
               mood: selectedEnergyState.label,
               moodEmoji: selectedEnergyState.emoji,
               freeformTitle: title.isNotEmpty ? title : null,

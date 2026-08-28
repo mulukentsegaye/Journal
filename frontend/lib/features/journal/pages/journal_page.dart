@@ -183,6 +183,7 @@ class _JournalPageState extends State<JournalPage> {
       SmoothPageRoute(
         builder: (_) => SummaryPage(
           id: model.id,
+          date: model.date,
           mood: model.mood,
           moodEmoji: model.moodEmoji,
           freeformTitle: model.freeformTitle,
@@ -576,16 +577,17 @@ class _JournalPageState extends State<JournalPage> {
                                   color: AppColors.textHint,
                                 ),
                                 suffixIcon: _searchQuery.isNotEmpty
-                                    ? GestureDetector(
-                                        onTap: () {
-                                          _searchController.clear();
-                                          setState(() => _searchQuery = '');
-                                        },
-                                        child: Icon(
+                                    ? IconButton(
+                                        icon: Icon(
                                           Icons.close_rounded,
                                           size: 18,
                                           color: AppColors.textHint,
                                         ),
+                                        onPressed: () {
+                                          HapticFeedback.lightImpact();
+                                          _searchController.clear();
+                                          setState(() => _searchQuery = '');
+                                        },
                                       )
                                     : null,
                                 border: InputBorder.none,

@@ -160,6 +160,7 @@ class TodayPage extends StatelessWidget {
                                 SmoothPageRoute(
                                   builder: (_) => SummaryPage(
                                     id: entry.id,
+                                    date: entry.date,
                                     mood: mood,
                                     moodEmoji: moodEmoji,
                                     freeformTitle: entry.freeformTitle ??
