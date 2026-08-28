@@ -26,7 +26,7 @@ class JournalFilterChips extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
+      physics: const ClampingScrollPhysics(),
       child: Row(
         children: filters.map((f) {
           final isSelected = selectedFilter == f['id'];

@@ -1017,7 +1017,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    physics: const BouncingScrollPhysics(),
+                    physics: const ClampingScrollPhysics(),
                     children: [
                       _DrawerMenuItem(
                         icon: Icons.person_outline_rounded,

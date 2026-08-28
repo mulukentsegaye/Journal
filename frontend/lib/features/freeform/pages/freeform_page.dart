@@ -539,7 +539,7 @@ class _FreeformPageState extends State<FreeformPage> {
             // ── Scrollable Body ──────────────────────────────
             Expanded(
               child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
+                physics: const ClampingScrollPhysics(),
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

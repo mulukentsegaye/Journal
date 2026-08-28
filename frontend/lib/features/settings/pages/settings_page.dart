@@ -135,7 +135,7 @@ class _SettingsPageState extends State<SettingsPage> {
             centerTitle: true,
           ),
           body: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
+            physics: const ClampingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

@@ -179,7 +179,7 @@ class _HistoryPageState extends State<HistoryPage> {
                 selectedKey != null ? modelByDate[selectedKey] : null;
 
             return SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
+              physics: const ClampingScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

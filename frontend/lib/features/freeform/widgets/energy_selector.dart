@@ -83,7 +83,7 @@ class EnergySelector extends StatelessWidget {
         const SizedBox(height: 12),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
+          physics: const ClampingScrollPhysics(),
           child: Row(
             children: states.map((state) {
               final isSelected = selectedId == state.id;

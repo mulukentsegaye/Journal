@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'core/theme/app_theme.dart';
@@ -9,6 +10,24 @@ import 'features/today/pages/today_page.dart';
 import 'features/journal/pages/journal_page.dart';
 import 'shared/widgets/bottom_nav_bar.dart';
 import 'shared/widgets/profile_drawer.dart';
+
+/// Clean scroll behavior that prevents exaggerated overscroll bounce and supports all input devices.
+class MindfulScrollBehavior extends MaterialScrollBehavior {
+  const MindfulScrollBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+        PointerDeviceKind.stylus,
+      };
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) {
+    return const ClampingScrollPhysics();
+  }
+}
 
 /// Root widget that configures MaterialApp with theme and App Lock security.
 class DailyReflectionApp extends StatefulWidget {
@@ -54,6 +73,7 @@ class _DailyReflectionAppState extends State<DailyReflectionApp>
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: SettingsService().themeMode,
+          scrollBehavior: const MindfulScrollBehavior(),
           builder: (context, child) {
             return Stack(
               children: [

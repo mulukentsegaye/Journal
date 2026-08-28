@@ -362,6 +362,8 @@ class _JournalPageState extends State<JournalPage> {
             return RefreshIndicator(
               color: AppColors.primary,
               backgroundColor: AppColors.cardBackground,
+              displacement: 36.0,
+              edgeOffset: 0.0,
               onRefresh: () async {
                 try {
                   await _reflectionService.forceSyncNow();
@@ -404,7 +406,7 @@ class _JournalPageState extends State<JournalPage> {
               },
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
+                  parent: ClampingScrollPhysics(),
                 ),
                 slivers: [
                 SliverPadding(
