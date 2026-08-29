@@ -685,22 +685,126 @@ class DatabaseService {
     }
   }
 
-  /// Delete a reflection document.
+  Future<void> _removePendingWrite(String docId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final pendingWrites = prefs.getStringList(_keyPendingWrites) ?? [];
+      pendingWrites.removeWhere((item) {
+        try {
+          final m = jsonDecode(item) as Map<String, dynamic>;
+          return m['id'] == docId;
+        } catch (_) {
+          return false;
+        }
+      });
+      await prefs.setStringList(_keyPendingWrites, pendingWrites);
+    } catch (_) {}
+  }
+
+  /// Moves a reflection to the Recycle Bin (Soft Delete with cross-device sync).
   Future<void> deleteReflection(String docId) async {
+    final entries = await _loadLocalEntries();
+    final index = entries.indexWhere((e) => e.id == docId);
+    if (index >= 0) {
+      final old = entries[index];
+      final trashed = old.copyWith(
+        isDeleted: true,
+        deletedAt: DateTime.now(),
+      );
+      entries[index] = trashed;
+      await _persistLocalEntries(entries);
+      await _removePendingWrite(docId);
+
+      if (_isOnlineAndAuth) {
+        try {
+          final user = AuthService().currentUser;
+          final encrypted = await _encryption.encryptEntry(trashed);
+          await _client!.from('reflections').upsert(
+            encrypted.toSupabaseMap(userId: user?.id),
+            onConflict: 'id',
+          );
+          debugPrint('[DatabaseService] ✓ Moved reflection $docId to Recycle Bin in cloud');
+          _setSyncStatus(SyncStatus.synced);
+        } catch (e) {
+          debugPrint('[DatabaseService] ✗ Recycle Bin cloud sync failed for $docId, queuing: $e');
+          await _queueWrite(trashed);
+          _scheduleRetrySync();
+        }
+      } else {
+        debugPrint('[DatabaseService] Offline — queuing soft delete for $docId');
+        await _queueWrite(trashed);
+      }
+    }
+  }
+
+  /// Restores a reflection from the Recycle Bin back to the active journal.
+  Future<void> restoreReflection(String docId) async {
+    final entries = await _loadLocalEntries();
+    final index = entries.indexWhere((e) => e.id == docId);
+    if (index >= 0) {
+      final old = entries[index];
+      final restored = old.copyWith(
+        isDeleted: false,
+        clearDeletedAt: true,
+      );
+      entries[index] = restored;
+      await _persistLocalEntries(entries);
+      await _removePendingWrite(docId);
+
+      if (_isOnlineAndAuth) {
+        try {
+          final user = AuthService().currentUser;
+          final encrypted = await _encryption.encryptEntry(restored);
+          await _client!.from('reflections').upsert(
+            encrypted.toSupabaseMap(userId: user?.id),
+            onConflict: 'id',
+          );
+          debugPrint('[DatabaseService] ✓ Restored reflection $docId in cloud');
+          _setSyncStatus(SyncStatus.synced);
+        } catch (e) {
+          debugPrint('[DatabaseService] ✗ Restore cloud sync failed for $docId, queuing: $e');
+          await _queueWrite(restored);
+          _scheduleRetrySync();
+        }
+      } else {
+        await _queueWrite(restored);
+      }
+    }
+  }
+
+  /// Permanently deletes a reflection document from local storage and cloud.
+  Future<void> permanentlyDeleteReflection(String docId) async {
     final entries = await _loadLocalEntries();
     entries.removeWhere((e) => e.id == docId);
     await _persistLocalEntries(entries);
+    await _removePendingWrite(docId);
 
     if (_isOnlineAndAuth) {
       try {
-        await _client!.from('reflections').delete().eq('id', docId);
-        debugPrint('[DatabaseService] ✓ Deleted $docId from cloud');
+        final user = AuthService().currentUser;
+        if (user != null) {
+          await _client!.from('reflections').delete().eq('id', docId).eq('user_id', user.id);
+        } else {
+          await _client!.from('reflections').delete().eq('id', docId);
+        }
+        debugPrint('[DatabaseService] ✓ Permanently deleted $docId from cloud');
       } catch (e) {
-        debugPrint('[DatabaseService] ✗ Cloud delete failed for $docId: $e');
+        debugPrint('[DatabaseService] ✗ Permanent cloud delete failed for $docId: $e');
         await _queueDelete(docId);
       }
     } else {
       await _queueDelete(docId);
+    }
+  }
+
+  /// Permanently deletes all items in the Recycle Bin.
+  Future<void> emptyTrash() async {
+    final entries = await _loadLocalEntries();
+    final trashed = entries.where((e) => e.isDeleted).toList();
+    if (trashed.isEmpty) return;
+
+    for (final e in trashed) {
+      await permanentlyDeleteReflection(e.id);
     }
   }
 

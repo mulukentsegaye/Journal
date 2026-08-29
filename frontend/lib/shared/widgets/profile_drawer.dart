@@ -10,6 +10,7 @@ import '../../features/reflection/services/reflection_service.dart';
 import '../../features/onboarding/pages/onboarding_page.dart';
 import '../../features/settings/pages/settings_page.dart';
 import '../../features/settings/widgets/pdf_export_dialog.dart';
+import '../../features/journal/pages/recycle_bin_page.dart';
 
 /// Clean, professional right-side navigation drawer with instant reactive theme updates.
 class ProfileDrawer extends StatefulWidget {
@@ -897,7 +898,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([_settingsService, _securityService]),
+      listenable: Listenable.merge([_settingsService, _securityService, _reflectionService]),
       builder: (context, _) {
         final isDark = _settingsService.isDarkMode;
         final user = _authService.currentUser;
@@ -1070,6 +1071,26 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                       ),
                       const SizedBox(height: 6),
                       _DrawerMenuItem(
+                        icon: Icons.delete_outline_rounded,
+                        title: 'Recycle Bin',
+                        subtitle: _reflectionService.deletedCount > 0
+                            ? '${_reflectionService.deletedCount} ${_reflectionService.deletedCount == 1 ? 'item' : 'items'} in trash'
+                            : 'Deleted reflections',
+                        badgeText: _reflectionService.deletedCount > 0
+                            ? '${_reflectionService.deletedCount}'
+                            : null,
+                        isDark: isDark,
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            SmoothPageRoute(
+                                builder: (_) => const RecycleBinPage()),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 6),
+                      _DrawerMenuItem(
                         icon: Icons.settings_outlined,
                         title: 'Settings',
                         subtitle: 'Reminders & Preferences',
@@ -1139,6 +1160,7 @@ class _DrawerMenuItem extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
+  final String? badgeText;
   final bool isDark;
   final VoidCallback onTap;
 
@@ -1146,6 +1168,7 @@ class _DrawerMenuItem extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
+    this.badgeText,
     required this.isDark,
     required this.onTap,
   });
@@ -1192,8 +1215,31 @@ class _DrawerMenuItem extends StatelessWidget {
             fontSize: 11,
           ),
         ),
-        trailing: Icon(Icons.chevron_right_rounded,
-            size: 18, color: textSecondary),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (badgeText != null) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: primary.withValues(alpha: isDark ? 0.25 : 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  badgeText!,
+                  style: GoogleFonts.inter(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+            ],
+            Icon(Icons.chevron_right_rounded,
+                size: 18, color: textSecondary),
+          ],
+        ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
       ),

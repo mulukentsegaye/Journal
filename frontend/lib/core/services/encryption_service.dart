@@ -197,6 +197,8 @@ class EncryptionService {
       photoUrl: entry.photoUrl,
       isBookmarked: entry.isBookmarked,
       type: entry.type,
+      isDeleted: entry.isDeleted,
+      deletedAt: entry.deletedAt,
       createdAt: entry.createdAt,
     );
   }
@@ -224,6 +226,8 @@ class EncryptionService {
       photoUrl: entry.photoUrl,
       isBookmarked: entry.isBookmarked,
       type: entry.type,
+      isDeleted: entry.isDeleted,
+      deletedAt: entry.deletedAt,
       createdAt: entry.createdAt,
     );
   }

@@ -21,6 +21,8 @@ class ReflectionEntryModel {
   final String? photoUrl;
   final bool isBookmarked;
   final ReflectionType type;
+  final bool isDeleted;
+  final DateTime? deletedAt;
   final DateTime createdAt;
 
   const ReflectionEntryModel({
@@ -34,6 +36,8 @@ class ReflectionEntryModel {
     this.photoUrl,
     this.isBookmarked = false,
     this.type = ReflectionType.guided,
+    this.isDeleted = false,
+    this.deletedAt,
     required this.createdAt,
   });
 
@@ -49,6 +53,8 @@ class ReflectionEntryModel {
       'photoUrl': photoUrl,
       'isBookmarked': isBookmarked,
       'type': type.name,
+      'isDeleted': isDeleted,
+      'deletedAt': deletedAt?.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -66,6 +72,8 @@ class ReflectionEntryModel {
       'photo_url': photoUrl,
       'is_bookmarked': isBookmarked,
       'type': type.name,
+      'is_deleted': isDeleted,
+      'deleted_at': deletedAt?.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
     };
     if (userId != null && userId.isNotEmpty) {
@@ -94,6 +102,7 @@ class ReflectionEntryModel {
 
     final dateStr = map['date']?.toString();
     final createdStr = (map['createdAt'] ?? map['created_at'])?.toString();
+    final deletedStr = (map['deletedAt'] ?? map['deleted_at'])?.toString();
 
     return ReflectionEntryModel(
       id: docId,
@@ -108,6 +117,8 @@ class ReflectionEntryModel {
       photoUrl: (map['photoUrl'] ?? map['photo_url'])?.toString(),
       isBookmarked: (map['isBookmarked'] ?? map['is_bookmarked']) == true,
       type: parsedType,
+      isDeleted: (map['isDeleted'] ?? map['is_deleted']) == true,
+      deletedAt: deletedStr != null ? DateTime.tryParse(deletedStr) : null,
       createdAt: createdStr != null
           ? DateTime.tryParse(createdStr) ?? DateTime.now()
           : DateTime.now(),
@@ -197,6 +208,9 @@ class ReflectionEntryModel {
     bool? isBookmarked,
     ReflectionType? type,
     String? photoUrl,
+    bool? isDeleted,
+    DateTime? deletedAt,
+    bool clearDeletedAt = false,
   }) {
     return ReflectionEntryModel(
       id: id,
@@ -209,6 +223,8 @@ class ReflectionEntryModel {
       photoUrl: photoUrl ?? this.photoUrl,
       isBookmarked: isBookmarked ?? this.isBookmarked,
       type: type ?? this.type,
+      isDeleted: isDeleted ?? this.isDeleted,
+      deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
       createdAt: createdAt,
     );
   }

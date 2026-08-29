@@ -45,7 +45,23 @@ class ReflectionService extends ChangeNotifier with WidgetsBindingObserver {
   String? _error;
   SyncStatus _syncStatus = SyncStatus.idle;
 
-  List<ReflectionEntryModel> get entries => List.unmodifiable(_entries);
+  /// Active, non-deleted reflections.
+  List<ReflectionEntryModel> get entries =>
+      List.unmodifiable(_entries.where((e) => !e.isDeleted));
+
+  /// All reflections including soft-deleted ones in the Recycle Bin.
+  List<ReflectionEntryModel> get allEntries => List.unmodifiable(_entries);
+
+  /// Reflections currently in the Recycle Bin (Trash), sorted by deletion date.
+  List<ReflectionEntryModel> get deletedEntries {
+    final trashed = _entries.where((e) => e.isDeleted).toList();
+    trashed.sort((a, b) => (b.deletedAt ?? b.date).compareTo(a.deletedAt ?? a.date));
+    return List.unmodifiable(trashed);
+  }
+
+  /// Total count of reflections currently resting in the Recycle Bin.
+  int get deletedCount => _entries.where((e) => e.isDeleted).length;
+
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -55,17 +71,17 @@ class ReflectionService extends ChangeNotifier with WidgetsBindingObserver {
   /// Last sync error message, if any.
   String? get lastSyncError => _databaseService.lastSyncError;
 
-  /// Reactive streak computed from current cached entries.
-  int get streakCount => StreakCalculator.calculateStreak(_entries);
+  /// Reactive streak computed from current active cached entries.
+  int get streakCount => StreakCalculator.calculateStreak(entries);
 
-  /// Reactive list of journal entries.
+  /// Reactive list of journal entries (active only).
   List<JournalEntry> get journalEntries =>
-      _entries.map((m) => m.toJournalEntry()).toList();
+      entries.map((m) => m.toJournalEntry()).toList();
 
-  /// Map of calendar dates to history reflection entries.
+  /// Map of calendar dates to history reflection entries (active only).
   Map<DateTime, ReflectionEntryModel> get entriesByDate {
     final map = <DateTime, ReflectionEntryModel>{};
-    for (final e in _entries) {
+    for (final e in entries) {
       final key = DateTime(e.date.year, e.date.month, e.date.day);
       map[key] = e;
     }
@@ -129,9 +145,24 @@ class ReflectionService extends ChangeNotifier with WidgetsBindingObserver {
     await _databaseService.saveReflection(entry);
   }
 
-  /// Delete a reflection by document ID.
+  /// Moves a reflection to the Recycle Bin.
   Future<void> deleteReflection(String docId) async {
     await _databaseService.deleteReflection(docId);
+  }
+
+  /// Restores a reflection from the Recycle Bin back to active journal.
+  Future<void> restoreReflection(String docId) async {
+    await _databaseService.restoreReflection(docId);
+  }
+
+  /// Permanently deletes a reflection from local storage and cloud.
+  Future<void> permanentlyDeleteReflection(String docId) async {
+    await _databaseService.permanentlyDeleteReflection(docId);
+  }
+
+  /// Empties all items in the Recycle Bin permanently.
+  Future<void> emptyTrash() async {
+    await _databaseService.emptyTrash();
   }
 
   /// Toggle bookmark status.
@@ -148,15 +179,16 @@ class ReflectionService extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Fetch the latest or yesterday's reflection for the home card.
   Future<ReflectionEntryModel?> getYesterdayOrLatestReflection() async {
-    if (_entries.isNotEmpty) {
+    final active = entries;
+    if (active.isNotEmpty) {
       final now = DateTime.now();
-      for (final entry in _entries) {
+      for (final entry in active) {
         final isToday = entry.date.year == now.year &&
             entry.date.month == now.month &&
             entry.date.day == now.day;
         if (!isToday) return entry;
       }
-      return _entries.first;
+      return active.first;
     }
     return await _databaseService.getYesterdayOrLatestReflection();
   }

@@ -91,5 +91,67 @@ void main() {
       final latest = await db.getYesterdayOrLatestReflection();
       expect(latest?.id, equals('local_save_test'));
     });
+
+    test('DatabaseService soft-deletes to Recycle Bin, restores, and permanently deletes', () async {
+      final db = DatabaseService();
+      final entry = ReflectionEntryModel(
+        id: 'trash_test_1',
+        date: DateTime.now(),
+        mood: 'Calm',
+        moodEmoji: '🌿',
+        freeformTitle: 'Peaceful afternoon',
+        freeformNote: 'Sat by the window',
+        answers: const {},
+        createdAt: DateTime.now(),
+      );
+
+      await db.saveReflection(entry);
+
+      // 1. Soft delete -> marks isDeleted = true
+      await db.deleteReflection('trash_test_1');
+      var list = await db.streamReflections().first;
+      final trashed = list.firstWhere((e) => e.id == 'trash_test_1');
+      expect(trashed.isDeleted, isTrue);
+      expect(trashed.deletedAt, isNotNull);
+
+      // 2. Restore -> marks isDeleted = false
+      await db.restoreReflection('trash_test_1');
+      list = await db.streamReflections().first;
+      final restored = list.firstWhere((e) => e.id == 'trash_test_1');
+      expect(restored.isDeleted, isFalse);
+      expect(restored.deletedAt, isNull);
+
+      // 3. Soft delete again and permanent delete
+      await db.deleteReflection('trash_test_1');
+      await db.permanentlyDeleteReflection('trash_test_1');
+      list = await db.streamReflections().first;
+      expect(list.any((e) => e.id == 'trash_test_1'), isFalse);
+    });
+
+    test('DatabaseService emptyTrash removes all soft-deleted items', () async {
+      final db = DatabaseService();
+      final entry1 = ReflectionEntryModel(
+        id: 'trash_item_1',
+        date: DateTime.now(),
+        mood: 'Calm',
+        createdAt: DateTime.now(),
+      );
+      final entry2 = ReflectionEntryModel(
+        id: 'active_item_2',
+        date: DateTime.now(),
+        mood: 'Grateful',
+        createdAt: DateTime.now(),
+      );
+
+      await db.saveReflection(entry1);
+      await db.saveReflection(entry2);
+
+      await db.deleteReflection('trash_item_1');
+      await db.emptyTrash();
+
+      final list = await db.streamReflections().first;
+      expect(list.any((e) => e.id == 'trash_item_1'), isFalse);
+      expect(list.any((e) => e.id == 'active_item_2'), isTrue);
+    });
   });
 }
