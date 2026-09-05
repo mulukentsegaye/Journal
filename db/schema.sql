@@ -38,13 +38,36 @@ DROP POLICY IF EXISTS "Users can insert own reflections" ON public.reflections;
 DROP POLICY IF EXISTS "Users can update own reflections" ON public.reflections;
 DROP POLICY IF EXISTS "Users can delete own reflections" ON public.reflections;
 DROP POLICY IF EXISTS "Users can manage own reflections" ON public.reflections;
+DROP POLICY IF EXISTS "Users can select own reflections" ON public.reflections;
 
-CREATE POLICY "Users can manage own reflections"
+-- SELECT policy: Users can only read their own rows
+CREATE POLICY "Users can select own reflections"
     ON public.reflections
-    FOR ALL
+    FOR SELECT
+    TO authenticated
+    USING (auth.uid() = user_id);
+
+-- INSERT policy: Must satisfy WITH CHECK
+CREATE POLICY "Users can insert own reflections"
+    ON public.reflections
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (auth.uid() = user_id);
+
+-- UPDATE policy: BOTH USING and WITH CHECK are required for PostgREST upsert
+CREATE POLICY "Users can update own reflections"
+    ON public.reflections
+    FOR UPDATE
     TO authenticated
     USING (auth.uid() = user_id)
     WITH CHECK (auth.uid() = user_id);
+
+-- DELETE policy: Must satisfy USING
+CREATE POLICY "Users can delete own reflections"
+    ON public.reflections
+    FOR DELETE
+    TO authenticated
+    USING (auth.uid() = user_id);
 
 -- 5. Performance Indexes
 CREATE INDEX IF NOT EXISTS idx_reflections_user_date 
@@ -92,6 +115,10 @@ DROP POLICY IF EXISTS "Authenticated users can update photos" ON storage.objects
 CREATE POLICY "Authenticated users can update photos"
     ON storage.objects FOR UPDATE TO authenticated
     USING (
+        bucket_id = 'reflection_photos' AND
+        (storage.foldername(name))[1] = auth.uid()::text
+    )
+    WITH CHECK (
         bucket_id = 'reflection_photos' AND
         (storage.foldername(name))[1] = auth.uid()::text
     );

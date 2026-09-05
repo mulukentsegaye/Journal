@@ -10,6 +10,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/smooth_page_route.dart';
 import '../../../shared/widgets/photo_viewer_dialog.dart';
 import '../../reflection/models/reflection_entry_model.dart';
+import '../../reflection/services/database_service.dart';
 import '../../reflection/services/reflection_service.dart';
 import '../../freeform/pages/freeform_page.dart';
 import '../widgets/summary_header_card.dart';
@@ -55,7 +56,7 @@ class _SummaryPageState extends State<SummaryPage> {
   @override
   void initState() {
     super.initState();
-    _docId = widget.id ?? '${DateTime.now().millisecondsSinceEpoch}';
+    _docId = widget.id ?? DatabaseService.generateUniqueId();
     _initEntryState();
   }
 

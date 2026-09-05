@@ -10,6 +10,7 @@ import '../widgets/energy_selector.dart';
 import '../widgets/freeform_editor.dart';
 import '../../summary/pages/summary_page.dart';
 import '../../reflection/models/reflection_entry_model.dart';
+import '../../reflection/services/database_service.dart';
 import '../../reflection/services/reflection_service.dart';
 
 /// Freeform Space — an open writing canvas paired with mood selector
@@ -180,7 +181,7 @@ class _FreeformPageState extends State<FreeformPage> {
       final now = widget.date ?? DateTime.now();
       final title = _titleController.text.trim();
       final content = _contentController.text.trim();
-      final docId = widget.id ?? '${DateTime.now().millisecondsSinceEpoch}';
+      final docId = widget.id ?? DatabaseService.generateUniqueId();
 
       final entry = ReflectionEntryModel(
         id: docId,

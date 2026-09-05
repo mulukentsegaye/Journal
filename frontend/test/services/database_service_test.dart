@@ -193,5 +193,35 @@ void main() {
       list = await db.streamReflections().first;
       expect(list.firstWhere((e) => e.id == 'bm_toggle_test').isBookmarked, isFalse);
     });
+
+    test('DatabaseService generateUniqueId generates timestamped non-empty id', () {
+      final id1 = DatabaseService.generateUniqueId();
+      final id2 = DatabaseService.generateUniqueId();
+
+      expect(id1.isNotEmpty, isTrue);
+      expect(id2.isNotEmpty, isTrue);
+      expect(id1, isNot(equals(id2)));
+    });
+
+    test('DatabaseService formatSyncError provides friendly error messages', () {
+      final db = DatabaseService();
+
+      // 42501 RLS error
+      final rlsError = 'PostgrestException(message: new row violates row-level security policy (USING expression) for table "reflections", code: 42501, details: Forbidden, hint: null)';
+      final formattedRls = db.formatSyncError(rlsError);
+      expect(formattedRls, contains('Database permission error (42501)'));
+      expect(formattedRls, contains('Supabase RLS policy'));
+
+      // Network socket error
+      final netError = 'SocketException: Failed host lookup';
+      final formattedNet = db.formatSyncError(netError);
+      expect(formattedNet, contains('Network connection unavailable'));
+
+      // Auth error
+      final authError = 'AuthException: Invalid token';
+      final formattedAuth = db.formatSyncError(authError);
+      expect(formattedAuth, contains('Session expired'));
+    });
   });
 }
+

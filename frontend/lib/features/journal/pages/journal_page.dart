@@ -397,7 +397,7 @@ class _JournalPageState extends State<JournalPage> {
                           children: [
                             const Icon(Icons.cloud_off_rounded, color: Colors.white, size: 18),
                             const SizedBox(width: 8),
-                            Expanded(child: Text('Sync failed: $e')),
+                            Expanded(child: Text('Sync failed: ${DatabaseService().formatSyncError(e)}')),
                           ],
                         ),
                         backgroundColor: const Color(0xFFD32F2F),

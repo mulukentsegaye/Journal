@@ -335,12 +335,44 @@ class DatabaseService {
             final entry = ReflectionEntryModel.fromMap(map, map['id']?.toString() ?? '');
             final encryptedEntry = await _encryption.encryptEntry(entry);
 
-            await client.from('reflections').upsert(
-              encryptedEntry.toSupabaseMap(userId: user.id),
-              onConflict: 'id',
-            );
-            pendingWrites.remove(item);
-            debugPrint('[DatabaseService] ✓ Upserted pending entry ${entry.id} to cloud');
+            try {
+              await client.from('reflections').upsert(
+                encryptedEntry.toSupabaseMap(userId: user.id),
+                onConflict: 'id',
+              );
+              pendingWrites.remove(item);
+              debugPrint('[DatabaseService] ✓ Upserted pending entry ${entry.id} to cloud');
+            } on PostgrestException catch (pe) {
+              if (pe.code == '42501' ||
+                  pe.message.contains('row-level security') ||
+                  pe.message.contains('USING expression')) {
+                debugPrint('[DatabaseService] 42501 on pending entry ${entry.id}. Attempting auto-rekey recovery...');
+                final newId = generateUniqueId();
+                final rekeyed = entry.copyWith(id: newId);
+                final reEncrypted = await _encryption.encryptEntry(rekeyed);
+                try {
+                  await client.from('reflections').upsert(
+                    reEncrypted.toSupabaseMap(userId: user.id),
+                    onConflict: 'id',
+                  );
+                  final localEntries = await _loadLocalEntries();
+                  final idx = localEntries.indexWhere((e) => e.id == entry.id);
+                  if (idx >= 0) {
+                    localEntries[idx] = rekeyed;
+                    await _persistLocalEntries(localEntries);
+                  }
+                  pendingWrites.remove(item);
+                  debugPrint('[DatabaseService] ✓ Auto-recovered and upserted rekeyed entry $newId');
+                } catch (inner) {
+                  debugPrint('[DatabaseService] ✗ Rekeyed entry also failed: $inner');
+                  // Remove to prevent permanently jamming the queue
+                  pendingWrites.remove(item);
+                  break;
+                }
+              } else {
+                rethrow;
+              }
+            }
           } catch (e) {
             debugPrint('[DatabaseService] ✗ Failed to upsert pending entry: $e');
             break;
@@ -359,8 +391,9 @@ class DatabaseService {
         _setSyncStatus(SyncStatus.synced);
       }
     } catch (e) {
-      debugPrint('[DatabaseService] ✗ Sync failed: $e');
-      _setSyncStatus(SyncStatus.error, e.toString());
+      final formatted = formatSyncError(e);
+      debugPrint('[DatabaseService] ✗ Sync failed: $formatted (original: $e)');
+      _setSyncStatus(SyncStatus.error, formatted);
     }
   }
 
@@ -407,12 +440,43 @@ class DatabaseService {
           final entry = ReflectionEntryModel.fromMap(map, map['id']?.toString() ?? '');
           final encryptedEntry = await _encryption.encryptEntry(entry);
 
-          await client.from('reflections').upsert(
-            encryptedEntry.toSupabaseMap(userId: user.id),
-            onConflict: 'id',
-          );
-          pendingWrites.remove(item);
-          debugPrint('[DatabaseService] ✓ Force-synced write: ${entry.id}');
+          try {
+            await client.from('reflections').upsert(
+              encryptedEntry.toSupabaseMap(userId: user.id),
+              onConflict: 'id',
+            );
+            pendingWrites.remove(item);
+            debugPrint('[DatabaseService] ✓ Force-synced write: ${entry.id}');
+          } on PostgrestException catch (pe) {
+            if (pe.code == '42501' ||
+                pe.message.contains('row-level security') ||
+                pe.message.contains('USING expression')) {
+              debugPrint('[DatabaseService] Force sync 42501 on ${entry.id}. Attempting auto-rekey...');
+              final newId = generateUniqueId();
+              final rekeyed = entry.copyWith(id: newId);
+              final reEncrypted = await _encryption.encryptEntry(rekeyed);
+              try {
+                await client.from('reflections').upsert(
+                  reEncrypted.toSupabaseMap(userId: user.id),
+                  onConflict: 'id',
+                );
+                final localEntries = await _loadLocalEntries();
+                final idx = localEntries.indexWhere((e) => e.id == entry.id);
+                if (idx >= 0) {
+                  localEntries[idx] = rekeyed;
+                  await _persistLocalEntries(localEntries);
+                }
+                pendingWrites.remove(item);
+                debugPrint('[DatabaseService] ✓ Auto-recovered and force-synced rekeyed entry $newId');
+              } catch (inner) {
+                pendingWrites.remove(item);
+                await prefs.setStringList(_keyPendingWrites, pendingWrites);
+                throw formatSyncError(inner);
+              }
+            } else {
+              rethrow;
+            }
+          }
         }
         await prefs.setStringList(_keyPendingWrites, pendingWrites);
       }
@@ -423,20 +487,33 @@ class DatabaseService {
       _setSyncStatus(SyncStatus.synced);
       debugPrint('[DatabaseService] ✓ Force sync completed successfully');
     } catch (e) {
-      final formatted = _formatSyncError(e);
+      final formatted = formatSyncError(e);
       debugPrint('[DatabaseService] ✗ Force sync failed: $formatted (original: $e)');
       _setSyncStatus(SyncStatus.error, formatted);
       throw formatted;
     }
   }
 
-  String _formatSyncError(Object e) {
+  /// Formats synchronization errors into helpful, human-readable guidance.
+  String formatSyncError(Object e) {
     final str = e.toString();
-    if (str.contains('42501') || str.contains('row-level security') || str.contains('USING expression')) {
-      return 'Supabase RLS policy requires update. Please run the updated db/schema.sql in your Supabase SQL Editor.';
+    if (str.contains('42501') ||
+        str.contains('row-level security') ||
+        str.contains('USING expression') ||
+        str.contains('Forbidden')) {
+      return 'Database permission error (42501): Supabase RLS policy violation. Please run db/fix_rls_error.sql in your Supabase SQL Editor.';
     }
-    if (str.contains('SocketException') || str.contains('Failed host lookup') || str.contains('Network')) {
-      return 'Network connection issue. Please check your internet connection.';
+    if (str.contains('SocketException') ||
+        str.contains('Failed host lookup') ||
+        str.contains('Network') ||
+        str.contains('ClientException')) {
+      return 'Network connection unavailable. Please check your internet connection.';
+    }
+    if (str.contains('AuthException') ||
+        str.contains('invalid_token') ||
+        str.contains('JWT') ||
+        str.contains('expired')) {
+      return 'Session expired. Please sign out and sign back in to continue syncing.';
     }
     return str;
   }
@@ -590,13 +667,22 @@ class DatabaseService {
 
   // ── Public CRUD Methods ──────────────────────────────────────
 
+  static int _idCounter = 0;
+
+  /// Generates a unique document ID guaranteed to be scoped to the authenticated user.
+  static String generateUniqueId() {
+    final user = AuthService().currentUser;
+    final userPrefix = user != null ? '${user.id.substring(0, 8)}_' : '';
+    final counter = (++_idCounter) % 100000;
+    return '$userPrefix${DateTime.now().microsecondsSinceEpoch}_$counter';
+  }
+
   /// Save or update a reflection (instant local save + background E2EE cloud sync).
   Future<void> saveReflection(ReflectionEntryModel entry) async {
     final user = AuthService().currentUser;
-    final userPrefix = user != null ? '${user.id.substring(0, 8)}_' : '';
     final docId = entry.id.isNotEmpty
         ? entry.id
-        : '$userPrefix${DateTime.now().millisecondsSinceEpoch}';
+        : generateUniqueId();
 
     // If photo is a local file, upload to Supabase Storage for multi-device sync
     String? effectivePhotoUrl = entry.photoUrl;
@@ -655,7 +741,6 @@ class DatabaseService {
     // 2. Push encrypted payload to Supabase immediately, or queue for later
     if (_isOnlineAndAuth) {
       try {
-        final user = AuthService().currentUser;
         final encrypted = await _encryption.encryptEntry(entryWithId);
         await _client!.from('reflections').upsert(
           encrypted.toSupabaseMap(userId: user?.id),
@@ -663,10 +748,41 @@ class DatabaseService {
         );
         debugPrint('[DatabaseService] ✓ Pushed entry $docId to Supabase cloud');
         _setSyncStatus(SyncStatus.synced);
+      } on PostgrestException catch (pe) {
+        if ((pe.code == '42501' ||
+                pe.message.contains('row-level security') ||
+                pe.message.contains('USING expression')) &&
+            user != null) {
+          debugPrint('[DatabaseService] 42501 on save $docId. Auto-rekeying with user prefix...');
+          final newId = generateUniqueId();
+          final rekeyed = entryWithId.copyWith(id: newId);
+          final reEncrypted = await _encryption.encryptEntry(rekeyed);
+          try {
+            await _client!.from('reflections').upsert(
+              reEncrypted.toSupabaseMap(userId: user.id),
+              onConflict: 'id',
+            );
+            final currentEntries = await _loadLocalEntries();
+            final idx = currentEntries.indexWhere((e) => e.id == docId);
+            if (idx >= 0) {
+              currentEntries[idx] = rekeyed;
+              await _persistLocalEntries(currentEntries);
+            }
+            debugPrint('[DatabaseService] ✓ Auto-recovered and pushed rekeyed entry $newId');
+            _setSyncStatus(SyncStatus.synced);
+          } catch (e) {
+            debugPrint('[DatabaseService] ✗ Cloud push failed for rekeyed entry $newId: $e');
+            await _queueWrite(rekeyed);
+            _scheduleRetrySync();
+          }
+        } else {
+          debugPrint('[DatabaseService] ✗ Cloud push failed for $docId, queuing: $pe');
+          await _queueWrite(entryWithId);
+          _scheduleRetrySync();
+        }
       } catch (e) {
         debugPrint('[DatabaseService] ✗ Cloud push failed for $docId, queuing: $e');
         await _queueWrite(entryWithId);
-        // Schedule a retry
         _scheduleRetrySync();
       }
     } else {
