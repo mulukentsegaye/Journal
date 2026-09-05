@@ -13,6 +13,7 @@ import '../../reflection/pages/reflection_page.dart';
 import '../../summary/pages/summary_page.dart';
 import '../../reflection/models/reflection_entry_model.dart';
 import '../../reflection/services/reflection_service.dart';
+import '../../auth/services/auth_service.dart';
 import '../../../core/services/settings_service.dart';
 
 /// The main "Today" screen — the home page of Daily Reflection.
@@ -23,9 +24,11 @@ class TodayPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final reflectionService = ReflectionService();
+    final authService = AuthService();
+    final settingsService = SettingsService();
 
     return ListenableBuilder(
-      listenable: SettingsService(),
+      listenable: Listenable.merge([settingsService, reflectionService, authService]),
       builder: (context, _) {
         return Scaffold(
           backgroundColor: AppColors.background,

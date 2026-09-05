@@ -85,29 +85,33 @@ class GreetingHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = AuthService();
-    final name = auth.userName;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── Greeting row with 3-Line Menu Button ───────────────
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center,
+    return ListenableBuilder(
+      listenable: auth,
+      builder: (context, _) {
+        final name = auth.userName;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Wrap(
-                spacing: 10,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Text(
-                    '${_greetingText()}, $name',
-                    style: AppTextStyles.greeting,
-                  ),
-                  // Dynamic Streak badge (interactive, shared state)
-                  ListenableBuilder(
-                    listenable: ReflectionService(),
+            // ── Greeting row with 3-Line Menu Button ───────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Wrap(
+                    spacing: 10,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        '${_greetingText()}, $name',
+                        style: AppTextStyles.greeting,
+                      ),
+                      // Dynamic Streak badge (interactive, shared state)
+                      ListenableBuilder(
+                        listenable: ReflectionService(),
                     builder: (context, _) {
                       final streak = ReflectionService().streakCount;
                       final streakText = '$streak Day Streak';
@@ -186,6 +190,8 @@ class GreetingHeader extends StatelessWidget {
           style: AppTextStyles.subtitle,
         ),
       ],
+    );
+      },
     );
   }
 }

@@ -497,13 +497,42 @@ class DatabaseService {
 
       debugPrint('[DatabaseService] Total remote entries pulled: ${remoteEntries.length}');
 
-      if (remoteEntries.isNotEmpty) {
-        final localEntries = await _loadLocalEntries();
-        final map = <String, ReflectionEntryModel>{};
+      final localEntries = await _loadLocalEntries();
+      final map = <String, ReflectionEntryModel>{};
+
+      // If we successfully pulled the complete ground-truth dataset from cloud
+      if (!hasMore) {
+        // Collect IDs of pending local writes so we don't accidentally remove offline creations
+        final prefs = await SharedPreferences.getInstance();
+        final pendingWrites = prefs.getStringList(_keyPendingWrites) ?? [];
+        final pendingIds = <String>{};
+        for (final item in pendingWrites) {
+          try {
+            final m = jsonDecode(item) as Map<String, dynamic>;
+            if (m['id'] != null) pendingIds.add(m['id'].toString());
+          } catch (_) {}
+        }
+
+        final remoteIds = remoteEntries.map((e) => e.id).toSet();
+        for (final e in localEntries) {
+          if (remoteIds.contains(e.id) || pendingIds.contains(e.id)) {
+            map[e.id] = e;
+          } else {
+            debugPrint('[DatabaseService] Reconciled remotely deleted entry ${e.id}');
+          }
+        }
+        for (final e in remoteEntries) {
+          map[e.id] = e;
+        }
+        final merged = map.values.toList();
+        merged.sort((a, b) => b.date.compareTo(a.date));
+        await _persistLocalEntries(merged);
+        debugPrint('[DatabaseService] Reconciled ${merged.length} total entries (${localEntries.length} local -> ${merged.length})');
+      } else if (remoteEntries.isNotEmpty) {
+        // Fallback for very large datasets if pagination was truncated
         for (final e in localEntries) {
           map[e.id] = e;
         }
-        // Remote overrides or adds
         for (final e in remoteEntries) {
           map[e.id] = e;
         }

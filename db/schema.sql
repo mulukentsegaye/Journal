@@ -50,6 +50,9 @@ CREATE POLICY "Users can manage own reflections"
 CREATE INDEX IF NOT EXISTS idx_reflections_user_date 
     ON public.reflections(user_id, date DESC);
 
+CREATE INDEX IF NOT EXISTS idx_reflections_user_active_date 
+    ON public.reflections(user_id, is_deleted, date DESC);
+
 CREATE INDEX IF NOT EXISTS idx_reflections_user_bookmarked 
     ON public.reflections(user_id, is_bookmarked) 
     WHERE is_bookmarked = TRUE;
@@ -76,16 +79,22 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('reflection_photos', 'reflection_photos', true)
 ON CONFLICT (id) DO UPDATE SET public = true;
 
--- Storage RLS Policies
+-- Storage RLS Policies (User-isolated storage: user_id/filename)
 DROP POLICY IF EXISTS "Authenticated users can upload photos" ON storage.objects;
 CREATE POLICY "Authenticated users can upload photos"
     ON storage.objects FOR INSERT TO authenticated
-    WITH CHECK (bucket_id = 'reflection_photos');
+    WITH CHECK (
+        bucket_id = 'reflection_photos' AND
+        (storage.foldername(name))[1] = auth.uid()::text
+    );
 
 DROP POLICY IF EXISTS "Authenticated users can update photos" ON storage.objects;
 CREATE POLICY "Authenticated users can update photos"
     ON storage.objects FOR UPDATE TO authenticated
-    USING (bucket_id = 'reflection_photos');
+    USING (
+        bucket_id = 'reflection_photos' AND
+        (storage.foldername(name))[1] = auth.uid()::text
+    );
 
 DROP POLICY IF EXISTS "Public can view reflection photos" ON storage.objects;
 CREATE POLICY "Public can view reflection photos"
@@ -95,7 +104,10 @@ CREATE POLICY "Public can view reflection photos"
 DROP POLICY IF EXISTS "Authenticated users can delete photos" ON storage.objects;
 CREATE POLICY "Authenticated users can delete photos"
     ON storage.objects FOR DELETE TO authenticated
-    USING (bucket_id = 'reflection_photos');
+    USING (
+        bucket_id = 'reflection_photos' AND
+        (storage.foldername(name))[1] = auth.uid()::text
+    );
 
 -- ==============================================================================
 -- Optional: AI Semantic Search with pgvector (Ready for future activation)

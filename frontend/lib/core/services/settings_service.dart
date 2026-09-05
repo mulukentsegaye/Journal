@@ -141,7 +141,8 @@ class SettingsService extends ChangeNotifier {
   /// Exports all saved reflections as a structured Markdown document.
   Future<String> exportAllReflectionsMarkdown() async {
     final db = DatabaseService();
-    final entries = await db.streamReflections().first;
+    final rawEntries = await db.streamReflections().first;
+    final entries = rawEntries.where((e) => !e.isDeleted).toList();
 
     if (entries.isEmpty) {
       return '# Daily Reflection Journal Backup\n\nNo reflection entries found yet.';

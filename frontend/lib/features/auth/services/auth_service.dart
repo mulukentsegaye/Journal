@@ -1,11 +1,12 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/config/supabase_config.dart';
 
 /// Service that encapsulates Supabase Authentication methods and provides
 /// a seamless Local Guest Mode fallback when offline or when credentials are not supplied.
-class AuthService {
+class AuthService extends ChangeNotifier {
   static final AuthService _instance = AuthService._internal();
   factory AuthService([GoTrueClient? auth]) {
     if (auth != null) {
@@ -60,6 +61,7 @@ class AuthService {
 
   void _notifyAuthState() {
     _authStateController.add(isLoggedIn);
+    notifyListeners();
   }
 
   /// Unified stream indicating whether the user is logged in (via Supabase or Local Guest).
