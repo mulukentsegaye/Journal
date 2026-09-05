@@ -221,6 +221,11 @@ void main() {
       final authError = 'AuthException: Invalid token';
       final formattedAuth = db.formatSyncError(authError);
       expect(formattedAuth, contains('Session expired'));
+
+      // PGRST204 Missing column schema cache error
+      final pgrstError = "PostgrestException(message: Could not find the 'deleted_at' column of 'reflections' in the schema cache, code: PGRST204, details: Bad Request, hint: null)";
+      final formattedPgrst = db.formatSyncError(pgrstError);
+      expect(formattedPgrst, contains('Database schema missing columns'));
     });
   });
 }

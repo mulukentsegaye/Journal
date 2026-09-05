@@ -497,6 +497,12 @@ class DatabaseService {
   /// Formats synchronization errors into helpful, human-readable guidance.
   String formatSyncError(Object e) {
     final str = e.toString();
+    if (str.contains('PGRST204') ||
+        str.contains('schema cache') ||
+        str.contains('Could not find the') ||
+        str.contains('column of')) {
+      return 'Database schema missing columns. Please run db/fix_rls_error.sql in your Supabase SQL Editor.';
+    }
     if (str.contains('42501') ||
         str.contains('row-level security') ||
         str.contains('USING expression') ||

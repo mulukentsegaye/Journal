@@ -1,9 +1,21 @@
-﻿-- ==============================================================================
+-- ==============================================================================
 -- Fix RLS Error (Code: 42501 USING expression) for Table "reflections"
 -- Run this script in your Supabase Dashboard -> SQL Editor
 -- ==============================================================================
 
--- 1. Ensure Row Level Security is active
+-- 1. Ensure all required columns exist in public.reflections (Fixes PGRST204)
+ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS photo_url TEXT;
+ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS is_bookmarked BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS type TEXT NOT NULL DEFAULT 'guided';
+ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS freeform_title TEXT;
+ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS freeform_note TEXT;
+ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS answers JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+-- 2. Ensure Row Level Security is active
 ALTER TABLE public.reflections ENABLE ROW LEVEL SECURITY;
 
 -- 2. Drop all legacy/conflicting policies on public.reflections
@@ -81,3 +93,7 @@ CREATE POLICY "Authenticated users can delete photos"
         bucket_id = 'reflection_photos' AND
         (storage.foldername(name))[1] = auth.uid()::text
     );
+
+-- 6. Reload Supabase PostgREST schema cache so new columns are recognized immediately
+NOTIFY pgrst, 'reload schema';
+
