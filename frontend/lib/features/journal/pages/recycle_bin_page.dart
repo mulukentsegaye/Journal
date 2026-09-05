@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/settings_service.dart';
+import '../../../shared/widgets/photo_viewer_dialog.dart';
 import '../../reflection/models/reflection_entry_model.dart';
 import '../../reflection/services/reflection_service.dart';
 
@@ -428,24 +429,31 @@ class _TrashedReflectionCard extends StatelessWidget {
           // Attached photo preview if present
           if (entry.photoUrl != null && entry.photoUrl!.isNotEmpty) ...[
             const SizedBox(height: 10),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: entry.photoUrl!.startsWith('http://') ||
-                      entry.photoUrl!.startsWith('https://')
-                  ? Image.network(
-                      entry.photoUrl!,
-                      height: 60,
-                      width: 60,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                    )
-                  : Image.file(
-                      File(entry.photoUrl!),
-                      height: 60,
-                      width: 60,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                    ),
+            GestureDetector(
+              onTap: () => PhotoViewerDialog.show(
+                context,
+                photoUrl: entry.photoUrl!,
+                caption: entry.freeformTitle ?? entry.mood,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: entry.photoUrl!.startsWith('http://') ||
+                        entry.photoUrl!.startsWith('https://')
+                    ? Image.network(
+                        entry.photoUrl!,
+                        height: 60,
+                        width: 60,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                      )
+                    : Image.file(
+                        File(entry.photoUrl!),
+                        height: 60,
+                        width: 60,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                      ),
+              ),
             ),
           ],
 

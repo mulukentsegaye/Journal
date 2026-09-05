@@ -454,9 +454,15 @@ class _FreeformPageState extends State<FreeformPage> {
   Widget build(BuildContext context) {
     final canPop = Navigator.canPop(context);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _confirmCancel();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
         child: Column(
           children: [
             // ── Top Navigation Bar ───────────────────────────
@@ -617,6 +623,7 @@ class _FreeformPageState extends State<FreeformPage> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

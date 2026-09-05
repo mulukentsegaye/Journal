@@ -164,10 +164,20 @@ class _ReflectionPageState extends State<ReflectionPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      resizeToAvoidBottomInset: true,
-      body: SafeArea(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_currentIndex > 0) {
+          _goTo(_currentIndex - 1);
+        } else {
+          _cancel();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        resizeToAvoidBottomInset: true,
+        body: SafeArea(
         child: Column(
           children: [
             // ── Header ───────────────────────────────────────
@@ -264,8 +274,9 @@ class _ReflectionPageState extends State<ReflectionPage> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _Question {

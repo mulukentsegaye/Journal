@@ -109,7 +109,7 @@ class _JournalPageState extends State<JournalPage> {
         backgroundColor: AppColors.cardBackground,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
-          'Delete reflection?',
+          'Move to Recycle Bin?',
           style: GoogleFonts.lora(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -117,7 +117,7 @@ class _JournalPageState extends State<JournalPage> {
           ),
         ),
         content: Text(
-          'This reflection will be permanently removed from your journal.',
+          'This reflection will be kept in your Recycle Bin. You can restore it anytime.',
           style: AppTextStyles.body,
         ),
         actions: [
@@ -140,13 +140,18 @@ class _JournalPageState extends State<JournalPage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    content: const Text('Reflection deleted.'),
+                    content: const Text('Moved to Recycle Bin.'),
+                    action: SnackBarAction(
+                      label: 'Undo',
+                      textColor: AppColors.primary,
+                      onPressed: () => _reflectionService.restoreReflection(id),
+                    ),
                   ),
                 );
               }
             },
             child: const Text(
-              'Delete',
+              'Move to Bin',
               style: TextStyle(
                 color: Color(0xFFE02424),
                 fontWeight: FontWeight.w600,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/smooth_page_route.dart';
 import '../../../core/utils/streak_calculator.dart';
 import '../widgets/calendar_grid.dart';
 import '../widgets/month_header.dart';
@@ -59,7 +60,7 @@ class _HistoryPageState extends State<HistoryPage> {
         backgroundColor: AppColors.cardBackground,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
-          'Delete reflection?',
+          'Move to Recycle Bin?',
           style: GoogleFonts.lora(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -67,7 +68,7 @@ class _HistoryPageState extends State<HistoryPage> {
           ),
         ),
         content: Text(
-          'This reflection will be permanently removed from your journey.',
+          'This reflection will be kept in your Recycle Bin. You can restore it anytime.',
           style: AppTextStyles.body,
         ),
         actions: [
@@ -90,13 +91,18 @@ class _HistoryPageState extends State<HistoryPage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    content: const Text('Reflection deleted.'),
+                    content: const Text('Moved to Recycle Bin.'),
+                    action: SnackBarAction(
+                      label: 'Undo',
+                      textColor: AppColors.primary,
+                      onPressed: () => _reflectionService.restoreReflection(id),
+                    ),
                   ),
                 );
               }
             },
             child: const Text(
-              'Delete',
+              'Move to Bin',
               style: TextStyle(
                 color: Color(0xFFE02424),
                 fontWeight: FontWeight.w600,
@@ -111,7 +117,7 @@ class _HistoryPageState extends State<HistoryPage> {
   void _editReflection(ReflectionEntryModel model) {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      SmoothPageRoute(
         builder: (_) => FreeformPage(
           id: model.id,
           date: model.date,
@@ -130,7 +136,7 @@ class _HistoryPageState extends State<HistoryPage> {
   void _viewSummary(ReflectionEntryModel model) {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      SmoothPageRoute(
         builder: (_) => SummaryPage(
           id: model.id,
           date: model.date,

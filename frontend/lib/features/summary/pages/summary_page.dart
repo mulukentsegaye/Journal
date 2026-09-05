@@ -7,6 +7,7 @@ import '../../../core/constants/app_strings.dart';
 import '../../../core/services/photo_save_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/smooth_page_route.dart';
 import '../../../shared/widgets/photo_viewer_dialog.dart';
 import '../../reflection/models/reflection_entry_model.dart';
 import '../../reflection/services/reflection_service.dart';
@@ -46,6 +47,8 @@ class SummaryPage extends StatefulWidget {
 class _SummaryPageState extends State<SummaryPage> {
   bool _isExpanded = false;
   late final String _docId;
+  bool _isBookmarked = false;
+  final ReflectionService _reflectionService = ReflectionService();
 
   static const Map<int, String> _questionPrompts = AppStrings.questionPrompts;
 
@@ -53,10 +56,21 @@ class _SummaryPageState extends State<SummaryPage> {
   void initState() {
     super.initState();
     _docId = widget.id ?? '${DateTime.now().millisecondsSinceEpoch}';
-    _saveToFirestore();
+    _initEntryState();
   }
 
-  void _saveToFirestore() {
+  void _initEntryState() {
+    final active = _reflectionService.entries;
+    final existing = active.where((e) => e.id == _docId).firstOrNull;
+    if (existing != null) {
+      _isBookmarked = existing.isBookmarked;
+    } else if (widget.id == null) {
+      // Only save if it's a completely unsaved brand-new entry
+      _saveNewEntry();
+    }
+  }
+
+  void _saveNewEntry() {
     final entryDate = widget.date ?? DateTime.now();
     final entry = ReflectionEntryModel(
       id: _docId,
@@ -74,7 +88,14 @@ class _SummaryPageState extends State<SummaryPage> {
       createdAt: entryDate,
     );
 
-    ReflectionService().saveReflection(entry);
+    _reflectionService.saveReflection(entry);
+  }
+
+  void _toggleBookmark() {
+    HapticFeedback.selectionClick();
+    final newVal = !_isBookmarked;
+    setState(() => _isBookmarked = newVal);
+    _reflectionService.toggleBookmark(_docId, !_isBookmarked);
   }
 
   void _showCardPreviewDialog(
@@ -257,8 +278,8 @@ class _SummaryPageState extends State<SummaryPage> {
   }
 
   void _shareReflection() {
-    final now = DateTime.now();
-    final dateStr = DateFormat('MMMM d, yyyy').format(now);
+    final effectiveDate = widget.date ?? DateTime.now();
+    final dateStr = DateFormat('MMMM d, yyyy').format(effectiveDate);
     final buffer = StringBuffer();
     buffer.writeln('Daily Reflection — $dateStr');
     buffer.writeln('Mood: ${widget.mood} ${widget.moodEmoji}\n');
@@ -387,7 +408,7 @@ class _SummaryPageState extends State<SummaryPage> {
         backgroundColor: AppColors.cardBackground,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
-          'Delete reflection?',
+          'Move to Recycle Bin?',
           style: GoogleFonts.lora(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -395,7 +416,7 @@ class _SummaryPageState extends State<SummaryPage> {
           ),
         ),
         content: Text(
-          'This reflection will be permanently removed.',
+          'This reflection will be kept in your Recycle Bin. You can restore it anytime.',
           style: AppTextStyles.body,
         ),
         actions: [
@@ -409,7 +430,8 @@ class _SummaryPageState extends State<SummaryPage> {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              await ReflectionService().deleteReflection(_docId);
+              final deletedId = _docId;
+              await _reflectionService.deleteReflection(deletedId);
               if (mounted) {
                 Navigator.of(context).popUntil((route) => route.isFirst);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -419,13 +441,19 @@ class _SummaryPageState extends State<SummaryPage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    content: const Text('Reflection deleted.'),
+                    content: const Text('Moved to Recycle Bin.'),
+                    action: SnackBarAction(
+                      label: 'Undo',
+                      textColor: AppColors.primary,
+                      onPressed: () =>
+                          _reflectionService.restoreReflection(deletedId),
+                    ),
                   ),
                 );
               }
             },
             child: const Text(
-              'Delete',
+              'Move to Bin',
               style: TextStyle(
                 color: Color(0xFFE02424),
                 fontWeight: FontWeight.w600,
@@ -440,7 +468,7 @@ class _SummaryPageState extends State<SummaryPage> {
   void _editReflection() {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      SmoothPageRoute(
         builder: (_) => FreeformPage(
           id: _docId,
           date: widget.date,
@@ -510,7 +538,7 @@ class _SummaryPageState extends State<SummaryPage> {
                     ),
                   ),
                   Text(
-                    DateFormat('MMMM d, yyyy').format(DateTime.now()),
+                    DateFormat('MMMM d, yyyy').format(widget.date ?? DateTime.now()),
                     style: AppTextStyles.bodySmall.copyWith(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
@@ -519,6 +547,28 @@ class _SummaryPageState extends State<SummaryPage> {
                   ),
                   Row(
                     children: [
+                      // Bookmark toggle button
+                      GestureDetector(
+                        onTap: _toggleBookmark,
+                        child: Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            _isBookmarked
+                                ? Icons.bookmark_rounded
+                                : Icons.bookmark_outline_rounded,
+                            size: 20,
+                            color: _isBookmarked
+                                ? AppColors.primary
+                                : AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       GestureDetector(
                         onTap: _shareReflection,
                         child: Container(
