@@ -205,27 +205,35 @@ class ReflectionEntryModel {
   }
 
   ReflectionEntryModel copyWith({
+    String? id,
+    DateTime? date,
+    String? mood,
+    String? moodEmoji,
+    Map<int, String>? answers,
+    String? freeformTitle,
+    String? freeformNote,
+    String? photoUrl,
     bool? isBookmarked,
     ReflectionType? type,
-    String? photoUrl,
     bool? isDeleted,
     DateTime? deletedAt,
     bool clearDeletedAt = false,
+    DateTime? createdAt,
   }) {
     return ReflectionEntryModel(
-      id: id,
-      date: date,
-      mood: mood,
-      moodEmoji: moodEmoji,
-      answers: answers,
-      freeformTitle: freeformTitle,
-      freeformNote: freeformNote,
+      id: id ?? this.id,
+      date: date ?? this.date,
+      mood: mood ?? this.mood,
+      moodEmoji: moodEmoji ?? this.moodEmoji,
+      answers: answers ?? this.answers,
+      freeformTitle: freeformTitle ?? this.freeformTitle,
+      freeformNote: freeformNote ?? this.freeformNote,
       photoUrl: photoUrl ?? this.photoUrl,
       isBookmarked: isBookmarked ?? this.isBookmarked,
       type: type ?? this.type,
       isDeleted: isDeleted ?? this.isDeleted,
       deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
-      createdAt: createdAt,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

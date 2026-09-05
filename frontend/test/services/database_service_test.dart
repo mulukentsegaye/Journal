@@ -153,5 +153,45 @@ void main() {
       expect(list.any((e) => e.id == 'trash_item_1'), isFalse);
       expect(list.any((e) => e.id == 'active_item_2'), isTrue);
     });
+
+    test('ReflectionEntryModel copyWith preserves bookmark state', () {
+      final model = ReflectionEntryModel(
+        id: 'bm_model_1',
+        date: DateTime(2026, 9, 1),
+        mood: 'Peaceful',
+        isBookmarked: true,
+        createdAt: DateTime(2026, 9, 1),
+      );
+
+      final modified = model.copyWith(mood: 'Radiant');
+      expect(modified.isBookmarked, isTrue);
+      expect(modified.mood, equals('Radiant'));
+
+      final unbookmarked = modified.copyWith(isBookmarked: false);
+      expect(unbookmarked.isBookmarked, isFalse);
+    });
+
+    test('DatabaseService toggleBookmark updates and persists isBookmarked', () async {
+      final db = DatabaseService();
+      final entry = ReflectionEntryModel(
+        id: 'bm_toggle_test',
+        date: DateTime.now(),
+        mood: 'Grateful',
+        isBookmarked: false,
+        createdAt: DateTime.now(),
+      );
+
+      await db.saveReflection(entry);
+      var list = await db.streamReflections().first;
+      expect(list.firstWhere((e) => e.id == 'bm_toggle_test').isBookmarked, isFalse);
+
+      await db.toggleBookmark('bm_toggle_test', false);
+      list = await db.streamReflections().first;
+      expect(list.firstWhere((e) => e.id == 'bm_toggle_test').isBookmarked, isTrue);
+
+      await db.toggleBookmark('bm_toggle_test', true);
+      list = await db.streamReflections().first;
+      expect(list.firstWhere((e) => e.id == 'bm_toggle_test').isBookmarked, isFalse);
+    });
   });
 }

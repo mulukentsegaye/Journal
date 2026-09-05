@@ -25,6 +25,14 @@ class NotificationService {
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;
 
+  /// Whether local notifications are supported on the current platform.
+  bool get isSupportedPlatform =>
+      !kIsWeb &&
+      (Platform.isAndroid ||
+          Platform.isIOS ||
+          Platform.isMacOS ||
+          Platform.isLinux);
+
   /// Callback when a user interacts with a notification
   void Function(String? payload)? onNotificationTapped;
 
@@ -32,6 +40,11 @@ class NotificationService {
   Future<void> initialize({void Function(String? payload)? onTapped}) async {
     if (_isInitialized) return;
     onNotificationTapped = onTapped;
+
+    if (!isSupportedPlatform) {
+      _isInitialized = true;
+      return;
+    }
 
     try {
       // 1. Initialize timezone database
@@ -84,9 +97,8 @@ class NotificationService {
 
   /// Request runtime permissions for notifications on Android (13+) and iOS/macOS.
   Future<bool> requestPermissions() async {
+    if (!isSupportedPlatform) return true;
     try {
-      if (kIsWeb) return false;
-
       if (Platform.isAndroid) {
         final androidPlugin = _notificationsPlugin
             .resolvePlatformSpecificImplementation<
@@ -134,9 +146,8 @@ class NotificationService {
 
   /// Check whether notification permissions are granted.
   Future<bool> areNotificationsEnabled() async {
+    if (!isSupportedPlatform) return true;
     try {
-      if (kIsWeb) return false;
-
       if (Platform.isAndroid) {
         final androidPlugin = _notificationsPlugin
             .resolvePlatformSpecificImplementation<
@@ -195,6 +206,10 @@ class NotificationService {
 
   /// Schedule a repeating daily reflection reminder at [time].
   Future<bool> scheduleDailyReminder(TimeOfDay time) async {
+    if (!isSupportedPlatform) {
+      debugPrint('Daily reminders not supported on this platform.');
+      return false;
+    }
     try {
       if (!_isInitialized) {
         await initialize();
@@ -229,6 +244,7 @@ class NotificationService {
 
   /// Cancel the scheduled evening reflection reminder.
   Future<void> cancelReminder() async {
+    if (!isSupportedPlatform) return;
     try {
       await _notificationsPlugin.cancel(id: reminderNotificationId);
       debugPrint('Daily reflection reminder cancelled.');
@@ -239,6 +255,10 @@ class NotificationService {
 
   /// Send an immediate test notification to verify delivery and permissions.
   Future<bool> sendTestNotification() async {
+    if (!isSupportedPlatform) {
+      debugPrint('Test notifications not supported on this platform.');
+      return false;
+    }
     try {
       if (!_isInitialized) {
         await initialize();

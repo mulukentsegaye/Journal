@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../app.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/smooth_page_route.dart';
 import '../services/auth_service.dart';
 
 /// Screen presented when user opens a password reset deep link.
@@ -57,7 +58,7 @@ class _UpdatePasswordPageState extends State<UpdatePasswordPage> {
           ),
         );
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const AppShell()),
+          SmoothPageRoute(builder: (_) => const AppShell()),
           (route) => false,
         );
       }

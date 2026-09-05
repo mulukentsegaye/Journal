@@ -202,7 +202,7 @@ class DayDetailCard extends StatelessWidget {
                   size: 19,
                   color: Color(0xFFE02424),
                 ),
-                tooltip: 'Delete reflection',
+                tooltip: 'Move to Recycle Bin',
                 onPressed: onDelete,
               ),
             if (onEdit != null)

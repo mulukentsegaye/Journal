@@ -635,6 +635,8 @@ class DatabaseService {
       photoUrl: effectivePhotoUrl,
       isBookmarked: entry.isBookmarked,
       type: entry.type,
+      isDeleted: entry.isDeleted,
+      deletedAt: entry.deletedAt,
       createdAt: entry.createdAt,
     );
 

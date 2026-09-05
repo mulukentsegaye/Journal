@@ -23,10 +23,12 @@ class _LockScreenState extends State<LockScreen>
 
   late AnimationController _shakeController;
   late Animation<double> _shakeAnimation;
+  late final FocusNode _focusNode;
 
   @override
   void initState() {
     super.initState();
+    _focusNode = FocusNode();
     _shakeController = AnimationController(
       duration: const Duration(milliseconds: 400),
       vsync: this,
@@ -131,6 +133,7 @@ class _LockScreenState extends State<LockScreen>
   void dispose() {
     _countdownTimer?.cancel();
     _shakeController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -139,9 +142,57 @@ class _LockScreenState extends State<LockScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark ? const Color(0xFF141716) : AppColors.background;
 
-    return PopScope(
-      canPop: false, // Prevent back navigation while locked
-      child: Scaffold(
+    return Focus(
+      focusNode: _focusNode,
+      autofocus: true,
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent) {
+          final key = event.logicalKey;
+          if (key == LogicalKeyboardKey.backspace ||
+              key == LogicalKeyboardKey.delete) {
+            _onDeletePressed();
+            return KeyEventResult.handled;
+          }
+          if (key == LogicalKeyboardKey.digit0 || key == LogicalKeyboardKey.numpad0) {
+            _onDigitPressed('0');
+            return KeyEventResult.handled;
+          } else if (key == LogicalKeyboardKey.digit1 || key == LogicalKeyboardKey.numpad1) {
+            _onDigitPressed('1');
+            return KeyEventResult.handled;
+          } else if (key == LogicalKeyboardKey.digit2 || key == LogicalKeyboardKey.numpad2) {
+            _onDigitPressed('2');
+            return KeyEventResult.handled;
+          } else if (key == LogicalKeyboardKey.digit3 || key == LogicalKeyboardKey.numpad3) {
+            _onDigitPressed('3');
+            return KeyEventResult.handled;
+          } else if (key == LogicalKeyboardKey.digit4 || key == LogicalKeyboardKey.numpad4) {
+            _onDigitPressed('4');
+            return KeyEventResult.handled;
+          } else if (key == LogicalKeyboardKey.digit5 || key == LogicalKeyboardKey.numpad5) {
+            _onDigitPressed('5');
+            return KeyEventResult.handled;
+          } else if (key == LogicalKeyboardKey.digit6 || key == LogicalKeyboardKey.numpad6) {
+            _onDigitPressed('6');
+            return KeyEventResult.handled;
+          } else if (key == LogicalKeyboardKey.digit7 || key == LogicalKeyboardKey.numpad7) {
+            _onDigitPressed('7');
+            return KeyEventResult.handled;
+          } else if (key == LogicalKeyboardKey.digit8 || key == LogicalKeyboardKey.numpad8) {
+            _onDigitPressed('8');
+            return KeyEventResult.handled;
+          } else if (key == LogicalKeyboardKey.digit9 || key == LogicalKeyboardKey.numpad9) {
+            _onDigitPressed('9');
+            return KeyEventResult.handled;
+          } else if (event.character != null && RegExp(r'^[0-9]$').hasMatch(event.character!)) {
+            _onDigitPressed(event.character!);
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+      child: PopScope(
+        canPop: false, // Prevent back navigation while locked
+        child: Scaffold(
         backgroundColor: bg,
         body: SafeArea(
           child: Padding(
@@ -275,8 +326,9 @@ class _LockScreenState extends State<LockScreen>
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildKeypadRow(List<String> digits) {
     return Row(
