@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/config/supabase_config.dart';
+import '../../reflection/services/database_service.dart';
 
 /// Service that encapsulates Supabase Authentication methods and provides
 /// a seamless Local Guest Mode fallback when offline or when credentials are not supplied.
@@ -314,6 +315,8 @@ class AuthService extends ChangeNotifier {
 
   /// Sign out current user.
   Future<void> signOut() async {
+    // Clear local journal cache BEFORE sign-out to prevent data leaking to the next user
+    await DatabaseService().clearLocalCache();
     await _clearLocalGuest();
     try {
       await _auth?.signOut();

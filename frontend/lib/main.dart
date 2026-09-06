@@ -8,6 +8,7 @@ import 'core/services/notification_service.dart';
 import 'core/services/settings_service.dart';
 import 'core/services/security_service.dart';
 import 'features/auth/services/auth_service.dart';
+import 'features/reflection/services/database_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +33,7 @@ void main() async {
       }
 
       await AuthService().loadSession();
+      await DatabaseService().migrateUnscopedCache();
       await SettingsService().loadSettings();
       await SecurityService().loadSecuritySettings();
 

@@ -65,10 +65,22 @@ class DatabaseService {
   SupabaseClient? _injectedClient;
   final EncryptionService _encryption = EncryptionService();
 
-  static const String _keyLocalReflections = 'daily_reflections_local_cache';
-  static const String _keyPendingWrites = 'daily_reflections_pending_writes';
-  static const String _keyPendingDeletes = 'daily_reflections_pending_deletes';
+  static const String _keyLocalReflectionsBase = 'daily_reflections_local_cache';
+  static const String _keyPendingWritesBase = 'daily_reflections_pending_writes';
+  static const String _keyPendingDeletesBase = 'daily_reflections_pending_deletes';
+  static const String _keyLastUserId = 'daily_reflections_last_user_id';
   static const int defaultPageSize = 50;
+
+  /// Returns user-scoped cache key to prevent cross-account data leakage.
+  String _scopedKey(String base) {
+    final uid = currentUserId;
+    if (uid != null && uid.isNotEmpty) return '${base}_$uid';
+    return base;
+  }
+
+  String get _keyLocalReflections => _scopedKey(_keyLocalReflectionsBase);
+  String get _keyPendingWrites => _scopedKey(_keyPendingWritesBase);
+  String get _keyPendingDeletes => _scopedKey(_keyPendingDeletesBase);
 
   final StreamController<List<ReflectionEntryModel>> _streamController =
       StreamController<List<ReflectionEntryModel>>.broadcast();
@@ -106,6 +118,67 @@ class DatabaseService {
     final client = _client;
     final user = AuthService().currentUser;
     return client != null && user != null && !AuthService().isLocalGuest;
+  }
+  // ── Account Isolation ────────────────────────────────────────
+
+  /// Clears local cache and pending queues for the current user.
+  /// MUST be called on sign-out to prevent data leaking to the next user.
+  Future<void> clearLocalCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_keyLocalReflections);
+      await prefs.remove(_keyPendingWrites);
+      await prefs.remove(_keyPendingDeletes);
+      // Also clear legacy unscoped keys from before per-user scoping
+      await prefs.remove(_keyLocalReflectionsBase);
+      await prefs.remove(_keyPendingWritesBase);
+      await prefs.remove(_keyPendingDeletesBase);
+      _streamController.add([]);
+      _setSyncStatus(SyncStatus.idle);
+      debugPrint('[DatabaseService] ✓ Local cache cleared for account isolation');
+    } catch (e) {
+      debugPrint('[DatabaseService] Failed to clear local cache: $e');
+    }
+  }
+
+  /// One-time migration: if old unscoped cache exists and current user has no
+  /// scoped cache yet, move entries to the user-scoped key, then delete the old key.
+  Future<void> migrateUnscopedCache() async {
+    final uid = currentUserId;
+    if (uid == null || uid.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // If the old unscoped key has data and our scoped key is empty, migrate
+      final oldData = prefs.getStringList(_keyLocalReflectionsBase);
+      final scopedKey = '${_keyLocalReflectionsBase}_$uid';
+      final scopedData = prefs.getStringList(scopedKey);
+
+      if (oldData != null && oldData.isNotEmpty && (scopedData == null || scopedData.isEmpty)) {
+        await prefs.setStringList(scopedKey, oldData);
+        debugPrint('[DatabaseService] ✓ Migrated ${oldData.length} entries from unscoped to user-scoped cache');
+
+        // Migrate pending writes/deletes too
+        final oldWrites = prefs.getStringList(_keyPendingWritesBase);
+        if (oldWrites != null && oldWrites.isNotEmpty) {
+          await prefs.setStringList('${_keyPendingWritesBase}_$uid', oldWrites);
+        }
+        final oldDeletes = prefs.getStringList(_keyPendingDeletesBase);
+        if (oldDeletes != null && oldDeletes.isNotEmpty) {
+          await prefs.setStringList('${_keyPendingDeletesBase}_$uid', oldDeletes);
+        }
+      }
+
+      // Clear old unscoped keys regardless
+      await prefs.remove(_keyLocalReflectionsBase);
+      await prefs.remove(_keyPendingWritesBase);
+      await prefs.remove(_keyPendingDeletesBase);
+
+      // Track current user for future reference
+      await prefs.setString(_keyLastUserId, uid);
+    } catch (e) {
+      debugPrint('[DatabaseService] Failed to migrate unscoped cache: $e');
+    }
   }
 
   // ── Local Storage Helpers (Isolate-Offloaded) ────────────────
@@ -976,21 +1049,6 @@ class DatabaseService {
       }
     }
     return entries.first;
-  }
-
-  /// Clears local reflections cache on account switch/sign out.
-  Future<void> clearLocalCache() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_keyLocalReflections);
-      await prefs.remove(_keyPendingWrites);
-      await prefs.remove(_keyPendingDeletes);
-      _streamController.add([]);
-      _setSyncStatus(SyncStatus.idle);
-      debugPrint('[DatabaseService] Local cache cleared');
-    } catch (e) {
-      debugPrint('[DatabaseService] Failed to clear local cache: $e');
-    }
   }
 
   // ── Retry Logic ─────────────────────────────────────────────────
