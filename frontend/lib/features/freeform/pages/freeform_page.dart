@@ -13,8 +13,8 @@ import '../../reflection/models/reflection_entry_model.dart';
 import '../../reflection/services/database_service.dart';
 import '../../reflection/services/reflection_service.dart';
 
-/// Freeform Space — an open writing canvas paired with mood selector
-/// and daily moment photo attachment.
+/// Journal entry editor — an open writing canvas paired with an optional mood selector
+/// and moment photo attachment.
 class FreeformPage extends StatefulWidget {
   final String? id;
   final String? initialTitle;
@@ -22,9 +22,7 @@ class FreeformPage extends StatefulWidget {
   final String? initialMood;
   final String? initialPhotoUrl;
   final DateTime? date;
-  final bool isStandalone;
   final VoidCallback? onSaved;
-  final Map<int, String>? reflectionAnswers;
 
   const FreeformPage({
     super.key,
@@ -34,9 +32,7 @@ class FreeformPage extends StatefulWidget {
     this.initialMood,
     this.initialPhotoUrl,
     this.date,
-    this.isStandalone = true,
     this.onSaved,
-    this.reflectionAnswers,
   });
 
   @override
@@ -188,7 +184,6 @@ class _FreeformPageState extends State<FreeformPage> {
         date: now,
         mood: selectedEnergyState.label,
         moodEmoji: selectedEnergyState.emoji,
-        answers: widget.reflectionAnswers ?? const {},
         freeformTitle: title.isNotEmpty ? title : null,
         freeformNote: content.isNotEmpty ? content : null,
         photoUrl: _photoPath,
@@ -212,8 +207,8 @@ class _FreeformPageState extends State<FreeformPage> {
               Expanded(
                 child: Text(
                   widget.id != null
-                      ? 'Reflection updated successfully.'
-                      : 'Thought saved to today\'s reflection.',
+                      ? 'Journal entry updated.'
+                      : 'Journal entry saved.',
                   style: AppTextStyles.body.copyWith(
                     color: Colors.white,
                     fontSize: 13,
@@ -228,7 +223,7 @@ class _FreeformPageState extends State<FreeformPage> {
 
       if (widget.onSaved != null) {
         widget.onSaved!();
-      } else if (widget.isStandalone) {
+      } else {
         Navigator.pushReplacement(
           context,
           SmoothPageRoute(
@@ -239,7 +234,6 @@ class _FreeformPageState extends State<FreeformPage> {
               moodEmoji: selectedEnergyState.emoji,
               freeformTitle: title.isNotEmpty ? title : null,
               freeformNote: content.isNotEmpty ? content : null,
-              answers: widget.reflectionAnswers,
               photoUrl: _photoPath,
             ),
           ),
@@ -491,7 +485,7 @@ class _FreeformPageState extends State<FreeformPage> {
                   if (canPop) const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      widget.id != null ? 'Edit Reflection' : 'Freeform Space',
+                      widget.id != null ? 'Edit Journal' : 'New Journal Entry',
                       style: GoogleFonts.lora(
                         fontSize: 22,
                         fontWeight: FontWeight.w600,
@@ -609,8 +603,8 @@ class _FreeformPageState extends State<FreeformPage> {
                             const SizedBox(width: 8),
                             Text(
                               widget.id != null
-                                  ? 'Update Reflection'
-                                  : 'Save to Today\'s Entry',
+                                  ? 'Update Entry'
+                                  : 'Save Entry',
                               style: AppTextStyles.button.copyWith(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,

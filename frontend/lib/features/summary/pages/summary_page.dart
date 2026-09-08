@@ -14,7 +14,6 @@ import '../../reflection/services/database_service.dart';
 import '../../reflection/services/reflection_service.dart';
 import '../../freeform/pages/freeform_page.dart';
 import '../widgets/summary_header_card.dart';
-import '../widgets/response_item_card.dart';
 import '../widgets/freeform_summary_card.dart';
 
 /// Summary Page / Reflection Complete screen — displays all saved
@@ -480,8 +479,6 @@ class _SummaryPageState extends State<SummaryPage> {
                   : ''),
           initialMood: widget.mood,
           initialPhotoUrl: widget.photoUrl,
-          reflectionAnswers: widget.answers,
-          isStandalone: true,
         ),
       ),
     );
@@ -620,7 +617,7 @@ class _SummaryPageState extends State<SummaryPage> {
                                 Icon(Icons.edit_outlined,
                                     size: 18, color: AppColors.textPrimary),
                                 const SizedBox(width: 10),
-                                const Text('Edit Reflection',
+                                const Text('Edit Entry',
                                     style: TextStyle(fontSize: 14)),
                               ],
                             ),
@@ -633,7 +630,7 @@ class _SummaryPageState extends State<SummaryPage> {
                                     size: 18, color: Color(0xFFE02424)),
                                 SizedBox(width: 10),
                                 Text(
-                                  'Delete Reflection',
+                                  'Delete Entry',
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: Color(0xFFE02424),
@@ -820,9 +817,20 @@ class _SummaryPageState extends State<SummaryPage> {
                     ],
 
                     // Section Title & Answer items (if user answered questions)
+                    // Primary Journal Note Card
+                    if (widget.freeformNote != null &&
+                        widget.freeformNote!.trim().isNotEmpty) ...[
+                      FreeformSummaryCard(
+                        title: widget.freeformTitle,
+                        note: widget.freeformNote!.trim(),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+
+                    // Section for historical guided responses (if any exist from earlier entries)
                     if (userResponses.isNotEmpty) ...[
                       Text(
-                        'RESPONSE SUMMARY',
+                        'SAVED RESPONSES',
                         style: AppTextStyles.bodySmall.copyWith(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -835,15 +843,53 @@ class _SummaryPageState extends State<SummaryPage> {
                       ...visibleResponses.map((item) {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12),
-                          child: ResponseItemCard(
-                            index: item.number,
-                            question: item.question,
-                            answer: item.answer,
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(18),
+                            decoration: BoxDecoration(
+                              color: AppColors.cardBackground,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: AppColors.divider.withValues(alpha: 0.7),
+                                width: 1,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.02),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${item.number}. ${item.question}',
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textSecondary,
+                                    height: 1.4,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  '"${item.answer}"',
+                                  style: GoogleFonts.lora(
+                                    fontSize: 14,
+                                    fontStyle: FontStyle.italic,
+                                    color: AppColors.textPrimary,
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       }),
 
-                      // Expand / Collapse "+ X more reflective responses"
+                      // Expand / Collapse "+ X more responses"
                       if (!_isExpanded && remainingCount > 0)
                         Center(
                           child: Padding(
@@ -863,7 +909,7 @@ class _SummaryPageState extends State<SummaryPage> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      '+ $remainingCount more reflective responses',
+                                      '+ $remainingCount more responses',
                                       style: AppTextStyles.bodySmall.copyWith(
                                         color: AppColors.textSecondary,
                                         fontWeight: FontWeight.w500,
@@ -884,14 +930,6 @@ class _SummaryPageState extends State<SummaryPage> {
                         ),
                       const SizedBox(height: 18),
                     ],
-
-                    // Additional Freeform Note Card
-                    if (widget.freeformNote != null &&
-                        widget.freeformNote!.trim().isNotEmpty)
-                      FreeformSummaryCard(
-                        title: widget.freeformTitle,
-                        note: widget.freeformNote!.trim(),
-                      ),
 
                     // Empty state if neither guided responses nor freeform note
                     if (userResponses.isEmpty &&

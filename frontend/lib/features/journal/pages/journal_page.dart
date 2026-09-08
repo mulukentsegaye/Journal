@@ -174,8 +174,6 @@ class _JournalPageState extends State<JournalPage> {
               (model.answers.isNotEmpty ? model.answers.values.first : ''),
           initialMood: model.mood,
           initialPhotoUrl: model.photoUrl,
-          reflectionAnswers: model.answers,
-          isStandalone: true,
         ),
       ),
     );
@@ -313,7 +311,7 @@ class _JournalPageState extends State<JournalPage> {
           Navigator.push(
             context,
             SmoothPageRoute(
-              builder: (_) => const FreeformPage(isStandalone: true),
+              builder: (_) => const FreeformPage(),
             ),
           );
         },

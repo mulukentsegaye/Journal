@@ -127,7 +127,7 @@ class FreeformEditor extends StatelessWidget {
                 height: 1.3,
               ),
               decoration: InputDecoration(
-                hintText: "Title of tonight's thought",
+                hintText: "Title (optional)",
                 hintStyle: GoogleFonts.lora(
                   fontSize: 20,
                   fontWeight: FontWeight.w500,
@@ -162,7 +162,7 @@ class FreeformEditor extends StatelessWidget {
               ),
               decoration: InputDecoration(
                 hintText:
-                    'Today was a transition day. Write whatever comes up — raw thoughts, quiet observations, or peaceful notes...',
+                    'Write whatever comes to mind — your thoughts, feelings, quiet observations, or reflections...',
                 hintStyle: GoogleFonts.inter(
                   fontSize: 15,
                   color: AppColors.textHint.withValues(alpha: 0.55),

@@ -23,14 +23,14 @@ class _OnboardingPageState extends State<OnboardingPage>
 
   final List<_OnboardingSlideData> _slides = const [
     _OnboardingSlideData(
-      badge: 'DAILY MINDFULNESS',
-      title: 'Pause. Breathe. Reflect.',
+      badge: 'FREEDOM & MINDFULNESS',
+      title: 'Write Freely, Anytime.',
       description:
-          'Transform busy days into quiet clarity with gentle 3-question guided evening check-ins, mood tracking, and mindful streaks.',
+          'Transform busy days into quiet clarity with distraction-free journaling, optional mood tagging, and mindful streaks.',
       emoji: '🌿',
       features: [
-        '✨ 3 Guided Prompts',
-        '🎙️ Voice Journaling',
+        '✨ Freeform Journaling',
+        '🎙️ Voice Dictation',
         '🔥 Mindful Streaks',
       ],
       glowColor: Color(0xFF2D6A4F),

@@ -21,10 +21,10 @@ class GreetingHeader extends StatelessWidget {
 
   void _showStreakSheet(BuildContext context, int streak) {
     final title =
-        streak == 1 ? '1 Day of Reflection' : '$streak Days of Reflection';
+        streak == 1 ? '1 Day Journal Streak' : '$streak Days Journal Streak';
     final description = streak > 0
-        ? 'You\'ve taken time for peace and mindful presence every evening. Keep this gentle rhythm alive.'
-        : 'Take a quiet moment tonight to begin your mindful reflection streak.';
+        ? 'You\'ve taken time for peace and presence. Keep this gentle rhythm alive.'
+        : 'Take a quiet moment to write your thoughts and begin your journal streak.';
 
     showModalBottomSheet(
       context: context,
@@ -186,7 +186,7 @@ class GreetingHeader extends StatelessWidget {
 
         // ── Subtitle ──────────────────────────────────────────
         Text(
-          'Welcome back to your quiet space.',
+          'Your private journal is ready whenever you are.',
           style: AppTextStyles.subtitle,
         ),
       ],

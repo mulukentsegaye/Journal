@@ -19,7 +19,8 @@ class JournalFilterChips extends StatelessWidget {
     {'id': 'calm', 'label': 'Calm', 'emoji': '🌿'},
     {'id': 'grateful', 'label': 'Grateful', 'emoji': '🙏'},
     {'id': 'happy', 'label': 'Happy', 'emoji': '☀️'},
-    {'id': 'reflective', 'label': 'Reflective', 'emoji': '💭'},
+    {'id': 'anxious', 'label': 'Anxious', 'emoji': '😰'},
+    {'id': 'tired', 'label': 'Tired', 'emoji': '😫'},
   ];
 
   @override

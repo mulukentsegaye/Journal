@@ -44,6 +44,14 @@ class JournalCard extends StatelessWidget {
     return '${_months[d.month - 1]} ${d.day}, ${d.year}';
   }
 
+  String _formatTime(DateTime d) {
+    final hour = d.hour;
+    final minute = d.minute.toString().padLeft(2, '0');
+    final period = hour >= 12 ? 'PM' : 'AM';
+    final h12 = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+    return '$h12:$minute $period';
+  }
+
   Widget _buildPhotoThumbnail(BuildContext context) {
     if (entry.photoUrl == null || entry.photoUrl!.isEmpty) {
       return const SizedBox.shrink();
@@ -212,13 +220,26 @@ class JournalCard extends StatelessWidget {
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
-                    _formatDate(entry.date),
-                    style: AppTextStyles.bodySmall.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary,
-                      fontSize: 11,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _formatDate(entry.date),
+                        style: AppTextStyles.bodySmall.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                        ),
+                      ),
+                      Text(
+                        ' • ${_formatTime(entry.date)}',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textHint,
+                          fontSize: 10.5,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 8),
