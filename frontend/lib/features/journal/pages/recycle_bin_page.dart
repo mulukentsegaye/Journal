@@ -100,7 +100,7 @@ class RecycleBinPage extends StatelessWidget {
           ),
         ),
         content: Text(
-          'This reflection will be permanently erased. You will not be able to recover it.',
+          'This entry will be permanently erased. You will not be able to recover it.',
           style: GoogleFonts.inter(color: textSecondary, fontSize: 13),
         ),
         actions: [
@@ -115,7 +115,7 @@ class RecycleBinPage extends StatelessWidget {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: const Text('Reflection permanently deleted.'),
+                    content: const Text('Entry permanently deleted.'),
                     backgroundColor: const Color(0xFFE02424),
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -145,7 +145,7 @@ class RecycleBinPage extends StatelessWidget {
             children: [
               Icon(Icons.restore_rounded, color: Colors.white, size: 18),
               SizedBox(width: 8),
-              Text('Reflection restored to active journal.'),
+              Text('Entry restored to your journal.'),
             ],
           ),
           backgroundColor: const Color(0xFF2C5E43),

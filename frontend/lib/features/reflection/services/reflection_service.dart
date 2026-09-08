@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/reflection_entry_model.dart';
 import '../../journal/models/journal_entry.dart';
 import '../../../core/utils/streak_calculator.dart';
+import '../../../core/utils/error_formatter.dart';
 import '../../auth/services/auth_service.dart';
 import 'database_service.dart';
 
@@ -112,13 +113,13 @@ class ReflectionService extends ChangeNotifier with WidgetsBindingObserver {
         },
         onError: (err) {
           _isLoading = false;
-          _error = err.toString();
+          _error = ErrorFormatter.format(err);
           notifyListeners();
         },
       );
     } catch (e) {
       _isLoading = false;
-      _error = e.toString();
+      _error = ErrorFormatter.format(e);
       notifyListeners();
     }
   }

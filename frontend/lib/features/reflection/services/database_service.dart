@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/config/supabase_config.dart';
 import '../../../core/services/encryption_service.dart';
+import '../../../core/utils/error_formatter.dart';
 import '../../auth/services/auth_service.dart';
 import '../models/reflection_entry_model.dart';
 
@@ -569,32 +570,7 @@ class DatabaseService {
 
   /// Formats synchronization errors into helpful, human-readable guidance.
   String formatSyncError(Object e) {
-    final str = e.toString();
-    if (str.contains('PGRST204') ||
-        str.contains('schema cache') ||
-        str.contains('Could not find the') ||
-        str.contains('column of')) {
-      return 'Database schema missing columns. Please run db/fix_rls_error.sql in your Supabase SQL Editor.';
-    }
-    if (str.contains('42501') ||
-        str.contains('row-level security') ||
-        str.contains('USING expression') ||
-        str.contains('Forbidden')) {
-      return 'Database permission error (42501): Supabase RLS policy violation. Please run db/fix_rls_error.sql in your Supabase SQL Editor.';
-    }
-    if (str.contains('SocketException') ||
-        str.contains('Failed host lookup') ||
-        str.contains('Network') ||
-        str.contains('ClientException')) {
-      return 'Network connection unavailable. Please check your internet connection.';
-    }
-    if (str.contains('AuthException') ||
-        str.contains('invalid_token') ||
-        str.contains('JWT') ||
-        str.contains('expired')) {
-      return 'Session expired. Please sign out and sign back in to continue syncing.';
-    }
-    return str;
+    return ErrorFormatter.format(e);
   }
 
   /// Pulls remote reflections from Supabase using paginated batches (pageSize: 50),

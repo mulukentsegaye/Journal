@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/smooth_page_route.dart';
+import '../../../core/utils/error_formatter.dart';
 import '../../../shared/widgets/photo_viewer_dialog.dart';
 import '../widgets/energy_selector.dart';
 import '../widgets/freeform_editor.dart';
@@ -81,7 +82,7 @@ class _FreeformPageState extends State<FreeformPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Could not attach photo: $e'),
+            content: Text(ErrorFormatter.format(e)),
             backgroundColor: const Color(0xFFE02424),
           ),
         );
@@ -247,7 +248,7 @@ class _FreeformPageState extends State<FreeformPage> {
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             content: Text(
-              'Failed to save reflection: $e',
+              ErrorFormatter.format(e),
               style: const TextStyle(color: Colors.white),
             ),
           ),

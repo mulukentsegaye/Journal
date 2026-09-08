@@ -5,6 +5,7 @@ import '../../../app.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/smooth_page_route.dart';
+import '../../../core/utils/error_formatter.dart';
 import '../../../core/utils/streak_calculator.dart';
 import '../models/journal_entry.dart';
 import '../widgets/journal_card.dart';
@@ -265,7 +266,7 @@ class _JournalPageState extends State<JournalPage> {
                   children: [
                     const Icon(Icons.cloud_off_rounded, color: Colors.white, size: 18),
                     const SizedBox(width: 8),
-                    Expanded(child: Text('$e')),
+                    Expanded(child: Text(ErrorFormatter.format(e))),
                   ],
                 ),
                 backgroundColor: const Color(0xFFD32F2F),
@@ -394,7 +395,7 @@ class _JournalPageState extends State<JournalPage> {
                           children: [
                             const Icon(Icons.cloud_off_rounded, color: Colors.white, size: 18),
                             const SizedBox(width: 8),
-                            Expanded(child: Text('Sync failed: ${DatabaseService().formatSyncError(e)}')),
+                            Expanded(child: Text(ErrorFormatter.format(e))),
                           ],
                         ),
                         backgroundColor: const Color(0xFFD32F2F),

@@ -791,7 +791,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         backgroundColor: AppColors.primary,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        content: Text('Exported ${entries.length} reflections to clipboard!'),
+        content: Text('Exported ${entries.length} entries to clipboard!'),
       ),
     );
   }

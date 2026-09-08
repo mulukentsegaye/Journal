@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../core/services/voice_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/utils/error_formatter.dart';
 
 /// 1-Tap Voice Dictation button with pulsing animation and live sound-wave feedback.
 class VoiceInputButton extends StatefulWidget {
@@ -122,8 +123,9 @@ class _VoiceInputButtonState extends State<VoiceInputButton>
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           content: Text(
-            _voiceService.lastError ??
-                'Microphone permission needed or voice input unavailable.',
+            _voiceService.lastError != null
+                ? ErrorFormatter.format(_voiceService.lastError)
+                : 'Microphone permission needed or voice input unavailable.',
             style: const TextStyle(color: Colors.white, fontSize: 12),
           ),
         ),

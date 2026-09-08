@@ -5,6 +5,7 @@ import '../../../app.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/smooth_page_route.dart';
+import '../../../core/utils/error_formatter.dart';
 import '../services/auth_service.dart';
 
 /// Screen presented when user opens a password reset deep link.
@@ -65,7 +66,7 @@ class _UpdatePasswordPageState extends State<UpdatePasswordPage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString();
+          _errorMessage = ErrorFormatter.format(e);
           _isLoading = false;
         });
       }

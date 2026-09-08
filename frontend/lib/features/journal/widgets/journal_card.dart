@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/services/photo_save_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/error_formatter.dart';
 import '../../../shared/widgets/photo_viewer_dialog.dart';
 import '../models/journal_entry.dart';
 
@@ -167,7 +168,7 @@ class JournalCard extends StatelessWidget {
               children: [
                 const Icon(Icons.error_outline_rounded, color: Colors.white, size: 18),
                 const SizedBox(width: 10),
-                Expanded(child: Text('Could not save photo: $e')),
+                Expanded(child: Text(ErrorFormatter.format(e))),
               ],
             ),
             backgroundColor: const Color(0xFFD32F2F),

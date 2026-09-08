@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../core/services/pdf_export_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/error_formatter.dart';
 import '../../reflection/models/reflection_entry_model.dart';
 import '../../reflection/services/reflection_service.dart';
 
@@ -101,7 +102,7 @@ class _PdfExportDialogState extends State<PdfExportDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to generate PDF: $e'),
+            content: Text(ErrorFormatter.format(e)),
             backgroundColor: const Color(0xFFE02424),
           ),
         );
@@ -116,7 +117,7 @@ class _PdfExportDialogState extends State<PdfExportDialog> {
     if (entries.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('No reflections found in this period to export.'),
+          content: const Text('No entries found in this period to export.'),
           backgroundColor: AppColors.textPrimary,
         ),
       );
@@ -136,7 +137,7 @@ class _PdfExportDialogState extends State<PdfExportDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to share PDF: $e'),
+            content: Text(ErrorFormatter.format(e)),
             backgroundColor: const Color(0xFFE02424),
           ),
         );

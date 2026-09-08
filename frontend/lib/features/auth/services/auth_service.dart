@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/config/supabase_config.dart';
+import '../../../core/utils/error_formatter.dart';
 import '../../reflection/services/database_service.dart';
 
 /// Service that encapsulates Supabase Authentication methods and provides
@@ -165,7 +166,7 @@ class AuthService extends ChangeNotifier {
     } on AuthException catch (e) {
       throw _handleAuthException(e);
     } catch (e) {
-      throw e.toString();
+      throw ErrorFormatter.format(e);
     }
   }
 
@@ -196,7 +197,7 @@ class AuthService extends ChangeNotifier {
     } on AuthException catch (e) {
       throw _handleAuthException(e);
     } catch (e) {
-      throw e.toString();
+      throw ErrorFormatter.format(e);
     }
   }
 
@@ -215,7 +216,7 @@ class AuthService extends ChangeNotifier {
     } on AuthException catch (e) {
       throw _handleAuthException(e);
     } catch (e) {
-      throw e.toString();
+      throw ErrorFormatter.format(e);
     }
   }
 
@@ -235,7 +236,7 @@ class AuthService extends ChangeNotifier {
     } on AuthException catch (e) {
       throw _handleAuthException(e);
     } catch (e) {
-      throw e.toString();
+      throw ErrorFormatter.format(e);
     }
   }
 
@@ -326,22 +327,6 @@ class AuthService extends ChangeNotifier {
 
   /// Translates Supabase error codes to user-friendly messages.
   String _handleAuthException(AuthException e) {
-    final msg = e.message.toLowerCase();
-    if (msg.contains('invalid login credentials') || msg.contains('invalid credentials')) {
-      return 'Invalid email or password. Please check and try again.';
-    }
-    if (msg.contains('user already registered') || msg.contains('already registered')) {
-      return 'An account with this email already exists. Try signing in instead.';
-    }
-    if (msg.contains('valid email')) {
-      return 'Please enter a valid email address.';
-    }
-    if (msg.contains('password') && (msg.contains('short') || msg.contains('least 6'))) {
-      return 'Password is too weak. Please use at least 6 characters.';
-    }
-    if (msg.contains('rate limit') || msg.contains('too many requests')) {
-      return 'Too many attempts. Please wait a moment and try again.';
-    }
-    return e.message;
+    return ErrorFormatter.format(e);
   }
 }

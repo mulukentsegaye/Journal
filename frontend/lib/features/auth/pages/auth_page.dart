@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/error_formatter.dart';
 import '../services/auth_service.dart';
 
 /// Screen allowing the user to sign in or create an account.
@@ -78,7 +79,7 @@ class _AuthPageState extends State<AuthPage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString();
+          _errorMessage = ErrorFormatter.format(e);
         });
       }
     } finally {
@@ -100,7 +101,7 @@ class _AuthPageState extends State<AuthPage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString();
+          _errorMessage = ErrorFormatter.format(e);
         });
       }
     } finally {
@@ -185,7 +186,7 @@ class _AuthPageState extends State<AuthPage> {
                     } catch (e) {
                       setDialogState(() {
                         isSending = false;
-                        resetError = e.toString();
+                        resetError = ErrorFormatter.format(e);
                       });
                     }
                   }
@@ -244,7 +245,7 @@ class _AuthPageState extends State<AuthPage> {
                       } catch (e) {
                         setDialogState(() {
                           isSending = false;
-                          resetError = e.toString();
+                          resetError = ErrorFormatter.format(e);
                         });
                       }
                     },

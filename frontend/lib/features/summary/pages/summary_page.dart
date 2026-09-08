@@ -8,6 +8,7 @@ import '../../../core/services/photo_save_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/smooth_page_route.dart';
+import '../../../core/utils/error_formatter.dart';
 import '../../../shared/widgets/photo_viewer_dialog.dart';
 import '../../reflection/models/reflection_entry_model.dart';
 import '../../reflection/services/database_service.dart';
@@ -251,7 +252,7 @@ class _SummaryPageState extends State<SummaryPage> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              content: const Text('Reflection card copied!'),
+                              content: const Text('Entry card copied!'),
                             ),
                           );
                         }
@@ -370,7 +371,7 @@ class _SummaryPageState extends State<SummaryPage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           content:
-                              const Text('Reflection copied to clipboard!'),
+                              const Text('Entry copied to clipboard!'),
                         ),
                       );
                     }
@@ -416,7 +417,7 @@ class _SummaryPageState extends State<SummaryPage> {
           ),
         ),
         content: Text(
-          'This reflection will be kept in your Recycle Bin. You can restore it anytime.',
+          'This entry will be kept in your Recycle Bin. You can restore it anytime.',
           style: AppTextStyles.body,
         ),
         actions: [
@@ -1061,7 +1062,7 @@ class _SummaryPageState extends State<SummaryPage> {
               children: [
                 const Icon(Icons.error_outline_rounded, color: Colors.white, size: 18),
                 const SizedBox(width: 10),
-                Expanded(child: Text('Could not save photo: $e')),
+                Expanded(child: Text(ErrorFormatter.format(e))),
               ],
             ),
             backgroundColor: const Color(0xFFD32F2F),
