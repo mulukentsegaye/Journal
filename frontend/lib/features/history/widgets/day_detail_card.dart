@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/photo_viewer_dialog.dart';
-import '../pages/history_page.dart';
 
 /// Detail card shown below the calendar when a day is selected.
 ///
@@ -303,4 +302,25 @@ class _StatItem extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Holds data for a single day's reflection in calendar view.
+class ReflectionEntry {
+  final String id;
+  final String mood;
+  final String moodEmoji;
+  final String summary;
+  final int questionsAnswered;
+  final int minutesSpent;
+  final String? photoUrl;
+
+  const ReflectionEntry({
+    required this.id,
+    required this.mood,
+    required this.moodEmoji,
+    required this.summary,
+    required this.questionsAnswered,
+    required this.minutesSpent,
+    this.photoUrl,
+  });
 }

@@ -9,6 +9,7 @@ class YesterdaySummaryCard extends StatelessWidget {
   final String mood;
   final String moodEmoji;
   final String? photoUrl;
+  final String title;
   final VoidCallback? onTap;
 
   const YesterdaySummaryCard({
@@ -18,6 +19,7 @@ class YesterdaySummaryCard extends StatelessWidget {
     required this.mood,
     required this.moodEmoji,
     this.photoUrl,
+    this.title = 'Recent Thought',
     this.onTap,
   });
 
@@ -64,7 +66,7 @@ class YesterdaySummaryCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        "Yesterday's Summary",
+                        title,
                         style: AppTextStyles.sectionTitle,
                       ),
                     ),

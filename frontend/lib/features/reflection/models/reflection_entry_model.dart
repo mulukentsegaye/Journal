@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../journal/models/journal_entry.dart';
-import '../../history/pages/history_page.dart';
+import '../../history/widgets/day_detail_card.dart';
 
 /// Distinguishes between guided step reflections and standalone freeform notes.
 enum ReflectionType {
@@ -35,7 +35,7 @@ class ReflectionEntryModel {
     this.freeformNote,
     this.photoUrl,
     this.isBookmarked = false,
-    this.type = ReflectionType.guided,
+    this.type = ReflectionType.freeform,
     this.isDeleted = false,
     this.deletedAt,
     required this.createdAt,
@@ -152,7 +152,7 @@ class ReflectionEntryModel {
       snippet = answers.values.first;
     }
     if (snippet.isEmpty) {
-      snippet = 'Evening mindful reflection captured.';
+      snippet = 'A quiet moment captured.';
     }
 
     return JournalEntry(
@@ -160,9 +160,7 @@ class ReflectionEntryModel {
       date: date,
       title: freeformTitle?.isNotEmpty == true
           ? freeformTitle!
-          : (type == ReflectionType.freeform
-              ? 'Freeform Note — ${_formatDate(date)}'
-              : 'Reflection on ${_formatDate(date)}'),
+          : 'Thought — ${_formatDate(date)}',
       contentSnippet: snippet,
       mood: mood,
       moodEmoji: moodEmoji,

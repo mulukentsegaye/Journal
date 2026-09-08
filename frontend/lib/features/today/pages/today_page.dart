@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../widgets/greeting_header.dart';
 import '../widgets/quote_card.dart';
-import '../widgets/reflection_prompt_card.dart';
 import '../widgets/yesterday_summary_card.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/smooth_page_route.dart';
 import '../../freeform/pages/freeform_page.dart';
-import '../../reflection/pages/reflection_page.dart';
 import '../../summary/pages/summary_page.dart';
 import '../../reflection/models/reflection_entry_model.dart';
 import '../../reflection/services/reflection_service.dart';
@@ -50,80 +48,132 @@ class TodayPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 28),
 
-                  // ── Today's Reflection CTA ────────────────────
-                  ReflectionPromptCard(
-                    onStart: () {
-                      Navigator.push(
-                        context,
-                        SmoothPageRoute(
-                          builder: (_) => const ReflectionPage(),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // ── Quick Freeform Space Card ─────────────────
+                  // ── Write Today's Journal CTA ─────────────────
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
                         context,
                         SmoothPageRoute(
-                          builder: (_) => const FreeformPage(isStandalone: true),
+                          builder: (_) => const FreeformPage(),
                         ),
                       );
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 18, vertical: 14),
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(22),
                       decoration: BoxDecoration(
-                        color: AppColors.cardBackground,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.divider),
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.primary.withValues(alpha: 0.14),
+                            AppColors.primary.withValues(alpha: 0.05),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          width: 1.2,
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
-                            blurRadius: 10,
-                            offset: const Offset(0, 3),
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                            blurRadius: 18,
+                            offset: const Offset(0, 6),
                           ),
                         ],
                       ),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(Icons.edit_note_rounded,
-                                color: AppColors.primary, size: 22),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Icon(
+                                  Icons.edit_note_rounded,
+                                  color: AppColors.primary,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      AppStrings.writeJournalPrompt,
+                                      style: AppTextStyles.greeting.copyWith(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Capture your thoughts anytime 24/7',
+                                      style: AppTextStyles.bodySmall.copyWith(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                          const SizedBox(height: 16),
+                          Text(
+                            AppStrings.writeJournalSubtitle,
+                            style: AppTextStyles.body.copyWith(
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
+                              height: 1.4,
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          Container(
+                            height: 44,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withValues(alpha: 0.3),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
+                                const Icon(
+                                  Icons.create_rounded,
+                                  color: Colors.white,
+                                  size: 17,
+                                ),
+                                const SizedBox(width: 8),
                                 Text(
-                                  'Freeform Space',
-                                  style: AppTextStyles.body.copyWith(
-                                    fontWeight: FontWeight.w600,
+                                  AppStrings.writeButtonLabel,
+                                  style: AppTextStyles.button.copyWith(
                                     fontSize: 14,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Have thoughts on your mind? Write freely anytime.',
-                                  style: AppTextStyles.bodySmall.copyWith(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 11.5,
-                                  ),
+                                const SizedBox(width: 4),
+                                const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  color: Colors.white,
+                                  size: 16,
                                 ),
                               ],
                             ),
                           ),
-                          Icon(Icons.arrow_forward_ios_rounded,
-                              size: 14, color: AppColors.textHint),
                         ],
                       ),
                     ),
@@ -143,7 +193,7 @@ class TodayPage extends StatelessWidget {
                           ? entry.freeformNote!
                           : (entry.answers.isNotEmpty == true
                               ? entry.answers.values.first
-                              : 'Daily reflection captured.');
+                              : 'A quiet moment captured.');
 
                       final dateText = DateFormat('MMM d').format(entry.date);
                       final mood = entry.mood;
@@ -157,6 +207,7 @@ class TodayPage extends StatelessWidget {
                             mood: mood,
                             moodEmoji: moodEmoji,
                             photoUrl: entry.photoUrl,
+                            title: 'Recent Thought',
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -167,7 +218,7 @@ class TodayPage extends StatelessWidget {
                                     mood: mood,
                                     moodEmoji: moodEmoji,
                                     freeformTitle: entry.freeformTitle ??
-                                        'Daily Reflection',
+                                        'Journal Entry',
                                     freeformNote: entry.freeformNote,
                                     answers: entry.answers,
                                     photoUrl: entry.photoUrl,
