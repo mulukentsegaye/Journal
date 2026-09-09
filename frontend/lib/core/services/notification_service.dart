@@ -13,6 +13,8 @@ class NotificationService {
   NotificationService._internal();
 
   static const int reminderNotificationId = 1001;
+  static const int eveningReminderNotificationId = 1001;
+  static const int morningReminderNotificationId = 1002;
   static const int testNotificationId = 9999;
   static const String channelId = 'daily_reflection_reminder';
   static const String channelName = 'Daily Reflection Reminders';
@@ -253,8 +255,61 @@ class NotificationService {
     }
   }
 
+  /// Schedule morning intention reminder at [time].
+  Future<bool> scheduleMorningReminder(TimeOfDay time) async {
+    if (!isSupportedPlatform) {
+      debugPrint('Morning reminders not supported on this platform.');
+      return false;
+    }
+    try {
+      if (!_isInitialized) {
+        await initialize();
+      }
+
+      await requestPermissions();
+      await cancelMorningReminder();
+
+      final scheduledTime = nextInstanceOfTime(time);
+
+      await _notificationsPlugin.zonedSchedule(
+        id: morningReminderNotificationId,
+        title: 'Morning Intention ☀️',
+        body: 'Start your day with clarity. What are your intentions for today?',
+        scheduledDate: scheduledTime,
+        notificationDetails: _notificationDetails(),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
+        payload: 'morning_intention_reminder',
+      );
+
+      debugPrint('Morning reminder scheduled for: $scheduledTime');
+      return true;
+    } catch (e) {
+      debugPrint('Failed to schedule morning reminder: $e');
+      return false;
+    }
+  }
+
+  /// Cancel scheduled morning intention reminder.
+  Future<void> cancelMorningReminder() async {
+    if (!isSupportedPlatform) return;
+    try {
+      await _notificationsPlugin.cancel(id: morningReminderNotificationId);
+      debugPrint('Morning reminder cancelled.');
+    } catch (e) {
+      debugPrint('Failed to cancel morning reminder: $e');
+    }
+  }
+
+  /// Schedule evening reflection reminder.
+  Future<bool> scheduleEveningReminder(TimeOfDay time) =>
+      scheduleDailyReminder(time);
+
+  /// Cancel evening reflection reminder.
+  Future<void> cancelEveningReminder() => cancelReminder();
+
   /// Send an immediate test notification to verify delivery and permissions.
-  Future<bool> sendTestNotification() async {
+  Future<bool> sendTestNotification({bool isMorning = false}) async {
     if (!isSupportedPlatform) {
       debugPrint('Test notifications not supported on this platform.');
       return false;
@@ -268,10 +323,14 @@ class NotificationService {
 
       await _notificationsPlugin.show(
         id: testNotificationId,
-        title: 'Reflection Reminder Preview ✨',
-        body: 'Take a quiet moment to record your thoughts and unwind for today. 🌙',
+        title: isMorning
+            ? 'Morning Intention Preview ☀️'
+            : 'Reflection Reminder Preview ✨',
+        body: isMorning
+            ? 'Start your day with clarity. What are your intentions for today? 🌿'
+            : 'Take a quiet moment to record your thoughts and unwind for today. 🌙',
         notificationDetails: _notificationDetails(),
-        payload: 'test_notification',
+        payload: isMorning ? 'test_morning' : 'test_notification',
       );
       return true;
     } catch (e) {

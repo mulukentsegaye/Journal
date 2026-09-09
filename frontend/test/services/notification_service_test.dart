@@ -23,6 +23,8 @@ void main() {
 
     test('constants are correctly configured', () {
       expect(NotificationService.reminderNotificationId, equals(1001));
+      expect(NotificationService.eveningReminderNotificationId, equals(1001));
+      expect(NotificationService.morningReminderNotificationId, equals(1002));
       expect(NotificationService.testNotificationId, equals(9999));
       expect(NotificationService.channelId, equals('daily_reflection_reminder'));
       expect(NotificationService.channelName, equals('Daily Reflection Reminders'));
@@ -52,6 +54,11 @@ void main() {
       expect(settings.reminderTime.hour, equals(18));
       expect(settings.reminderTime.minute, equals(0));
       expect(settings.formattedReminderTime, equals('6:00 PM'));
+
+      expect(settings.morningReminderEnabled, isFalse);
+      expect(settings.morningReminderTime.hour, equals(8));
+      expect(settings.morningReminderTime.minute, equals(0));
+      expect(settings.formattedMorningReminderTime, equals('8:00 AM'));
     });
 
     test('setReminderEnabled updates state', () async {
@@ -73,6 +80,22 @@ void main() {
       expect(settings.reminderTime.hour, equals(21));
       expect(settings.reminderTime.minute, equals(15));
       expect(settings.formattedReminderTime, equals('9:15 PM'));
+    });
+
+    test('setMorningReminderEnabled and setMorningReminderTime update state', () async {
+      final settings = SettingsService();
+      await settings.loadSettings();
+
+      await settings.setMorningReminderEnabled(true);
+      expect(settings.morningReminderEnabled, isTrue);
+
+      await settings.setMorningReminderTime(const TimeOfDay(hour: 7, minute: 30));
+      expect(settings.morningReminderTime.hour, equals(7));
+      expect(settings.morningReminderTime.minute, equals(30));
+      expect(settings.formattedMorningReminderTime, equals('7:30 AM'));
+
+      await settings.setMorningReminderEnabled(false);
+      expect(settings.morningReminderEnabled, isFalse);
     });
   });
 }

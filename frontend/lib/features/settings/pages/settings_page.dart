@@ -161,16 +161,70 @@ class _SettingsPageState extends State<SettingsPage> {
             backgroundColor: AppColors.primary,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            content: Text('Reminder set for ${_settingsService.formattedReminderTime} 🌙'),
+            content: Text('Evening reminder set for ${_settingsService.formattedReminderTime} 🌙'),
           ),
         );
       }
     }
   }
 
-  Future<void> _sendTestNotification() async {
+  Future<void> _toggleMorningReminder(bool enabled) async {
+    await _settingsService.setMorningReminderEnabled(enabled);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: AppColors.primary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        content: Text(
+          enabled
+              ? 'Morning reminder active for ${_settingsService.formattedMorningReminderTime} ☀️'
+              : 'Morning reminder disabled.',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _selectMorningReminderTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _settingsService.morningReminderTime,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              surface: AppColors.cardBackground,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      await _settingsService.setMorningReminderTime(picked);
+      if (mounted) {
+        setState(() {});
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.primary,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            content: Text('Morning reminder set for ${_settingsService.formattedMorningReminderTime} ☀️'),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _sendTestNotification({bool isMorning = false}) async {
     setState(() => _isSendingTest = true);
-    final sent = await _notificationService.sendTestNotification();
+    final sent = await _notificationService.sendTestNotification(isMorning: isMorning);
     if (!mounted) return;
     setState(() => _isSendingTest = false);
 
@@ -231,7 +285,7 @@ class _SettingsPageState extends State<SettingsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Section 1: Evening Reminders ─────────────────────
+                // ── Section 1: Morning & Evening Reminders ──────────
                 const _SectionTitle(title: 'DAILY REMINDERS'),
                 Container(
                   decoration: BoxDecoration(
@@ -241,18 +295,100 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   child: Column(
                     children: [
+                      // --- Morning Intention Reminder ---
                       SwitchListTile(
                         contentPadding:
                             const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        secondary: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.wb_sunny_rounded,
+                              color: Color(0xFFD97706), size: 20),
+                        ),
                         title: Text(
-                          'Daily Journal Reminder',
+                          'Morning Intention',
                           style: AppTextStyles.body.copyWith(
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                           ),
                         ),
                         subtitle: Text(
-                          'Gentle notification to pause and capture your thoughts',
+                          'Start your day with clarity and focus',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                        activeThumbColor: const Color(0xFFD97706),
+                        activeTrackColor:
+                            const Color(0xFFD97706).withValues(alpha: 0.3),
+                        value: _settingsService.morningReminderEnabled,
+                        onChanged: _toggleMorningReminder,
+                      ),
+                      if (_settingsService.morningReminderEnabled) ...[
+                        Divider(height: 1, color: AppColors.divider),
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 2),
+                          leading: const Icon(Icons.access_time_rounded,
+                              color: Color(0xFFD97706), size: 20),
+                          title: Text(
+                            'Morning Reminder Time',
+                            style: AppTextStyles.body.copyWith(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 13.5,
+                            ),
+                          ),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: const Color(0xFFD97706).withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Text(
+                              _settingsService.formattedMorningReminderTime,
+                              style: const TextStyle(
+                                color: Color(0xFFB45309),
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                          onTap: _selectMorningReminderTime,
+                        ),
+                      ],
+
+                      Divider(height: 1, color: AppColors.divider),
+
+                      // --- Evening Reflection Reminder ---
+                      SwitchListTile(
+                        contentPadding:
+                            const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        secondary: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.nights_stay_rounded,
+                              color: AppColors.primary, size: 20),
+                        ),
+                        title: Text(
+                          'Evening Reflection',
+                          style: AppTextStyles.body.copyWith(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Gentle pause to unwind and journal your thoughts',
                           style: AppTextStyles.bodySmall.copyWith(
                             color: AppColors.textSecondary,
                             fontSize: 12,
@@ -272,7 +408,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           leading: Icon(Icons.access_time_rounded,
                               color: AppColors.primary, size: 20),
                           title: Text(
-                            'Reminder Time',
+                            'Evening Reminder Time',
                             style: AppTextStyles.body.copyWith(
                               fontWeight: FontWeight.w500,
                               fontSize: 13.5,
@@ -299,6 +435,11 @@ class _SettingsPageState extends State<SettingsPage> {
                           ),
                           onTap: _selectReminderTime,
                         ),
+                      ],
+
+                      // --- Test Notification Preview ---
+                      if (_settingsService.reminderEnabled ||
+                          _settingsService.morningReminderEnabled) ...[
                         Divider(height: 1, color: AppColors.divider),
                         ListTile(
                           contentPadding: const EdgeInsets.symmetric(
@@ -333,7 +474,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                   size: 18,
                                   color: AppColors.primary,
                                 ),
-                          onTap: _isSendingTest ? null : _sendTestNotification,
+                          onTap: _isSendingTest ? null : () => _sendTestNotification(isMorning: _settingsService.morningReminderEnabled && !_settingsService.reminderEnabled),
                         ),
                       ],
                     ],

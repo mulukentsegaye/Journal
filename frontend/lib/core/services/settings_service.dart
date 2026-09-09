@@ -16,17 +16,28 @@ class SettingsService extends ChangeNotifier {
   static const String _keyReminderEnabled = 'settings_reminder_enabled';
   static const String _keyReminderHour = 'settings_reminder_hour';
   static const String _keyReminderMinute = 'settings_reminder_minute';
+  static const String _keyMorningReminderEnabled = 'settings_morning_reminder_enabled';
+  static const String _keyMorningReminderHour = 'settings_morning_reminder_hour';
+  static const String _keyMorningReminderMinute = 'settings_morning_reminder_minute';
   static const String _keyHasCompletedOnboarding = 'settings_has_completed_onboarding';
 
   ThemeMode _themeMode = ThemeMode.system;
   bool _reminderEnabled = true;
   TimeOfDay _reminderTime = const TimeOfDay(hour: 18, minute: 0); // 6:00 PM
+  bool _morningReminderEnabled = false;
+  TimeOfDay _morningReminderTime = const TimeOfDay(hour: 8, minute: 0); // 8:00 AM
   bool _hasCompletedOnboarding = false;
   bool _isInitialized = false;
 
   ThemeMode get themeMode => _themeMode;
   bool get reminderEnabled => _reminderEnabled;
   TimeOfDay get reminderTime => _reminderTime;
+  bool get eveningReminderEnabled => _reminderEnabled;
+  TimeOfDay get eveningReminderTime => _reminderTime;
+
+  bool get morningReminderEnabled => _morningReminderEnabled;
+  TimeOfDay get morningReminderTime => _morningReminderTime;
+
   bool get hasCompletedOnboarding => _hasCompletedOnboarding;
   bool get isInitialized => _isInitialized;
 
@@ -56,11 +67,20 @@ class SettingsService extends ChangeNotifier {
       final hour = prefs.getInt(_keyReminderHour) ?? 18;
       final minute = prefs.getInt(_keyReminderMinute) ?? 0;
       _reminderTime = TimeOfDay(hour: hour, minute: minute);
+
+      _morningReminderEnabled = prefs.getBool(_keyMorningReminderEnabled) ?? false;
+      final mHour = prefs.getInt(_keyMorningReminderHour) ?? 8;
+      final mMinute = prefs.getInt(_keyMorningReminderMinute) ?? 0;
+      _morningReminderTime = TimeOfDay(hour: mHour, minute: mMinute);
+
       _hasCompletedOnboarding = prefs.getBool(_keyHasCompletedOnboarding) ?? false;
 
-      // Reschedule or initialize the reminder according to loaded preference
+      // Reschedule or initialize reminders according to loaded preferences
       if (_reminderEnabled) {
         NotificationService().scheduleDailyReminder(_reminderTime);
+      }
+      if (_morningReminderEnabled) {
+        NotificationService().scheduleMorningReminder(_morningReminderTime);
       }
 
       _isInitialized = true;
@@ -81,7 +101,7 @@ class SettingsService extends ChangeNotifier {
     } catch (_) {}
   }
 
-  /// Toggle daily reflection reminder.
+  /// Toggle daily evening reflection reminder.
   Future<void> setReminderEnabled(bool enabled) async {
     _reminderEnabled = enabled;
     notifyListeners();
@@ -97,7 +117,7 @@ class SettingsService extends ChangeNotifier {
     }
   }
 
-  /// Set the time for daily reflection reminders.
+  /// Set the time for daily evening reflection reminders.
   Future<void> setReminderTime(TimeOfDay time) async {
     _reminderTime = time;
     notifyListeners();
@@ -109,6 +129,37 @@ class SettingsService extends ChangeNotifier {
 
     if (_reminderEnabled) {
       await NotificationService().scheduleDailyReminder(time);
+    }
+  }
+
+  /// Toggle daily morning intention reminder.
+  Future<void> setMorningReminderEnabled(bool enabled) async {
+    _morningReminderEnabled = enabled;
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_keyMorningReminderEnabled, enabled);
+    } catch (_) {}
+
+    if (enabled) {
+      await NotificationService().scheduleMorningReminder(_morningReminderTime);
+    } else {
+      await NotificationService().cancelMorningReminder();
+    }
+  }
+
+  /// Set the time for daily morning intention reminders.
+  Future<void> setMorningReminderTime(TimeOfDay time) async {
+    _morningReminderTime = time;
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_keyMorningReminderHour, time.hour);
+      await prefs.setInt(_keyMorningReminderMinute, time.minute);
+    } catch (_) {}
+
+    if (_morningReminderEnabled) {
+      await NotificationService().scheduleMorningReminder(time);
     }
   }
 
@@ -132,10 +183,17 @@ class SettingsService extends ChangeNotifier {
     } catch (_) {}
   }
 
-  /// Format reminder time nicely e.g. "6:00 PM".
+  /// Format evening reminder time nicely e.g. "6:00 PM".
   String get formattedReminderTime {
     final now = DateTime.now();
     final dt = DateTime(now.year, now.month, now.day, _reminderTime.hour, _reminderTime.minute);
+    return DateFormat('h:mm a').format(dt);
+  }
+
+  /// Format morning reminder time nicely e.g. "8:00 AM".
+  String get formattedMorningReminderTime {
+    final now = DateTime.now();
+    final dt = DateTime(now.year, now.month, now.day, _morningReminderTime.hour, _morningReminderTime.minute);
     return DateFormat('h:mm a').format(dt);
   }
 
