@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../journal/models/journal_entry.dart';
@@ -24,6 +25,7 @@ class ReflectionEntryModel {
   final bool isDeleted;
   final DateTime? deletedAt;
   final DateTime createdAt;
+  final List<String> tags;
 
   const ReflectionEntryModel({
     required this.id,
@@ -39,6 +41,7 @@ class ReflectionEntryModel {
     this.isDeleted = false,
     this.deletedAt,
     required this.createdAt,
+    this.tags = const [],
   });
 
   /// Convert to local/JSON Map
@@ -56,6 +59,7 @@ class ReflectionEntryModel {
       'isDeleted': isDeleted,
       'deletedAt': deletedAt?.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
+      'tags': tags,
     };
   }
 
@@ -75,6 +79,7 @@ class ReflectionEntryModel {
       'is_deleted': isDeleted,
       'deleted_at': deletedAt?.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
+      'tags': tags,
     };
     if (userId != null && userId.isNotEmpty) {
       map['user_id'] = userId;
@@ -93,6 +98,21 @@ class ReflectionEntryModel {
           parsedAnswers[parsedKey] = v.toString();
         }
       });
+    }
+
+    List<String> parsedTags = [];
+    final rawTags = map['tags'];
+    if (rawTags is List) {
+      parsedTags = rawTags.map((t) => t.toString()).toList();
+    } else if (rawTags is String && rawTags.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(rawTags);
+        if (decoded is List) {
+          parsedTags = decoded.map((t) => t.toString()).toList();
+        }
+      } catch (_) {
+        parsedTags = rawTags.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList();
+      }
     }
 
     final typeStr = (map['type'] ?? map['entry_type'])?.toString();
@@ -122,6 +142,7 @@ class ReflectionEntryModel {
       createdAt: createdStr != null
           ? DateTime.tryParse(createdStr) ?? DateTime.now()
           : DateTime.now(),
+      tags: parsedTags,
     );
   }
 
@@ -170,6 +191,7 @@ class ReflectionEntryModel {
       isBookmarked: isBookmarked,
       entryType: type.name,
       photoUrl: photoUrl,
+      tags: tags,
     );
   }
 
@@ -217,6 +239,7 @@ class ReflectionEntryModel {
     DateTime? deletedAt,
     bool clearDeletedAt = false,
     DateTime? createdAt,
+    List<String>? tags,
   }) {
     return ReflectionEntryModel(
       id: id ?? this.id,
@@ -232,6 +255,7 @@ class ReflectionEntryModel {
       isDeleted: isDeleted ?? this.isDeleted,
       deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
       createdAt: createdAt ?? this.createdAt,
+      tags: tags ?? this.tags,
     );
   }
 }

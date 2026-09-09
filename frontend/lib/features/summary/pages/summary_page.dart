@@ -28,6 +28,7 @@ class SummaryPage extends StatefulWidget {
   final String? freeformNote;
   final String? photoUrl;
   final Map<int, String>? answers;
+  final List<String> tags;
 
   const SummaryPage({
     super.key,
@@ -39,6 +40,7 @@ class SummaryPage extends StatefulWidget {
     this.freeformNote,
     this.photoUrl,
     this.answers,
+    this.tags = const [],
   });
 
   @override
@@ -480,6 +482,7 @@ class _SummaryPageState extends State<SummaryPage> {
                   : ''),
           initialMood: widget.mood,
           initialPhotoUrl: widget.photoUrl,
+          initialTags: widget.tags,
         ),
       ),
     );
@@ -821,9 +824,62 @@ class _SummaryPageState extends State<SummaryPage> {
                     // Primary Journal Note Card
                     if (widget.freeformNote != null &&
                         widget.freeformNote!.trim().isNotEmpty) ...[
-                      FreeformSummaryCard(
+                       FreeformSummaryCard(
                         title: widget.freeformTitle,
                         note: widget.freeformNote!.trim(),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // ── Tags Section (if present) ────────────────────────
+                    if (widget.tags.isNotEmpty) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.cardBackground,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppColors.divider.withValues(alpha: 0.7),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Icon(Icons.label_outline_rounded,
+                                size: 16, color: AppColors.primary),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Wrap(
+                                spacing: 6,
+                                runSpacing: 4,
+                                children: widget.tags.map((tag) {
+                                  final display =
+                                      tag.startsWith('#') ? tag : '#$tag';
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 9, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          AppColors.primary.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      display,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 20),
                     ],

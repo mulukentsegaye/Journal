@@ -779,6 +779,7 @@ class DatabaseService {
       isDeleted: entry.isDeleted,
       deletedAt: entry.deletedAt,
       createdAt: entry.createdAt,
+      tags: entry.tags,
     );
 
     // 1. Instant local update (0ms UI latency, cleartext locally for speed)

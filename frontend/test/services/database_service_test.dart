@@ -227,6 +227,44 @@ void main() {
       final formattedPgrst = db.formatSyncError(pgrstError);
       expect(formattedPgrst, contains('Database schema missing columns'));
     });
+
+    test('ReflectionEntryModel serializes and deserializes tags correctly', () {
+      final entry = ReflectionEntryModel(
+        id: 'tag_test_1',
+        date: DateTime(2026, 9, 9),
+        mood: 'Peaceful',
+        tags: const ['gratitude', 'mindset', 'evening'],
+        createdAt: DateTime(2026, 9, 9),
+      );
+
+      final map = entry.toMap();
+      expect(map['tags'], equals(['gratitude', 'mindset', 'evening']));
+
+      final restored = ReflectionEntryModel.fromMap(map, 'tag_test_1');
+      expect(restored.tags, equals(['gratitude', 'mindset', 'evening']));
+
+      final journal = restored.toJournalEntry();
+      expect(journal.tags, equals(['gratitude', 'mindset', 'evening']));
+
+      final modified = restored.copyWith(tags: ['creative']);
+      expect(modified.tags, equals(['creative']));
+    });
+
+    test('DatabaseService saves and streams entries with tags', () async {
+      final db = DatabaseService();
+      final entry = ReflectionEntryModel(
+        id: 'db_tags_test',
+        date: DateTime.now(),
+        mood: 'Calm',
+        tags: const ['work', 'ideas'],
+        createdAt: DateTime.now(),
+      );
+
+      await db.saveReflection(entry);
+      final list = await db.streamReflections().first;
+      final retrieved = list.firstWhere((e) => e.id == 'db_tags_test');
+      expect(retrieved.tags, equals(['work', 'ideas']));
+    });
   });
 }
 

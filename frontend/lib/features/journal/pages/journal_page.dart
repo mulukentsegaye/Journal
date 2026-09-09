@@ -84,7 +84,12 @@ class _JournalPageState extends State<JournalPage> {
   List<JournalEntry> _applyFilters(List<JournalEntry> entries) {
     return entries.where((e) {
       if (_selectedFilter == 'bookmarked' && !e.isBookmarked) return false;
-      if (_selectedFilter != 'all' &&
+      if (_selectedFilter.startsWith('tag:')) {
+        final tag = _selectedFilter.substring(4);
+        final hasTag = e.tags
+            .any((t) => t.replaceAll('#', '').toLowerCase() == tag);
+        if (!hasTag) return false;
+      } else if (_selectedFilter != 'all' &&
           _selectedFilter != 'bookmarked' &&
           e.mood.toLowerCase() != _selectedFilter.toLowerCase()) {
         return false;
@@ -95,7 +100,10 @@ class _JournalPageState extends State<JournalPage> {
         final matchesTitle = e.title.toLowerCase().contains(q);
         final matchesSnippet = e.contentSnippet.toLowerCase().contains(q);
         final matchesMood = e.mood.toLowerCase().contains(q);
-        if (!matchesTitle && !matchesSnippet && !matchesMood) return false;
+        final matchesTags = e.tags.any((t) => t.toLowerCase().contains(q));
+        if (!matchesTitle && !matchesSnippet && !matchesMood && !matchesTags) {
+          return false;
+        }
       }
 
       return true;
@@ -175,6 +183,7 @@ class _JournalPageState extends State<JournalPage> {
               (model.answers.isNotEmpty ? model.answers.values.first : ''),
           initialMood: model.mood,
           initialPhotoUrl: model.photoUrl,
+          initialTags: model.tags,
         ),
       ),
     );
@@ -193,6 +202,7 @@ class _JournalPageState extends State<JournalPage> {
           freeformNote: model.freeformNote,
           photoUrl: model.photoUrl,
           answers: model.answers,
+          tags: model.tags,
         ),
       ),
     );
@@ -332,6 +342,7 @@ class _JournalPageState extends State<JournalPage> {
             final models = _reflectionService.entries;
             final rawEntries = models.map((m) => m.toJournalEntry()).toList();
             final filtered = _applyFilters(rawEntries);
+            final allTags = <String>{for (final m in models) ...m.tags}.toList()..sort();
 
             // Pre-index models into Map for fast O(1) lookups during lazy rendering
             final Map<String, ReflectionEntryModel> modelById = {
@@ -611,6 +622,7 @@ class _JournalPageState extends State<JournalPage> {
                           // Filter Chips
                           JournalFilterChips(
                             selectedFilter: _selectedFilter,
+                            availableTags: allTags,
                             onSelected: (id) =>
                                 setState(() => _selectedFilter = id),
                           ),

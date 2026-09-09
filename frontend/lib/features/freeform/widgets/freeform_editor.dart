@@ -12,6 +12,8 @@ class FreeformEditor extends StatelessWidget {
   final FocusNode? titleFocusNode;
   final FocusNode? contentFocusNode;
   final ValueChanged<String>? onContentChanged;
+  final List<String> tags;
+  final ValueChanged<List<String>>? onTagsChanged;
 
   const FreeformEditor({
     super.key,
@@ -20,6 +22,8 @@ class FreeformEditor extends StatelessWidget {
     this.titleFocusNode,
     this.contentFocusNode,
     this.onContentChanged,
+    this.tags = const [],
+    this.onTagsChanged,
   });
 
   static const List<String> promptPills = [
@@ -29,10 +33,157 @@ class FreeformEditor extends StatelessWidget {
     '☕ Small sensory details',
   ];
 
+  static const List<String> presetTags = [
+    'gratitude',
+    'ideas',
+    'work',
+    'mindset',
+    'family',
+    'peace',
+    'creative',
+    'memories',
+  ];
+
   int get _wordCount {
     final text = contentController.text.trim();
     if (text.isEmpty) return 0;
     return text.split(RegExp(r'\s+')).length;
+  }
+
+  void _showAddTagDialog(BuildContext context) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Add Tag',
+          style: GoogleFonts.lora(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: GoogleFonts.inter(fontSize: 14, color: AppColors.textPrimary),
+          decoration: InputDecoration(
+            hintText: 'e.g. mindfulness, study',
+            hintStyle: GoogleFonts.inter(
+              fontSize: 14,
+              color: AppColors.textHint.withValues(alpha: 0.6),
+            ),
+            prefixText: '#',
+            prefixStyle: TextStyle(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w600,
+            ),
+            filled: true,
+            fillColor: AppColors.surface,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.divider),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+            ),
+          ),
+          onSubmitted: (val) {
+            _addCustomTag(val);
+            Navigator.pop(ctx);
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              _addCustomTag(controller.text);
+              Navigator.pop(ctx);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 0,
+            ),
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addCustomTag(String input) {
+    final clean = input.replaceAll('#', '').trim().toLowerCase();
+    if (clean.isNotEmpty && !tags.contains(clean)) {
+      onTagsChanged?.call([...tags, clean]);
+    }
+  }
+
+  void _toggleTag(String tag) {
+    final clean = tag.replaceAll('#', '').trim().toLowerCase();
+    if (tags.contains(clean)) {
+      onTagsChanged?.call(tags.where((t) => t != clean).toList());
+    } else {
+      onTagsChanged?.call([...tags, clean]);
+    }
+  }
+
+  Widget _buildTagChip(String tag, {required bool isSelected}) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: GestureDetector(
+        onTap: () => _toggleTag(tag),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primary : AppColors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.primary
+                  : AppColors.divider.withValues(alpha: 0.8),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '#$tag',
+                style: AppTextStyles.bodySmall.copyWith(
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  color: isSelected ? Colors.white : AppColors.textSecondary,
+                ),
+              ),
+              if (isSelected) ...[
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.close_rounded,
+                  size: 11,
+                  color: Colors.white,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -59,7 +210,7 @@ class FreeformEditor extends StatelessWidget {
         children: [
           // ── Inspiration Prompt Pills ──────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               physics: const ClampingScrollPhysics(),
@@ -105,6 +256,63 @@ class FreeformEditor extends StatelessWidget {
                     ),
                   );
                 }).toList(),
+              ),
+            ),
+          ),
+
+          // ── Tag Pills Bar ─────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const ClampingScrollPhysics(),
+              child: Row(
+                children: [
+                  // "+ Tag" button
+                  GestureDetector(
+                    onTap: () => _showAddTagDialog(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 9, vertical: 5),
+                      margin: const EdgeInsets.only(right: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.6),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.add_rounded,
+                              size: 13, color: AppColors.primary),
+                          const SizedBox(width: 3),
+                          Text(
+                            'Tag',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Custom tags not in presetTags
+                  ...tags
+                      .where((t) => !presetTags.contains(t.toLowerCase()))
+                      .map((tag) => _buildTagChip(tag, isSelected: true)),
+
+                  // Preset tags
+                  ...presetTags.map((tag) {
+                    final isSelected = tags.contains(tag.toLowerCase());
+                    return _buildTagChip(tag, isSelected: isSelected);
+                  }),
+                ],
               ),
             ),
           ),

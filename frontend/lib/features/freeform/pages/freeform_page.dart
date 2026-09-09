@@ -24,6 +24,7 @@ class FreeformPage extends StatefulWidget {
   final String? initialPhotoUrl;
   final DateTime? date;
   final VoidCallback? onSaved;
+  final List<String>? initialTags;
 
   const FreeformPage({
     super.key,
@@ -34,6 +35,7 @@ class FreeformPage extends StatefulWidget {
     this.initialPhotoUrl,
     this.date,
     this.onSaved,
+    this.initialTags,
   });
 
   @override
@@ -44,6 +46,7 @@ class _FreeformPageState extends State<FreeformPage> {
   String _selectedEnergy = 'calm';
   bool _isSaving = false;
   String? _photoPath;
+  List<String> _tags = [];
   late final TextEditingController _titleController;
   late final TextEditingController _contentController;
   final ImagePicker _picker = ImagePicker();
@@ -53,6 +56,7 @@ class _FreeformPageState extends State<FreeformPage> {
     super.initState();
     _selectedEnergy = widget.initialMood?.toLowerCase() ?? 'calm';
     _photoPath = widget.initialPhotoUrl;
+    _tags = widget.initialTags != null ? List.from(widget.initialTags!) : [];
     _titleController = TextEditingController(text: widget.initialTitle ?? '');
     _contentController =
         TextEditingController(text: widget.initialContent ?? '');
@@ -213,6 +217,7 @@ class _FreeformPageState extends State<FreeformPage> {
         photoUrl: _photoPath,
         type: ReflectionType.freeform,
         createdAt: now,
+        tags: _tags,
       );
 
       await ReflectionService().saveReflection(entry);
@@ -580,6 +585,8 @@ class _FreeformPageState extends State<FreeformPage> {
                     FreeformEditor(
                       titleController: _titleController,
                       contentController: _contentController,
+                      tags: _tags,
+                      onTagsChanged: (newTags) => setState(() => _tags = newTags),
                       onContentChanged: (_) => setState(() {}),
                     ),
                     const SizedBox(height: 20),
