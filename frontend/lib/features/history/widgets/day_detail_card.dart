@@ -4,21 +4,25 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/photo_viewer_dialog.dart';
+import '../../reflection/models/reflection_entry_model.dart';
 
 /// Detail card shown below the calendar when a day is selected.
 ///
-/// If the selected day has a reflection, it shows the mood, summary,
-/// and stats. Otherwise it shows an encouraging empty-state message.
+/// If the selected day has one or more entries, it lists them with their
+/// timestamp, mood badge, title, photo, snippet, and actions.
+/// Otherwise it shows an encouraging empty-state message.
 class DayDetailCard extends StatelessWidget {
   final DateTime day;
+  final List<ReflectionEntryModel> entries;
   final ReflectionEntry? entry;
-  final VoidCallback? onEdit;
-  final VoidCallback? onDelete;
-  final VoidCallback? onView;
+  final ValueChanged<ReflectionEntryModel>? onEdit;
+  final ValueChanged<ReflectionEntryModel>? onDelete;
+  final ValueChanged<ReflectionEntryModel>? onView;
 
   const DayDetailCard({
     super.key,
     required this.day,
+    this.entries = const [],
     this.entry,
     this.onEdit,
     this.onDelete,
@@ -43,12 +47,33 @@ class DayDetailCard extends StatelessWidget {
     return day.year == now.year && day.month == now.month && day.day == now.day;
   }
 
+  List<ReflectionEntryModel> get _effectiveEntries {
+    if (entries.isNotEmpty) return entries;
+    if (entry != null) {
+      return [
+        ReflectionEntryModel(
+          id: entry!.id,
+          date: day,
+          mood: entry!.mood,
+          moodEmoji: entry!.moodEmoji,
+          freeformNote: entry!.summary,
+          answers: const {},
+          photoUrl: entry!.photoUrl,
+          createdAt: day,
+        )
+      ];
+    }
+    return const [];
+  }
+
   @override
   Widget build(BuildContext context) {
+    final list = _effectiveEntries;
+
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
       child: Container(
-        key: ValueKey('${day.year}-${day.month}-${day.day}'),
+        key: ValueKey('${day.year}-${day.month}-${day.day}-${list.length}'),
         width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -62,176 +87,90 @@ class DayDetailCard extends StatelessWidget {
             ),
           ],
         ),
-        child: entry != null ? _buildFilledState(context) : _buildEmptyState(),
+        child: list.isNotEmpty
+            ? _buildFilledState(context, list)
+            : _buildEmptyState(),
       ),
     );
   }
 
-  Widget _buildFilledState(BuildContext context) {
+  Widget _buildFilledState(
+    BuildContext context,
+    List<ReflectionEntryModel> list,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Date header ──────────────────────────────────
+        // ── Date header & count badge ──────────────────────
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
-              child: Text(
-                _isToday ? 'Today' : _formattedDate,
-                style: GoogleFonts.lora(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ),
-            // Mood pill
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(
-                color: AppColors.calmTagBg,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                '${entry!.mood} ${entry!.moodEmoji}',
-                style: AppTextStyles.tag.copyWith(color: AppColors.calmTagText),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-
-        // ── Photo Attachment (if present) ────────────────
-        if (entry!.photoUrl != null && entry!.photoUrl!.isNotEmpty) ...[
-          GestureDetector(
-            onTap: () => PhotoViewerDialog.show(
-              context,
-              photoUrl: entry!.photoUrl!,
-              caption: entry!.summary,
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Stack(
-                alignment: Alignment.bottomRight,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  entry!.photoUrl!.startsWith('http://') || entry!.photoUrl!.startsWith('https://')
-                      ? Image.network(
-                          entry!.photoUrl!,
-                          height: 140,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                        )
-                      : Image.file(
-                          File(entry!.photoUrl!),
-                          height: 140,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                        ),
-                  Container(
-                    margin: const EdgeInsets.all(8),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.black54,
-                      borderRadius: BorderRadius.circular(8),
+                  Text(
+                    _isToday ? 'Today' : _formattedDate,
+                    style: GoogleFonts.lora(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
                     ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.zoom_in_rounded, color: Colors.white, size: 14),
-                        SizedBox(width: 4),
-                        Text('Moment', style: TextStyle(color: Colors.white, fontSize: 10)),
-                      ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    list.length == 1
+                        ? '1 thought recorded'
+                        : '${list.length} thoughts recorded',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textHint,
+                      fontSize: 12,
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-        ],
-
-        // ── Summary text ─────────────────────────────────
-        Text(
-          '"${entry!.summary}"',
-          style: AppTextStyles.summaryQuote,
-        ),
-        const SizedBox(height: 18),
-
-        // ── Stats row ────────────────────────────────────
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _StatItem(
-                icon: Icons.chat_bubble_outline_rounded,
-                value: '${entry!.questionsAnswered}',
-                label: 'Questions',
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(16),
               ),
-              Container(width: 1, height: 28, color: AppColors.divider),
-              _StatItem(
-                icon: Icons.timer_outlined,
-                value: '${entry!.minutesSpent} min',
-                label: 'Duration',
-              ),
-              Container(width: 1, height: 28, color: AppColors.divider),
-              _StatItem(
-                icon: Icons.auto_awesome_rounded,
-                value: entry!.mood,
-                label: 'Mood',
-              ),
-            ],
-          ),
-        ),
-
-        // ── Actions row ──────────────────────────────────
-        const SizedBox(height: 14),
-        Row(
-          children: [
-            if (onDelete != null)
-              IconButton(
-                icon: const Icon(
-                  Icons.delete_outline_rounded,
-                  size: 19,
-                  color: Color(0xFFE02424),
-                ),
-                tooltip: 'Move to Recycle Bin',
-                onPressed: onDelete,
-              ),
-            if (onEdit != null)
-              IconButton(
-                icon: Icon(
-                  Icons.edit_outlined,
-                  size: 19,
-                  color: AppColors.textSecondary,
-                ),
-                tooltip: 'Edit reflection',
-                onPressed: onEdit,
-              ),
-            const Spacer(),
-            if (onView != null)
-              TextButton.icon(
-                onPressed: onView,
-                icon: Icon(
-                  Icons.auto_stories_outlined,
-                  size: 16,
+              child: Text(
+                '${list.length} ${list.length == 1 ? "entry" : "entries"}',
+                style: AppTextStyles.tag.copyWith(
                   color: AppColors.primary,
-                ),
-                label: Text(
-                  'View Summary →',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
                 ),
               ),
+            ),
           ],
+        ),
+        const SizedBox(height: 16),
+
+        // ── Entries list ───────────────────────────────────
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: list.length,
+          separatorBuilder: (_, _) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Divider(
+              color: AppColors.divider.withValues(alpha: 0.6),
+              height: 1,
+            ),
+          ),
+          itemBuilder: (context, index) {
+            final item = list[index];
+            return _EntryItem(
+              entry: item,
+              onView: onView != null ? () => onView!(item) : null,
+              onEdit: onEdit != null ? () => onEdit!(item) : null,
+              onDelete: onDelete != null ? () => onDelete!(item) : null,
+            );
+          },
         ),
       ],
     );
@@ -270,34 +209,224 @@ class DayDetailCard extends StatelessWidget {
   }
 }
 
-class _StatItem extends StatelessWidget {
-  final IconData icon;
-  final String value;
-  final String label;
+class _EntryItem extends StatelessWidget {
+  final ReflectionEntryModel entry;
+  final VoidCallback? onView;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
-  const _StatItem({
-    required this.icon,
-    required this.value,
-    required this.label,
+  const _EntryItem({
+    required this.entry,
+    this.onView,
+    this.onEdit,
+    this.onDelete,
   });
+
+  String _formatTime(DateTime dt) {
+    final hour = dt.hour == 0 ? 12 : (dt.hour > 12 ? dt.hour - 12 : dt.hour);
+    final minute = dt.minute.toString().padLeft(2, '0');
+    final amPm = dt.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minute $amPm';
+  }
+
+  String get _snippet {
+    if (entry.freeformNote != null && entry.freeformNote!.trim().isNotEmpty) {
+      return entry.freeformNote!.trim();
+    }
+    if (entry.answers.isNotEmpty) {
+      return entry.answers.values.join(' ').trim();
+    }
+    return '';
+  }
 
   @override
   Widget build(BuildContext context) {
+    final timestamp = entry.createdAt;
+    final snippet = _snippet;
+    final hasTitle = entry.freeformTitle != null &&
+        entry.freeformTitle!.trim().isNotEmpty;
+    final hasPhoto =
+        entry.photoUrl != null && entry.photoUrl!.trim().isNotEmpty;
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: AppColors.primary),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: AppTextStyles.badge.copyWith(
-            color: AppColors.textPrimary,
-            fontSize: 13,
-          ),
+        // Time & Mood row
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.access_time_rounded,
+                  size: 14,
+                  color: AppColors.textHint,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  _formatTime(timestamp),
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textHint,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            // Mood pill
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.calmTagBg,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(
+                '${entry.mood} ${entry.moodEmoji}',
+                style: AppTextStyles.tag.copyWith(
+                  color: AppColors.calmTagText,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: AppTextStyles.bodySmall.copyWith(fontSize: 11),
+        const SizedBox(height: 8),
+
+        // Title if present
+        if (hasTitle) ...[
+          Text(
+            entry.freeformTitle!.trim(),
+            style: GoogleFonts.lora(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+        ],
+
+        // Photo Attachment (if present)
+        if (hasPhoto) ...[
+          GestureDetector(
+            onTap: () => PhotoViewerDialog.show(
+              context,
+              photoUrl: entry.photoUrl!,
+              caption: hasTitle ? entry.freeformTitle : snippet,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  entry.photoUrl!.startsWith('http://') ||
+                          entry.photoUrl!.startsWith('https://')
+                      ? Image.network(
+                          entry.photoUrl!,
+                          height: 120,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const SizedBox.shrink(),
+                        )
+                      : Image.file(
+                          File(entry.photoUrl!),
+                          height: 120,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const SizedBox.shrink(),
+                        ),
+                  Container(
+                    margin: const EdgeInsets.all(8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.zoom_in_rounded,
+                            color: Colors.white, size: 14),
+                        SizedBox(width: 4),
+                        Text(
+                          'Moment',
+                          style: TextStyle(color: Colors.white, fontSize: 10),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+
+        // Content snippet
+        if (snippet.isNotEmpty) ...[
+          Text(
+            '"$snippet"',
+            style: AppTextStyles.summaryQuote,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 10),
+        ],
+
+        // Actions row
+        Row(
+          children: [
+            if (onDelete != null)
+              IconButton(
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  size: 18,
+                  color: Color(0xFFE02424),
+                ),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                tooltip: 'Move to Recycle Bin',
+                onPressed: onDelete,
+              ),
+            if (onEdit != null) ...[
+              const SizedBox(width: 14),
+              IconButton(
+                icon: Icon(
+                  Icons.edit_outlined,
+                  size: 18,
+                  color: AppColors.textSecondary,
+                ),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                tooltip: 'Edit entry',
+                onPressed: onEdit,
+              ),
+            ],
+            const Spacer(),
+            if (onView != null)
+              TextButton.icon(
+                onPressed: onView,
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                icon: Icon(
+                  Icons.auto_stories_outlined,
+                  size: 15,
+                  color: AppColors.primary,
+                ),
+                label: Text(
+                  'View Summary →',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+          ],
         ),
       ],
     );

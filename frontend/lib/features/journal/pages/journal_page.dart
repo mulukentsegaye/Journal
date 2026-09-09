@@ -338,13 +338,19 @@ class _JournalPageState extends State<JournalPage> {
               for (final m in models) m.id: m,
             };
 
-            // Calendar data maps
-            final Map<DateTime, ReflectionEntry> reflectionData = {};
-            final Map<DateTime, ReflectionEntryModel> modelByDate = {};
+            // Calendar data maps: group all entries by date
+            final Map<DateTime, List<ReflectionEntryModel>> entriesByDate = {};
+            final Map<DateTime, int> entryCounts = {};
             for (final m in models) {
               final dateKey = DateTime(m.date.year, m.date.month, m.date.day);
-              reflectionData[dateKey] = m.toHistoryEntry();
-              modelByDate[dateKey] = m;
+              entriesByDate.putIfAbsent(dateKey, () => []).add(m);
+            }
+            // Sort entries for each date in reverse chronological order (newest first)
+            for (final list in entriesByDate.values) {
+              list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            }
+            for (final e in entriesByDate.entries) {
+              entryCounts[e.key] = e.value.length;
             }
 
             final completedDaysThisMonth =
@@ -357,10 +363,9 @@ class _JournalPageState extends State<JournalPage> {
                 ? DateTime(_selectedDay!.year, _selectedDay!.month,
                     _selectedDay!.day)
                 : null;
-            final selectedEntry =
-                selectedKey != null ? reflectionData[selectedKey] : null;
-            final selectedModel =
-                selectedKey != null ? modelByDate[selectedKey] : null;
+            final selectedEntries = selectedKey != null
+                ? (entriesByDate[selectedKey] ?? const <ReflectionEntryModel>[])
+                : const <ReflectionEntryModel>[];
 
             return RefreshIndicator(
               color: AppColors.primary,
@@ -753,7 +758,8 @@ class _JournalPageState extends State<JournalPage> {
                                 CalendarGrid(
                                   focusedMonth: _focusedMonth,
                                   selectedDay: _selectedDay,
-                                  reflectionDays: reflectionData.keys.toSet(),
+                                  reflectionDays: entriesByDate.keys.toSet(),
+                                  entryCounts: entryCounts,
                                   onDaySelected: _onDaySelected,
                                 ),
                               ],
@@ -765,16 +771,10 @@ class _JournalPageState extends State<JournalPage> {
                           if (_selectedDay != null)
                             DayDetailCard(
                               day: _selectedDay!,
-                              entry: selectedEntry,
-                              onView: selectedModel != null
-                                  ? () => _viewSummary(selectedModel)
-                                  : null,
-                              onEdit: selectedModel != null
-                                  ? () => _editReflection(selectedModel)
-                                  : null,
-                              onDelete: selectedModel != null
-                                  ? () => _confirmDelete(selectedModel.id)
-                                  : null,
+                              entries: selectedEntries,
+                              onView: (model) => _viewSummary(model),
+                              onEdit: (model) => _editReflection(model),
+                              onDelete: (model) => _confirmDelete(model.id),
                             ),
                           const SizedBox(height: 88),
                         ],

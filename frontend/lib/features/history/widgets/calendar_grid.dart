@@ -11,6 +11,7 @@ class CalendarGrid extends StatelessWidget {
   final DateTime focusedMonth;
   final DateTime? selectedDay;
   final Set<DateTime> reflectionDays;
+  final Map<DateTime, int>? entryCounts;
   final ValueChanged<DateTime> onDaySelected;
 
   const CalendarGrid({
@@ -18,6 +19,7 @@ class CalendarGrid extends StatelessWidget {
     required this.focusedMonth,
     required this.selectedDay,
     required this.reflectionDays,
+    this.entryCounts,
     required this.onDaySelected,
   });
 
@@ -85,9 +87,9 @@ class CalendarGrid extends StatelessWidget {
               day.year == selectedDay!.year &&
               day.month == selectedDay!.month &&
               day.day == selectedDay!.day;
-          final hasReflection = reflectionDays.contains(
-            DateTime(day.year, day.month, day.day),
-          );
+          final dayDate = DateTime(day.year, day.month, day.day);
+          final hasReflection = reflectionDays.contains(dayDate);
+          final entryCount = entryCounts?[dayDate] ?? (hasReflection ? 1 : 0);
           final isFuture = day.isAfter(today);
 
           cells.add(
@@ -96,6 +98,7 @@ class CalendarGrid extends StatelessWidget {
               isToday: isToday,
               isSelected: isSelected,
               hasReflection: hasReflection,
+              entryCount: entryCount,
               isFuture: isFuture,
               onTap: isFuture ? null : () => onDaySelected(day),
             ),
@@ -124,6 +127,7 @@ class _DayCell extends StatelessWidget {
   final bool isToday;
   final bool isSelected;
   final bool hasReflection;
+  final int entryCount;
   final bool isFuture;
   final VoidCallback? onTap;
 
@@ -132,6 +136,7 @@ class _DayCell extends StatelessWidget {
     required this.isToday,
     required this.isSelected,
     required this.hasReflection,
+    this.entryCount = 0,
     required this.isFuture,
     this.onTap,
   });
@@ -156,6 +161,10 @@ class _DayCell extends StatelessWidget {
     if (isFuture) {
       textColor = AppColors.textHint.withValues(alpha: 0.35);
     }
+
+    final dotColor = isSelected
+        ? Colors.white.withValues(alpha: 0.8)
+        : AppColors.calmTagText;
 
     return GestureDetector(
       onTap: onTap,
@@ -197,19 +206,46 @@ class _DayCell extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 2),
-            // Reflection indicator dot
-            Container(
-              width: 4,
-              height: 4,
-              decoration: BoxDecoration(
-                color: hasReflection
-                    ? (isSelected
-                        ? Colors.white.withValues(alpha: 0.7)
-                        : AppColors.calmTagText)
-                    : Colors.transparent,
-                shape: BoxShape.circle,
-              ),
-            ),
+            // Reflection indicator dots
+            if (hasReflection)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 3.5,
+                    height: 3.5,
+                    decoration: BoxDecoration(
+                      color: dotColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  if (entryCount > 1) ...[
+                    const SizedBox(width: 2),
+                    Container(
+                      width: 3.5,
+                      height: 3.5,
+                      decoration: BoxDecoration(
+                        color: dotColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ],
+                  if (entryCount > 2) ...[
+                    const SizedBox(width: 2),
+                    Container(
+                      width: 3.5,
+                      height: 3.5,
+                      decoration: BoxDecoration(
+                        color: dotColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ],
+                ],
+              )
+            else
+              const SizedBox(height: 3.5),
           ],
         ),
       ),
