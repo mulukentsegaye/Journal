@@ -1,11 +1,16 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/services/settings_service.dart';
 import '../../../core/services/notification_service.dart';
 import '../../auth/services/auth_service.dart';
 import '../../reflection/services/reflection_service.dart';
+import '../widgets/pdf_export_dialog.dart';
 
 /// Clean, dedicated Settings & Preferences screen.
 /// Focused on Notifications, Voice Dictation, Sync Diagnostics, and App Info.
@@ -22,6 +27,92 @@ class _SettingsPageState extends State<SettingsPage> {
   final _reflectionService = ReflectionService();
   final _notificationService = NotificationService();
   bool _isSendingTest = false;
+  bool _isExportingMd = false;
+  bool _isExportingJson = false;
+
+  Future<void> _exportMarkdownBackup() async {
+    setState(() => _isExportingMd = true);
+    try {
+      final markdown = await _settingsService.exportAllReflectionsMarkdown();
+      await Clipboard.setData(ClipboardData(text: markdown));
+
+      String? savedPath;
+      try {
+        final dir = await getDownloadsDirectory() ?? await getApplicationDocumentsDirectory();
+        final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+        final file = File('${dir.path}/daily_reflection_backup_$timestamp.md');
+        await file.writeAsString(markdown);
+        savedPath = file.path;
+      } catch (_) {}
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.primary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          content: Text(
+            savedPath != null
+                ? 'Markdown backup saved to Downloads & copied to clipboard!'
+                : 'Markdown backup copied to clipboard!',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.redAccent,
+          content: Text('Failed to export markdown: $e'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isExportingMd = false);
+    }
+  }
+
+  Future<void> _exportJsonBackup() async {
+    setState(() => _isExportingJson = true);
+    try {
+      final jsonStr = await _settingsService.exportAllReflectionsJson();
+      await Clipboard.setData(ClipboardData(text: jsonStr));
+
+      String? savedPath;
+      try {
+        final dir = await getDownloadsDirectory() ?? await getApplicationDocumentsDirectory();
+        final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+        final file = File('${dir.path}/daily_reflection_backup_$timestamp.json');
+        await file.writeAsString(jsonStr);
+        savedPath = file.path;
+      } catch (_) {}
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.primary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          content: Text(
+            savedPath != null
+                ? 'JSON backup saved to Downloads & copied to clipboard!'
+                : 'JSON backup copied to clipboard!',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.redAccent,
+          content: Text('Failed to export JSON: $e'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isExportingJson = false);
+    }
+  }
 
   Future<void> _toggleReminder(bool enabled) async {
     await _settingsService.setReminderEnabled(enabled);
@@ -383,7 +474,123 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 const SizedBox(height: 24),
 
-                // ── Section 4: About & Mission ───────────────────────
+                // ── Section 4: Data Export & Backups ─────────────────
+                const _SectionTitle(title: 'DATA EXPORT & BACKUPS'),
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBackground,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.divider),
+                  ),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.picture_as_pdf_rounded, color: AppColors.primary, size: 20),
+                        ),
+                        title: Text(
+                          'Keepsake PDF Book',
+                          style: AppTextStyles.body.copyWith(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13.5,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Printable collection with photos, quotes & stats',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                            fontSize: 11.5,
+                          ),
+                        ),
+                        trailing: const Icon(Icons.chevron_right_rounded, size: 18),
+                        onTap: () => PdfExportDialog.show(context),
+                      ),
+                      Divider(height: 1, color: AppColors.divider),
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.article_outlined, color: AppColors.primary, size: 20),
+                        ),
+                        title: Text(
+                          'Export Markdown (.md)',
+                          style: AppTextStyles.body.copyWith(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13.5,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Formatted text backup with tags, photos & prompts',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                            fontSize: 11.5,
+                          ),
+                        ),
+                        trailing: _isExportingMd
+                            ? SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.primary,
+                                ),
+                              )
+                            : const Icon(Icons.download_rounded, size: 18),
+                        onTap: _isExportingMd ? null : _exportMarkdownBackup,
+                      ),
+                      Divider(height: 1, color: AppColors.divider),
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.data_object_rounded, color: AppColors.primary, size: 20),
+                        ),
+                        title: Text(
+                          'Export Complete JSON Backup (.json)',
+                          style: AppTextStyles.body.copyWith(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13.5,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Machine-readable backup containing all journal data',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                            fontSize: 11.5,
+                          ),
+                        ),
+                        trailing: _isExportingJson
+                            ? SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.primary,
+                                ),
+                              )
+                            : const Icon(Icons.download_rounded, size: 18),
+                        onTap: _isExportingJson ? null : _exportJsonBackup,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // ── Section 5: About & Mission ───────────────────────
                 const _SectionTitle(title: 'ABOUT'),
                 Container(
                   padding: const EdgeInsets.all(16),

@@ -536,7 +536,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                             color: primary.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Icon(Icons.download_rounded,
+                          child: Icon(Icons.article_outlined,
                               color: primary, size: 20),
                         ),
                         title: Text(
@@ -548,7 +548,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                           ),
                         ),
                         subtitle: Text(
-                          'Copy entire text history to clipboard',
+                          'Formatted text archive with tags & prompts',
                           style: GoogleFonts.inter(
                             color: textSecondary,
                             fontSize: 12,
@@ -559,6 +559,39 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         onTap: () {
                           Navigator.pop(ctx);
                           _exportMarkdownBackup();
+                        },
+                      ),
+                      Divider(height: 1, color: divider),
+                      ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.data_object_rounded,
+                              color: primary, size: 20),
+                        ),
+                        title: Text(
+                          'Complete Backup (JSON)',
+                          style: GoogleFonts.inter(
+                            color: textPrimary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Complete raw journal data backup',
+                          style: GoogleFonts.inter(
+                            color: textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                        trailing: Icon(Icons.copy_rounded,
+                            size: 16, color: textSecondary),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          _exportJsonBackup();
                         },
                       ),
                     ],
@@ -762,36 +795,30 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     );
   }
 
-  void _exportMarkdownBackup() {
-    final entries = _reflectionService.entries;
-    final buffer = StringBuffer();
-    buffer.writeln('# Daily Reflection Journal Backup');
-    buffer.writeln('Exported on: ${DateTime.now().toLocal()}\n');
-
-    for (final e in entries) {
-      buffer.writeln('## ${e.date.toIso8601String().substring(0, 10)} — Mood: ${e.mood} ${e.moodEmoji}');
-      if (e.freeformTitle?.isNotEmpty == true) {
-        buffer.writeln('### ${e.freeformTitle}');
-      }
-      if (e.freeformNote?.isNotEmpty == true) {
-        buffer.writeln('${e.freeformNote}\n');
-      }
-      if (e.answers.isNotEmpty) {
-        buffer.writeln('**Reflections:**');
-        e.answers.forEach((k, v) {
-          buffer.writeln('- Q$k: $v');
-        });
-      }
-      buffer.writeln('\n---\n');
-    }
-
-    Clipboard.setData(ClipboardData(text: buffer.toString()));
+  Future<void> _exportMarkdownBackup() async {
+    final markdown = await _settingsService.exportAllReflectionsMarkdown();
+    await Clipboard.setData(ClipboardData(text: markdown));
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: AppColors.primary,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        content: Text('Exported ${entries.length} entries to clipboard!'),
+        content: const Text('Markdown journal backup copied to clipboard!'),
+      ),
+    );
+  }
+
+  Future<void> _exportJsonBackup() async {
+    final jsonStr = await _settingsService.exportAllReflectionsJson();
+    await Clipboard.setData(ClipboardData(text: jsonStr));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: AppColors.primary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        content: const Text('Complete JSON backup copied to clipboard!'),
       ),
     );
   }

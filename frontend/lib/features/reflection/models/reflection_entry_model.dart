@@ -47,6 +47,7 @@ class ReflectionEntryModel {
   /// Convert to local/JSON Map
   Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'date': date.toIso8601String(),
       'mood': mood,
       'moodEmoji': moodEmoji,

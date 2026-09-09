@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -77,26 +78,70 @@ void main() {
         moodEmoji: '😴',
         freeformTitle: 'Rough night',
         freeformNote: 'Did not sleep well.',
+        tags: const ['gratitude', '#peace'],
         isDeleted: true,
         deletedAt: DateTime(2026, 8, 31),
         createdAt: DateTime(2026, 8, 30),
       );
 
-      await db.saveReflection(activeEntry);
+      final activeWithTags = activeEntry.copyWith(tags: const ['gratitude', 'mindset']);
+
+      await db.saveReflection(activeWithTags);
       await db.saveReflection(deletedEntry);
 
       final markdown = await settings.exportAllReflectionsMarkdown();
 
-      // Should include active entry
+      // Should include active entry & tags
       expect(markdown, contains('Total Reflections: 1'));
       expect(markdown, contains('Wonderful day'));
       expect(markdown, contains('Had a productive coding session.'));
       expect(markdown, contains('Joyful ✨'));
       expect(markdown, contains('Great coffee'));
+      expect(markdown, contains('**Tags**: #gratitude #mindset'));
 
       // Should NOT include deleted entry
       expect(markdown, isNot(contains('Rough night')));
       expect(markdown, isNot(contains('Did not sleep well.')));
+    });
+
+    test('exportAllReflectionsJson outputs valid JSON backup without deleted entries', () async {
+      final settings = SettingsService();
+      final db = DatabaseService();
+
+      final activeEntry = ReflectionEntryModel(
+        id: 'json_active_1',
+        date: DateTime(2026, 9, 2),
+        mood: 'Peaceful',
+        moodEmoji: '🌿',
+        freeformTitle: 'Json Export Test',
+        freeformNote: 'Testing JSON backup serialization.',
+        tags: const ['backup', 'export'],
+        createdAt: DateTime(2026, 9, 2),
+      );
+
+      final deletedEntry = ReflectionEntryModel(
+        id: 'json_deleted_1',
+        date: DateTime(2026, 9, 1),
+        mood: 'Stressed',
+        isDeleted: true,
+        createdAt: DateTime(2026, 9, 1),
+      );
+
+      await db.saveReflection(activeEntry);
+      await db.saveReflection(deletedEntry);
+
+      final jsonString = await settings.exportAllReflectionsJson();
+      expect(jsonString, isNotEmpty);
+
+      final decoded = json.decode(jsonString) as Map<String, dynamic>;
+      expect(decoded['app'], equals('Daily Reflection'));
+      expect(decoded['total_entries'], equals(1));
+      expect(decoded['entries'], isA<List>());
+      final entriesList = decoded['entries'] as List;
+      expect(entriesList.length, equals(1));
+      expect(entriesList.first['id'], equals('json_active_1'));
+      expect(entriesList.first['freeformTitle'], equals('Json Export Test'));
+      expect(entriesList.first['tags'], containsAll(['backup', 'export']));
     });
   });
 }

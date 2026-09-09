@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
@@ -159,11 +160,21 @@ class SettingsService extends ChangeNotifier {
       buffer.writeln('## $dateStr');
       buffer.writeln('**Mood**: ${entry.mood} ${entry.moodEmoji}\n');
 
+      if (entry.tags.isNotEmpty) {
+        final formattedTags =
+            entry.tags.map((t) => t.startsWith('#') ? t : '#$t').join(' ');
+        buffer.writeln('**Tags**: $formattedTags\n');
+      }
+
       if (entry.freeformTitle != null && entry.freeformTitle!.isNotEmpty) {
         buffer.writeln('### ${entry.freeformTitle}');
       }
       if (entry.freeformNote != null && entry.freeformNote!.isNotEmpty) {
         buffer.writeln('${entry.freeformNote}\n');
+      }
+
+      if (entry.photoUrl != null && entry.photoUrl!.isNotEmpty) {
+        buffer.writeln('![Photo Attachment](${entry.photoUrl})\n');
       }
 
       if (entry.answers.isNotEmpty) {
@@ -179,5 +190,23 @@ class SettingsService extends ChangeNotifier {
     }
 
     return buffer.toString().trim();
+  }
+
+  /// Exports all saved reflections as a structured, indented JSON backup.
+  Future<String> exportAllReflectionsJson() async {
+    final db = DatabaseService();
+    final rawEntries = await db.streamReflections().first;
+    final entries = rawEntries.where((e) => !e.isDeleted).toList();
+
+    final exportData = {
+      'app': 'Daily Reflection',
+      'version': '1.0.0',
+      'exported_at': DateTime.now().toIso8601String(),
+      'total_entries': entries.length,
+      'entries': entries.map((e) => e.toMap()).toList(),
+    };
+
+    const encoder = JsonEncoder.withIndent('  ');
+    return encoder.convert(exportData);
   }
 }
