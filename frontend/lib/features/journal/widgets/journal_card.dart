@@ -53,6 +53,18 @@ class JournalCard extends StatelessWidget {
     return '$h12:$minute $period';
   }
 
+  String _getReadingStats() {
+    final text = entry.contentSnippet.trim();
+    if (text.isEmpty && entry.photoUrl != null && entry.photoUrl!.isNotEmpty) {
+      return 'Moment photo';
+    }
+    final words = text.isEmpty ? 0 : text.split(RegExp(r'\s+')).length;
+    if (words == 0) return 'Journal entry';
+    if (words < 10) return '$words words';
+    final readMinutes = (words / 200).ceil();
+    return '$words words • ${readMinutes == 1 ? '1 min read' : '$readMinutes min read'}';
+  }
+
   Widget _buildPhotoThumbnail(BuildContext context) {
     if (entry.photoUrl == null || entry.photoUrl!.isEmpty) {
       return const SizedBox.shrink();
@@ -423,17 +435,15 @@ class JournalCard extends StatelessWidget {
             Row(
               children: [
                 Icon(
-                  entry.entryType == 'freeform'
-                      ? Icons.edit_note_rounded
-                      : Icons.chat_bubble_outline_rounded,
-                  size: 14,
+                  entry.photoUrl != null && entry.contentSnippet.trim().isEmpty
+                      ? Icons.photo_camera_outlined
+                      : Icons.schedule_rounded,
+                  size: 13,
                   color: AppColors.textHint,
                 ),
                 const SizedBox(width: 5),
                 Text(
-                  entry.entryType == 'freeform'
-                      ? 'Freeform note'
-                      : '${entry.questionsCount} reflections answered',
+                  _getReadingStats(),
                   style: AppTextStyles.bodySmall.copyWith(
                     fontSize: 11,
                     color: AppColors.textHint,

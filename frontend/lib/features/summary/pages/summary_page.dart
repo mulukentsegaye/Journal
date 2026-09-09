@@ -94,9 +94,9 @@ class _SummaryPageState extends State<SummaryPage> {
 
   void _toggleBookmark() {
     HapticFeedback.selectionClick();
-    final newVal = !_isBookmarked;
-    setState(() => _isBookmarked = newVal);
-    _reflectionService.toggleBookmark(_docId, !_isBookmarked);
+    final oldVal = _isBookmarked;
+    setState(() => _isBookmarked = !oldVal);
+    _reflectionService.toggleBookmark(_docId, oldVal);
   }
 
   void _showCardPreviewDialog(

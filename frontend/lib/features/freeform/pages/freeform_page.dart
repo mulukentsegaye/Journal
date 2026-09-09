@@ -165,6 +165,29 @@ class _FreeformPageState extends State<FreeformPage> {
 
     FocusScope.of(context).unfocus();
 
+    final title = _titleController.text.trim();
+    final content = _contentController.text.trim();
+    final hasPhoto = _photoPath != null && _photoPath!.isNotEmpty;
+
+    if (title.isEmpty && content.isEmpty && !hasPhoto) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.textPrimary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          content: const Row(
+            children: [
+              Icon(Icons.edit_note_rounded, color: Colors.white, size: 18),
+              SizedBox(width: 8),
+              Text('Please write a thought or attach a photo before saving.'),
+            ],
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isSaving = true;
     });

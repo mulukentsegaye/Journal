@@ -154,14 +154,14 @@ class _SettingsPageState extends State<SettingsPage> {
                         contentPadding:
                             const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                         title: Text(
-                          'Evening Reflection Reminder',
+                          'Daily Journal Reminder',
                           style: AppTextStyles.body.copyWith(
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                           ),
                         ),
                         subtitle: Text(
-                          'Gentle notification to pause and reflect before bed',
+                          'Gentle notification to pause and capture your thoughts',
                           style: AppTextStyles.bodySmall.copyWith(
                             color: AppColors.textSecondary,
                             fontSize: 12,
@@ -355,8 +355,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                       const Divider(height: 20),
                       _DiagnosticRow(
-                        label: 'Total Cached Reflections',
-                        value: '${_reflectionService.entries.length} reflections stored',
+                        label: 'Total Stored Entries',
+                        value: '${_reflectionService.entries.length} entries stored',
                         icon: Icons.folder_open_rounded,
                       ),
                       const SizedBox(height: 14),

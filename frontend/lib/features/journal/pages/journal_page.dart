@@ -117,7 +117,7 @@ class _JournalPageState extends State<JournalPage> {
           ),
         ),
         content: Text(
-          'This reflection will be kept in your Recycle Bin. You can restore it anytime.',
+          'This entry will be kept in your Recycle Bin. You can restore it anytime.',
           style: AppTextStyles.body,
         ),
         actions: [
@@ -660,7 +660,7 @@ class _JournalPageState extends State<JournalPage> {
                                 _searchQuery.isNotEmpty ||
                                         _selectedFilter != 'all'
                                     ? 'Try adjusting your search query or selected mood.'
-                                    : 'Reflect tonight or tap New Entry to write freely.',
+                                    : 'Write your thoughts or tap New Entry to begin.',
                                 style: AppTextStyles.bodySmall.copyWith(
                                   color: AppColors.textSecondary,
                                 ),

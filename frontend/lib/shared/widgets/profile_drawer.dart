@@ -867,7 +867,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           ],
         ),
         content: Text(
-          'This action is irreversible. All your reflections, attached photos, and account data will be permanently wiped.',
+          'This action is irreversible. All your journal entries, attached photos, and account data will be permanently wiped.',
           style: GoogleFonts.inter(color: textSecondary, fontSize: 13),
         ),
         actions: [
@@ -1075,7 +1075,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         title: 'Recycle Bin',
                         subtitle: _reflectionService.deletedCount > 0
                             ? '${_reflectionService.deletedCount} ${_reflectionService.deletedCount == 1 ? 'item' : 'items'} in trash'
-                            : 'Deleted reflections',
+                            : 'Deleted entries',
                         badgeText: _reflectionService.deletedCount > 0
                             ? '${_reflectionService.deletedCount}'
                             : null,
