@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/smooth_page_route.dart';
@@ -43,6 +45,12 @@ class FreeformPage extends StatefulWidget {
 }
 
 class _FreeformPageState extends State<FreeformPage> {
+  static const _keyDraftTitle = 'draft_entry_title';
+  static const _keyDraftContent = 'draft_entry_content';
+  static const _keyDraftMood = 'draft_entry_mood';
+  static const _keyDraftTags = 'draft_entry_tags';
+  static const _keyDraftPhoto = 'draft_entry_photo';
+
   String _selectedEnergy = 'calm';
   bool _isSaving = false;
   String? _photoPath;
@@ -50,6 +58,10 @@ class _FreeformPageState extends State<FreeformPage> {
   late final TextEditingController _titleController;
   late final TextEditingController _contentController;
   final ImagePicker _picker = ImagePicker();
+
+  Timer? _autoSaveTimer;
+  bool _hasDraft = false;
+  Map<String, dynamic>? _cachedDraft;
 
   @override
   void initState() {
@@ -60,13 +72,189 @@ class _FreeformPageState extends State<FreeformPage> {
     _titleController = TextEditingController(text: widget.initialTitle ?? '');
     _contentController =
         TextEditingController(text: widget.initialContent ?? '');
+
+    if (widget.id == null) {
+      _titleController.addListener(_scheduleAutoSave);
+      _contentController.addListener(_scheduleAutoSave);
+
+      if ((widget.initialTitle == null || widget.initialTitle!.isEmpty) &&
+          (widget.initialContent == null || widget.initialContent!.isEmpty)) {
+        _checkForDraft();
+      }
+    }
   }
 
   @override
   void dispose() {
+    _autoSaveTimer?.cancel();
+    if (widget.id == null) {
+      _titleController.removeListener(_scheduleAutoSave);
+      _contentController.removeListener(_scheduleAutoSave);
+    }
     _titleController.dispose();
     _contentController.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkForDraft() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final draftContent = prefs.getString(_keyDraftContent) ?? '';
+      final draftTitle = prefs.getString(_keyDraftTitle) ?? '';
+      final draftPhoto = prefs.getString(_keyDraftPhoto);
+      final draftTags = prefs.getStringList(_keyDraftTags) ?? [];
+      final draftMood = prefs.getString(_keyDraftMood);
+
+      final hasValidDraft = draftContent.trim().isNotEmpty ||
+          draftTitle.trim().isNotEmpty ||
+          (draftPhoto != null && draftPhoto.isNotEmpty) ||
+          draftTags.isNotEmpty;
+
+      if (hasValidDraft && mounted) {
+        setState(() {
+          _hasDraft = true;
+          _cachedDraft = {
+            'title': draftTitle,
+            'content': draftContent,
+            'mood': draftMood ?? 'calm',
+            'photo': draftPhoto,
+            'tags': draftTags,
+          };
+        });
+      }
+    } catch (_) {}
+  }
+
+  void _restoreDraft() {
+    if (_cachedDraft == null) return;
+    setState(() {
+      _titleController.text = _cachedDraft!['title'] ?? '';
+      _contentController.text = _cachedDraft!['content'] ?? '';
+      _selectedEnergy = _cachedDraft!['mood'] ?? 'calm';
+      _photoPath = _cachedDraft!['photo'];
+      _tags = List<String>.from(_cachedDraft!['tags'] ?? []);
+      _hasDraft = false;
+      _cachedDraft = null;
+    });
+  }
+
+  Future<void> _discardDraft() async {
+    await _clearDraft();
+    if (mounted) {
+      setState(() {
+        _hasDraft = false;
+        _cachedDraft = null;
+      });
+    }
+  }
+
+  void _scheduleAutoSave() {
+    if (widget.id != null) return;
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(const Duration(milliseconds: 800), _saveDraft);
+  }
+
+  Future<void> _saveDraft() async {
+    if (widget.id != null) return;
+    try {
+      final title = _titleController.text.trim();
+      final content = _contentController.text.trim();
+      final hasPhoto = _photoPath != null && _photoPath!.isNotEmpty;
+
+      if (title.isEmpty && content.isEmpty && !hasPhoto && _tags.isEmpty) {
+        await _clearDraft();
+        return;
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyDraftTitle, _titleController.text);
+      await prefs.setString(_keyDraftContent, _contentController.text);
+      await prefs.setString(_keyDraftMood, _selectedEnergy);
+      await prefs.setStringList(_keyDraftTags, _tags);
+      if (_photoPath != null && _photoPath!.isNotEmpty) {
+        await prefs.setString(_keyDraftPhoto, _photoPath!);
+      } else {
+        await prefs.remove(_keyDraftPhoto);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _clearDraft() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_keyDraftTitle);
+      await prefs.remove(_keyDraftContent);
+      await prefs.remove(_keyDraftMood);
+      await prefs.remove(_keyDraftTags);
+      await prefs.remove(_keyDraftPhoto);
+    } catch (_) {}
+  }
+
+  Widget _buildDraftBanner() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.35),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.history_edu_rounded, size: 20, color: AppColors.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Unsaved draft found',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  'Resume writing where you left off?',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: _restoreDraft,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              'Resume',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          IconButton(
+            onPressed: _discardDraft,
+            icon: Icon(Icons.close_rounded, size: 16, color: AppColors.textHint),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            tooltip: 'Discard draft',
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _pickPhoto(ImageSource source) async {
@@ -81,6 +269,7 @@ class _FreeformPageState extends State<FreeformPage> {
         setState(() {
           _photoPath = picked.path;
         });
+        _scheduleAutoSave();
       }
     } catch (e) {
       if (mounted) {
@@ -221,6 +410,7 @@ class _FreeformPageState extends State<FreeformPage> {
       );
 
       await ReflectionService().saveReflection(entry);
+      await _clearDraft();
 
       if (!mounted) return;
 
@@ -264,6 +454,7 @@ class _FreeformPageState extends State<FreeformPage> {
               freeformTitle: title.isNotEmpty ? title : null,
               freeformNote: content.isNotEmpty ? content : null,
               photoUrl: _photoPath,
+              tags: _tags,
             ),
           ),
         );
@@ -325,6 +516,7 @@ class _FreeformPageState extends State<FreeformPage> {
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
+              _clearDraft();
               Navigator.pop(context);
             },
             child: Text('Discard',
@@ -378,7 +570,10 @@ class _FreeformPageState extends State<FreeformPage> {
                     IconButton(
                       icon: const Icon(Icons.delete_outline_rounded, size: 20, color: Color(0xFFE02424)),
                       tooltip: 'Remove Photo',
-                      onPressed: () => setState(() => _photoPath = null),
+                      onPressed: () {
+                        setState(() => _photoPath = null);
+                        _scheduleAutoSave();
+                      },
                     ),
                   ],
                 ),
@@ -574,10 +769,16 @@ class _FreeformPageState extends State<FreeformPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Draft banner (if unsaved draft was found)
+                    if (_hasDraft) _buildDraftBanner(),
+
                     // Energy / Mood selector
                     EnergySelector(
                       selectedId: _selectedEnergy,
-                      onSelected: (id) => setState(() => _selectedEnergy = id),
+                      onSelected: (id) {
+                        setState(() => _selectedEnergy = id);
+                        _scheduleAutoSave();
+                      },
                     ),
                     const SizedBox(height: 20),
 
@@ -586,7 +787,10 @@ class _FreeformPageState extends State<FreeformPage> {
                       titleController: _titleController,
                       contentController: _contentController,
                       tags: _tags,
-                      onTagsChanged: (newTags) => setState(() => _tags = newTags),
+                      onTagsChanged: (newTags) {
+                        setState(() => _tags = newTags);
+                        _scheduleAutoSave();
+                      },
                       onContentChanged: (_) => setState(() {}),
                     ),
                     const SizedBox(height: 20),
