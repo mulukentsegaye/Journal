@@ -56,4 +56,11 @@ class AppColors {
   static Color get navInactive => _isDark ? darkTextHint : lightTextHint;
   static Color get divider => _isDark ? darkDivider : lightDivider;
   static Color get shadow => _isDark ? const Color(0x33000000) : const Color(0x0A000000);
+
+  // ── SnackBar Theme Tokens (Guaranteed high-contrast in both themes) ──
+  static const Color lightSnackBarBg = Color(0xFF2D2319);
+  static const Color darkSnackBarBg = Color(0xFF282A30);
+
+  static Color get snackBarBackground => _isDark ? darkSnackBarBg : lightSnackBarBg;
+  static Color get snackBarText => Colors.white;
 }

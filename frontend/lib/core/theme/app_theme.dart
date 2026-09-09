@@ -41,6 +41,20 @@ class AppTheme {
         systemOverlayStyle: SystemUiOverlayStyle.dark,
         iconTheme: IconThemeData(color: AppColors.lightTextPrimary),
       ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: AppColors.lightSnackBarBg,
+        contentTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+        actionTextColor: AppColors.lightPrimaryLight,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 4,
+      ),
       pageTransitionsTheme: _pageTransitionsTheme,
       splashColor: AppColors.lightPrimary.withValues(alpha: 0.08),
       highlightColor: AppColors.lightPrimary.withValues(alpha: 0.05),
@@ -70,6 +84,21 @@ class AppTheme {
         scrolledUnderElevation: 0,
         systemOverlayStyle: SystemUiOverlayStyle.light,
         iconTheme: IconThemeData(color: AppColors.darkTextPrimary),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: AppColors.darkSnackBarBg,
+        contentTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+        actionTextColor: AppColors.darkPrimary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Color(0xFF383A42), width: 1),
+        ),
+        elevation: 6,
       ),
       pageTransitionsTheme: _pageTransitionsTheme,
       splashColor: AppColors.darkPrimary.withValues(alpha: 0.12),

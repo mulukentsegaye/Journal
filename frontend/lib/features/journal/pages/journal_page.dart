@@ -143,15 +143,18 @@ class _JournalPageState extends State<JournalPage> {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    backgroundColor: AppColors.textPrimary,
+                    backgroundColor: AppColors.snackBarBackground,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    content: const Text('Moved to Recycle Bin.'),
+                    content: const Text(
+                      'Moved to Recycle Bin.',
+                      style: TextStyle(color: Colors.white),
+                    ),
                     action: SnackBarAction(
                       label: 'Undo',
-                      textColor: AppColors.primary,
+                      textColor: AppColors.primaryLight,
                       onPressed: () => _reflectionService.restoreReflection(id),
                     ),
                   ),
@@ -258,7 +261,10 @@ class _JournalPageState extends State<JournalPage> {
                   children: [
                     Icon(Icons.cloud_done_rounded, color: Colors.white, size: 18),
                     SizedBox(width: 8),
-                    Text('Synced with cloud ✓'),
+                    Text(
+                      'Synced with cloud ✓',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ],
                 ),
                 backgroundColor: const Color(0xFF2E7D32),
@@ -276,7 +282,12 @@ class _JournalPageState extends State<JournalPage> {
                   children: [
                     const Icon(Icons.cloud_off_rounded, color: Colors.white, size: 18),
                     const SizedBox(width: 8),
-                    Expanded(child: Text(ErrorFormatter.format(e))),
+                    Expanded(
+                      child: Text(
+                        ErrorFormatter.format(e),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
                   ],
                 ),
                 backgroundColor: const Color(0xFFD32F2F),
@@ -393,7 +404,10 @@ class _JournalPageState extends State<JournalPage> {
                           children: [
                             Icon(Icons.cloud_done_rounded, color: Colors.white, size: 18),
                             SizedBox(width: 8),
-                            Text('Synced with cloud ✓'),
+                            Text(
+                              'Synced with cloud ✓',
+                              style: TextStyle(color: Colors.white),
+                            ),
                           ],
                         ),
                         backgroundColor: const Color(0xFF2E7D32),
@@ -411,7 +425,12 @@ class _JournalPageState extends State<JournalPage> {
                           children: [
                             const Icon(Icons.cloud_off_rounded, color: Colors.white, size: 18),
                             const SizedBox(width: 8),
-                            Expanded(child: Text(ErrorFormatter.format(e))),
+                            Expanded(
+                              child: Text(
+                                ErrorFormatter.format(e),
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            ),
                           ],
                         ),
                         backgroundColor: const Color(0xFFD32F2F),

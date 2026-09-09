@@ -275,8 +275,13 @@ class _FreeformPageState extends State<FreeformPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(ErrorFormatter.format(e)),
+            content: Text(
+              ErrorFormatter.format(e),
+              style: const TextStyle(color: Colors.white),
+            ),
             backgroundColor: const Color(0xFFE02424),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
@@ -365,14 +370,19 @@ class _FreeformPageState extends State<FreeformPage> {
     if (title.isEmpty && content.isEmpty && !hasPhoto) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: AppColors.textPrimary,
+          backgroundColor: AppColors.snackBarBackground,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           content: const Row(
             children: [
               Icon(Icons.edit_note_rounded, color: Colors.white, size: 18),
               SizedBox(width: 8),
-              Text('Please write a thought or attach a photo before saving.'),
+              Expanded(
+                child: Text(
+                  'Please write a thought or attach a photo before saving.',
+                  style: TextStyle(color: Colors.white, fontSize: 13),
+                ),
+              ),
             ],
           ),
           duration: const Duration(seconds: 3),
@@ -392,8 +402,6 @@ class _FreeformPageState extends State<FreeformPage> {
 
     try {
       final now = widget.date ?? DateTime.now();
-      final title = _titleController.text.trim();
-      final content = _contentController.text.trim();
       final docId = widget.id ?? DatabaseService.generateUniqueId();
 
       final entry = ReflectionEntryModel(
@@ -416,7 +424,7 @@ class _FreeformPageState extends State<FreeformPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: AppColors.textPrimary,
+          backgroundColor: AppColors.snackBarBackground,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           content: Row(
@@ -428,9 +436,10 @@ class _FreeformPageState extends State<FreeformPage> {
                   widget.id != null
                       ? 'Journal entry updated.'
                       : 'Journal entry saved.',
-                  style: AppTextStyles.body.copyWith(
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 13,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),

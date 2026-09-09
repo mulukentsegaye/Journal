@@ -60,7 +60,7 @@ class _AuthPageState extends State<AuthPage> {
         if (res.session == null && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.snackBarBackground,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               content: const Text(
@@ -174,12 +174,14 @@ class _AuthPageState extends State<AuthPage> {
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            backgroundColor: AppColors.textPrimary,
+                            backgroundColor: AppColors.snackBarBackground,
                             behavior: SnackBarBehavior.floating,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12)),
-                            content:
-                                Text('Password reset link sent to $email.'),
+                            content: Text(
+                              'Password reset link sent to $email.',
+                              style: const TextStyle(color: Colors.white),
+                            ),
                           ),
                         );
                       }
@@ -233,12 +235,14 @@ class _AuthPageState extends State<AuthPage> {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              backgroundColor: AppColors.textPrimary,
+                              backgroundColor: AppColors.snackBarBackground,
                               behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12)),
-                              content:
-                                  Text('Password reset link sent to $email.'),
+                              content: Text(
+                                'Password reset link sent to $email.',
+                                style: const TextStyle(color: Colors.white),
+                              ),
                             ),
                           );
                         }

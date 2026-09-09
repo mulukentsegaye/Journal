@@ -119,14 +119,22 @@ class _VoiceInputButtonState extends State<VoiceInputButton>
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: AppColors.textPrimary,
+          backgroundColor: AppColors.snackBarBackground,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          content: Text(
-            _voiceService.lastError != null
-                ? ErrorFormatter.format(_voiceService.lastError)
-                : 'Microphone permission needed or voice input unavailable.',
-            style: const TextStyle(color: Colors.white, fontSize: 12),
+          content: Row(
+            children: [
+              const Icon(Icons.mic_off_rounded, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _voiceService.lastError != null
+                      ? ErrorFormatter.format(_voiceService.lastError)
+                      : 'Microphone permission needed or voice input unavailable.',
+                  style: const TextStyle(color: Colors.white, fontSize: 12.5),
+                ),
+              ),
+            ],
           ),
         ),
       );

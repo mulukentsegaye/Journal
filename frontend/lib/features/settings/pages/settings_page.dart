@@ -49,13 +49,14 @@ class _SettingsPageState extends State<SettingsPage> {
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: AppColors.primary,
+          backgroundColor: AppColors.snackBarBackground,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           content: Text(
             savedPath != null
                 ? 'Markdown backup saved to Downloads & copied to clipboard!'
                 : 'Markdown backup copied to clipboard!',
+            style: const TextStyle(color: Colors.white),
           ),
         ),
       );
@@ -63,8 +64,13 @@ class _SettingsPageState extends State<SettingsPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: Colors.redAccent,
-          content: Text('Failed to export markdown: $e'),
+          backgroundColor: const Color(0xFFE02424),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          content: Text(
+            'Failed to export markdown: $e',
+            style: const TextStyle(color: Colors.white),
+          ),
         ),
       );
     } finally {
@@ -91,13 +97,14 @@ class _SettingsPageState extends State<SettingsPage> {
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: AppColors.primary,
+          backgroundColor: AppColors.snackBarBackground,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           content: Text(
             savedPath != null
                 ? 'JSON backup saved to Downloads & copied to clipboard!'
                 : 'JSON backup copied to clipboard!',
+            style: const TextStyle(color: Colors.white),
           ),
         ),
       );
@@ -105,8 +112,13 @@ class _SettingsPageState extends State<SettingsPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: Colors.redAccent,
-          content: Text('Failed to export JSON: $e'),
+          backgroundColor: const Color(0xFFE02424),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          content: Text(
+            'Failed to export JSON: $e',
+            style: const TextStyle(color: Colors.white),
+          ),
         ),
       );
     } finally {
@@ -120,13 +132,14 @@ class _SettingsPageState extends State<SettingsPage> {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.snackBarBackground,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         content: Text(
           enabled
               ? 'Evening reminder active for ${_settingsService.formattedReminderTime} 🌙'
               : 'Evening reminder disabled.',
+          style: const TextStyle(color: Colors.white),
         ),
       ),
     );
@@ -158,10 +171,13 @@ class _SettingsPageState extends State<SettingsPage> {
         ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: AppColors.primary,
+            backgroundColor: AppColors.snackBarBackground,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            content: Text('Evening reminder set for ${_settingsService.formattedReminderTime} 🌙'),
+            content: Text(
+              'Evening reminder set for ${_settingsService.formattedReminderTime} 🌙',
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         );
       }
@@ -174,13 +190,14 @@ class _SettingsPageState extends State<SettingsPage> {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.snackBarBackground,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         content: Text(
           enabled
               ? 'Morning reminder active for ${_settingsService.formattedMorningReminderTime} ☀️'
               : 'Morning reminder disabled.',
+          style: const TextStyle(color: Colors.white),
         ),
       ),
     );
@@ -212,10 +229,13 @@ class _SettingsPageState extends State<SettingsPage> {
         ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: AppColors.primary,
+            backgroundColor: AppColors.snackBarBackground,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            content: Text('Morning reminder set for ${_settingsService.formattedMorningReminderTime} ☀️'),
+            content: Text(
+              'Morning reminder set for ${_settingsService.formattedMorningReminderTime} ☀️',
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         );
       }
@@ -231,13 +251,14 @@ class _SettingsPageState extends State<SettingsPage> {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: sent ? AppColors.primary : Colors.redAccent,
+        backgroundColor: sent ? const Color(0xFF2E7D32) : const Color(0xFFD32F2F),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         content: Text(
           sent
               ? 'Test reminder delivered! Check your notifications ✨'
               : 'Could not deliver test notification. Please verify notification permissions.',
+          style: const TextStyle(color: Colors.white),
         ),
       ),
     );
@@ -246,10 +267,13 @@ class _SettingsPageState extends State<SettingsPage> {
   void _optimizeCache() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.snackBarBackground,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        content: const Text('Local storage cache is healthy and fully optimized!'),
+        content: const Text(
+          'Local storage cache is healthy and fully optimized!',
+          style: TextStyle(color: Colors.white),
+        ),
       ),
     );
   }

@@ -249,12 +249,15 @@ class _SummaryPageState extends State<SummaryPage> {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              backgroundColor: AppColors.textPrimary,
+                              backgroundColor: AppColors.snackBarBackground,
                               behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              content: const Text('Entry card copied!'),
+                              content: const Text(
+                                'Entry card copied!',
+                                style: TextStyle(color: Colors.white),
+                              ),
                             ),
                           );
                         }
@@ -367,13 +370,15 @@ class _SummaryPageState extends State<SummaryPage> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          backgroundColor: AppColors.textPrimary,
+                          backgroundColor: AppColors.snackBarBackground,
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          content:
-                              const Text('Entry copied to clipboard!'),
+                          content: const Text(
+                            'Entry copied to clipboard!',
+                            style: TextStyle(color: Colors.white),
+                          ),
                         ),
                       );
                     }
@@ -439,15 +444,18 @@ class _SummaryPageState extends State<SummaryPage> {
                 Navigator.of(context).popUntil((route) => route.isFirst);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    backgroundColor: AppColors.textPrimary,
+                    backgroundColor: AppColors.snackBarBackground,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    content: const Text('Moved to Recycle Bin.'),
+                    content: const Text(
+                      'Moved to Recycle Bin.',
+                      style: TextStyle(color: Colors.white),
+                    ),
                     action: SnackBarAction(
                       label: 'Undo',
-                      textColor: AppColors.primary,
+                      textColor: AppColors.primaryLight,
                       onPressed: () =>
                           _reflectionService.restoreReflection(deletedId),
                     ),

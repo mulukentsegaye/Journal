@@ -81,8 +81,13 @@ class _PdfExportDialogState extends State<PdfExportDialog> {
     if (entries.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('No reflections found in this period to export.'),
-          backgroundColor: AppColors.textPrimary,
+          content: const Text(
+            'No reflections found in this period to export.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: AppColors.snackBarBackground,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
       return;
@@ -102,8 +107,13 @@ class _PdfExportDialogState extends State<PdfExportDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(ErrorFormatter.format(e)),
+            content: Text(
+              ErrorFormatter.format(e),
+              style: const TextStyle(color: Colors.white),
+            ),
             backgroundColor: const Color(0xFFE02424),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
@@ -117,8 +127,13 @@ class _PdfExportDialogState extends State<PdfExportDialog> {
     if (entries.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('No entries found in this period to export.'),
-          backgroundColor: AppColors.textPrimary,
+          content: const Text(
+            'No entries found in this period to export.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: AppColors.snackBarBackground,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
       return;
@@ -137,8 +152,13 @@ class _PdfExportDialogState extends State<PdfExportDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(ErrorFormatter.format(e)),
+            content: Text(
+              ErrorFormatter.format(e),
+              style: const TextStyle(color: Colors.white),
+            ),
             backgroundColor: const Color(0xFFE02424),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }

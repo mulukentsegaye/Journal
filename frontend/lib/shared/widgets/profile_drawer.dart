@@ -801,10 +801,13 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.snackBarBackground,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        content: const Text('Markdown journal backup copied to clipboard!'),
+        content: const Text(
+          'Markdown journal backup copied to clipboard!',
+          style: TextStyle(color: Colors.white),
+        ),
       ),
     );
   }
@@ -815,10 +818,13 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.snackBarBackground,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        content: const Text('Complete JSON backup copied to clipboard!'),
+        content: const Text(
+          'Complete JSON backup copied to clipboard!',
+          style: TextStyle(color: Colors.white),
+        ),
       ),
     );
   }

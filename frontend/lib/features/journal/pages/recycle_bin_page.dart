@@ -58,7 +58,10 @@ class RecycleBinPage extends StatelessWidget {
                       children: [
                         Icon(Icons.delete_sweep_rounded, color: Colors.white, size: 18),
                         SizedBox(width: 8),
-                        Text('Recycle Bin emptied.'),
+                        Text(
+                          'Recycle Bin emptied.',
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ],
                     ),
                     backgroundColor: const Color(0xFF2C5E43),
@@ -115,7 +118,10 @@ class RecycleBinPage extends StatelessWidget {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: const Text('Entry permanently deleted.'),
+                    content: const Text(
+                      'Entry permanently deleted.',
+                      style: TextStyle(color: Colors.white),
+                    ),
                     backgroundColor: const Color(0xFFE02424),
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -145,7 +151,10 @@ class RecycleBinPage extends StatelessWidget {
             children: [
               Icon(Icons.restore_rounded, color: Colors.white, size: 18),
               SizedBox(width: 8),
-              Text('Entry restored to your journal.'),
+              Text(
+                'Entry restored to your journal.',
+                style: TextStyle(color: Colors.white),
+              ),
             ],
           ),
           backgroundColor: const Color(0xFF2C5E43),
