@@ -47,7 +47,7 @@ class FreeformSummaryCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                'Additional Freeform Note',
+                'Journal Entry',
                 style: AppTextStyles.bodySmall.copyWith(
                   fontWeight: FontWeight.w600,
                   color: AppColors.textSecondary,

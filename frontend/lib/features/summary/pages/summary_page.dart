@@ -14,11 +14,10 @@ import '../../reflection/models/reflection_entry_model.dart';
 import '../../reflection/services/database_service.dart';
 import '../../reflection/services/reflection_service.dart';
 import '../../freeform/pages/freeform_page.dart';
-import '../widgets/summary_header_card.dart';
 import '../widgets/freeform_summary_card.dart';
 
-/// Summary Page / Reflection Complete screen — displays all saved
-/// answers, freeform note, mood tag, moment photo, and share options.
+/// Entry Detail screen — displays saved entry details,
+/// thoughts, mood tag, moment photo, and share options.
 class SummaryPage extends StatefulWidget {
   final String? id;
   final DateTime? date;
@@ -340,7 +339,7 @@ class _SummaryPageState extends State<SummaryPage> {
             ),
             const SizedBox(height: 18),
             Text(
-              'Share Your Reflection',
+              'Share Entry',
               style: GoogleFonts.lora(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -349,7 +348,7 @@ class _SummaryPageState extends State<SummaryPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Export your peaceful anchor or copy as text.',
+              'Export or copy your entry as text.',
               style: AppTextStyles.body.copyWith(
                 fontSize: 13,
                 color: AppColors.textSecondary,
@@ -667,12 +666,66 @@ class _SummaryPageState extends State<SummaryPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header card with mood badge
-                    SummaryHeaderCard(
-                      mood: widget.mood,
-                      moodEmoji: widget.moodEmoji,
-                    ),
-                    const SizedBox(height: 20),
+                    // ── Entry Metadata: Mood & Time ──────────────────
+                    if (widget.mood.isNotEmpty || widget.date != null) ...[
+                      Row(
+                        children: [
+                          if (widget.mood.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.calmTagBg,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    widget.mood,
+                                    style: AppTextStyles.tag.copyWith(
+                                      color: AppColors.calmTagText,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  if (widget.moodEmoji.isNotEmpty) ...[
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      widget.moodEmoji,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          if (widget.date != null) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Text(
+                                DateFormat('h:mm a').format(widget.date!),
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.textSecondary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                    ],
 
                     // ── Attached Daily Moment Photo ──────────────────
                     if (widget.photoUrl != null && widget.photoUrl!.isNotEmpty) ...[
@@ -1026,7 +1079,7 @@ class _SummaryPageState extends State<SummaryPage> {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'Your mood and peaceful presence have been captured for tonight.',
+                              'Your mood and thoughts have been saved.',
                               style: AppTextStyles.bodySmall.copyWith(
                                 color: AppColors.textSecondary,
                                 fontSize: 12,
@@ -1060,7 +1113,7 @@ class _SummaryPageState extends State<SummaryPage> {
                     ),
                   ),
                   child: Text(
-                    'Done for Tonight  ✓',
+                    'Back to Journal',
                     style: AppTextStyles.button.copyWith(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
