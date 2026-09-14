@@ -439,16 +439,18 @@ class DatabaseService {
                   debugPrint('[DatabaseService] ✓ Auto-recovered and upserted rekeyed entry $newId');
                 } catch (inner) {
                   debugPrint('[DatabaseService] ✗ Rekeyed entry also failed: $inner');
-                  // Remove to prevent permanently jamming the queue
                   pendingWrites.remove(item);
-                  break;
+                  continue;
                 }
               } else {
-                rethrow;
+                debugPrint('[DatabaseService] ✗ PostgrestException on pending entry: ${pe.message}');
+                // Remove to prevent permanently jamming the queue due to schema errors
+                pendingWrites.remove(item);
+                continue;
               }
             }
           } catch (e) {
-            debugPrint('[DatabaseService] ✗ Failed to upsert pending entry: $e');
+            debugPrint('[DatabaseService] ✗ Failed to upsert pending entry (network?): $e');
             break;
           }
         }
@@ -521,36 +523,37 @@ class DatabaseService {
             );
             pendingWrites.remove(item);
             debugPrint('[DatabaseService] ✓ Force-synced write: ${entry.id}');
-          } on PostgrestException catch (pe) {
-            if (pe.code == '42501' ||
-                pe.message.contains('row-level security') ||
-                pe.message.contains('USING expression')) {
-              debugPrint('[DatabaseService] Force sync 42501 on ${entry.id}. Attempting auto-rekey...');
-              final newId = generateUniqueId();
-              final rekeyed = entry.copyWith(id: newId);
-              final reEncrypted = await _encryption.encryptEntry(rekeyed);
-              try {
-                await client.from('reflections').upsert(
-                  reEncrypted.toSupabaseMap(userId: user.id),
-                  onConflict: 'id',
-                );
-                final localEntries = await _loadLocalEntries();
-                final idx = localEntries.indexWhere((e) => e.id == entry.id);
-                if (idx >= 0) {
-                  localEntries[idx] = rekeyed;
-                  await _persistLocalEntries(localEntries);
+              } on PostgrestException catch (pe) {
+                if (pe.code == '42501' ||
+                    pe.message.contains('row-level security') ||
+                    pe.message.contains('USING expression')) {
+                  debugPrint('[DatabaseService] Force sync 42501 on ${entry.id}. Attempting auto-rekey...');
+                  final newId = generateUniqueId();
+                  final rekeyed = entry.copyWith(id: newId);
+                  final reEncrypted = await _encryption.encryptEntry(rekeyed);
+                  try {
+                    await client.from('reflections').upsert(
+                      reEncrypted.toSupabaseMap(userId: user.id),
+                      onConflict: 'id',
+                    );
+                    final localEntries = await _loadLocalEntries();
+                    final idx = localEntries.indexWhere((e) => e.id == entry.id);
+                    if (idx >= 0) {
+                      localEntries[idx] = rekeyed;
+                      await _persistLocalEntries(localEntries);
+                    }
+                    pendingWrites.remove(item);
+                    debugPrint('[DatabaseService] ✓ Auto-recovered and force-synced rekeyed entry $newId');
+                  } catch (inner) {
+                    pendingWrites.remove(item);
+                    continue;
+                  }
+                } else {
+                  debugPrint('[DatabaseService] ✗ PostgrestException on force sync: ${pe.message}');
+                  pendingWrites.remove(item);
+                  continue;
                 }
-                pendingWrites.remove(item);
-                debugPrint('[DatabaseService] ✓ Auto-recovered and force-synced rekeyed entry $newId');
-              } catch (inner) {
-                pendingWrites.remove(item);
-                await prefs.setStringList(_keyPendingWrites, pendingWrites);
-                throw formatSyncError(inner);
               }
-            } else {
-              rethrow;
-            }
-          }
         }
         await prefs.setStringList(_keyPendingWrites, pendingWrites);
       }

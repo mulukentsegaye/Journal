@@ -157,6 +157,7 @@ class _JournalPageState extends State<JournalPage> {
                       textColor: AppColors.primaryLight,
                       onPressed: () => _reflectionService.restoreReflection(id),
                     ),
+                    duration: const Duration(seconds: 3),
                   ),
                 );
               }
