@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../widgets/greeting_header.dart';
-import '../widgets/quote_card.dart';
 import '../widgets/yesterday_summary_card.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/theme/app_colors.dart';
@@ -39,14 +38,7 @@ class TodayPage extends StatelessWidget {
                 children: [
                   // ── Greeting ──────────────────────────────────
                   const GreetingHeader(),
-                  const SizedBox(height: 28),
-
-                  // ── Inspirational quote ───────────────────────
-                  QuoteCard(
-                    quote: AppStrings.quoteOfTheDay['quote']!,
-                    author: AppStrings.quoteOfTheDay['author']!,
-                  ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 24),
 
                   // ── Write Today's Journal CTA ─────────────────
                   GestureDetector(
@@ -60,26 +52,19 @@ class TodayPage extends StatelessWidget {
                     },
                     child: Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(22),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppColors.primary.withValues(alpha: 0.14),
-                            AppColors.primary.withValues(alpha: 0.05),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
+                        color: AppColors.cardBackground,
+                        borderRadius: BorderRadius.circular(18),
                         border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.3),
-                          width: 1.2,
+                          color: AppColors.divider.withValues(alpha: 0.8),
+                          width: 1,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.08),
-                            blurRadius: 18,
-                            offset: const Offset(0, 6),
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
@@ -91,8 +76,8 @@ class TodayPage extends StatelessWidget {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(14),
+                                  color: AppColors.primary.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Icon(
                                   Icons.edit_note_rounded,
@@ -107,14 +92,14 @@ class TodayPage extends StatelessWidget {
                                   children: [
                                     Text(
                                       AppStrings.writeJournalPrompt,
-                                      style: AppTextStyles.greeting.copyWith(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w700,
+                                      style: AppTextStyles.sectionTitle.copyWith(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      'Capture your thoughts anytime 24/7',
+                                      'Capture your thoughts for today',
                                       style: AppTextStyles.bodySmall.copyWith(
                                         color: AppColors.textSecondary,
                                         fontSize: 12,
@@ -125,7 +110,7 @@ class TodayPage extends StatelessWidget {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 14),
                           Text(
                             AppStrings.writeJournalSubtitle,
                             style: AppTextStyles.body.copyWith(
@@ -140,14 +125,7 @@ class TodayPage extends StatelessWidget {
                             width: double.infinity,
                             decoration: BoxDecoration(
                               color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(14),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primary.withValues(alpha: 0.3),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -155,7 +133,7 @@ class TodayPage extends StatelessWidget {
                                 const Icon(
                                   Icons.create_rounded,
                                   color: Colors.white,
-                                  size: 17,
+                                  size: 16,
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
@@ -164,12 +142,6 @@ class TodayPage extends StatelessWidget {
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                   ),
-                                ),
-                                const SizedBox(width: 4),
-                                const Icon(
-                                  Icons.arrow_forward_rounded,
-                                  color: Colors.white,
-                                  size: 16,
                                 ),
                               ],
                             ),
@@ -189,11 +161,11 @@ class TodayPage extends StatelessWidget {
                         return const SizedBox.shrink();
                       }
 
-                      final summaryText = entry.freeformNote?.isNotEmpty == true
-                          ? entry.freeformNote!
+                      final summaryText = entry.freeformNote?.trim().isNotEmpty == true
+                          ? entry.freeformNote!.trim()
                           : (entry.answers.isNotEmpty == true
                               ? entry.answers.values.first
-                              : 'A quiet moment captured.');
+                              : (entry.photoUrl != null ? 'Photo entry' : 'Journal entry'));
 
                       final dateText = DateFormat('MMM d').format(entry.date);
                       final mood = entry.mood;
@@ -207,7 +179,9 @@ class TodayPage extends StatelessWidget {
                             mood: mood,
                             moodEmoji: moodEmoji,
                             photoUrl: entry.photoUrl,
-                            title: 'Recent Thought',
+                            title: entry.freeformTitle?.trim().isNotEmpty == true
+                                ? entry.freeformTitle!.trim()
+                                : 'Recent Entry',
                             onTap: () {
                               Navigator.push(
                                 context,

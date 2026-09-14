@@ -656,7 +656,7 @@ class _FreeformPageState extends State<FreeformPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Add Daily Moment Photo',
+                  'Add Photo',
                   style: AppTextStyles.body.copyWith(
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
@@ -664,7 +664,7 @@ class _FreeformPageState extends State<FreeformPage> {
                   ),
                 ),
                 Text(
-                  'Capture a sunset, tea, nature, or peaceful moment',
+                  'Attach a photo to this entry',
                   style: AppTextStyles.bodySmall.copyWith(
                     color: AppColors.textSecondary,
                     fontSize: 11,
@@ -735,35 +735,6 @@ class _FreeformPageState extends State<FreeformPage> {
                           color: AppColors.primary,
                           fontWeight: FontWeight.w500,
                         ),
-                      ),
-                    )
-                  else
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: AppColors.calmTagText,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            'Quiet mode',
-                            style: AppTextStyles.bodySmall.copyWith(
-                              fontSize: 11,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
                       ),
                     ),
                 ],

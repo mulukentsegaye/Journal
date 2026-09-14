@@ -227,7 +227,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Choose how Daily Reflection looks for your quiet space.',
+                  'Choose how Daily Reflection looks on your device.',
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: textSecondary,

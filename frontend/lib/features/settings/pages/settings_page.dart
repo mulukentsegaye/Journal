@@ -789,7 +789,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'A private, mindful sanctuary created to help you unwind, appreciate quiet moments, and cultivate gratitude every evening.',
+                        'A private, simple journaling app to record your thoughts, track your moods, and reflect on your days.',
                         style: AppTextStyles.bodySmall.copyWith(
                           color: AppColors.textSecondary,
                           height: 1.4,

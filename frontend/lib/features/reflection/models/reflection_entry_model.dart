@@ -169,20 +169,26 @@ class ReflectionEntryModel {
       text = const Color(0xFF8A7A6E);
     }
 
-    String snippet = freeformNote ?? '';
+    String snippet = freeformNote?.trim() ?? '';
     if (snippet.isEmpty && answers.isNotEmpty) {
       snippet = answers.values.first;
     }
     if (snippet.isEmpty) {
-      snippet = 'A quiet moment captured.';
+      snippet = photoUrl != null && photoUrl!.isNotEmpty
+          ? 'Photo entry'
+          : 'Journal entry';
     }
+
+    final defaultTitle = photoUrl != null && (freeformNote == null || freeformNote!.trim().isEmpty)
+        ? 'Photo Entry'
+        : 'Journal Entry';
 
     return JournalEntry(
       id: id,
       date: date,
-      title: freeformTitle?.isNotEmpty == true
-          ? freeformTitle!
-          : 'Thought — ${_formatDate(date)}',
+      title: freeformTitle?.trim().isNotEmpty == true
+          ? freeformTitle!.trim()
+          : defaultTitle,
       contentSnippet: snippet,
       mood: mood,
       moodEmoji: moodEmoji,
@@ -217,13 +223,6 @@ class ReflectionEntryModel {
     );
   }
 
-  String _formatDate(DateTime d) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    return '${months[d.month - 1]} ${d.day}';
-  }
 
   ReflectionEntryModel copyWith({
     String? id,

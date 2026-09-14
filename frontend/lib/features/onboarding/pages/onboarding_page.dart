@@ -23,23 +23,23 @@ class _OnboardingPageState extends State<OnboardingPage>
 
   final List<_OnboardingSlideData> _slides = const [
     _OnboardingSlideData(
-      badge: 'FREEDOM & MINDFULNESS',
+      badge: 'SIMPLE & DISTRACTION-FREE',
       title: 'Write Freely, Anytime.',
       description:
-          'Transform busy days into quiet clarity with distraction-free journaling, optional mood tagging, and mindful streaks.',
-      emoji: '🌿',
+          'Capture your thoughts with distraction-free journaling, optional mood tagging, and daily streaks.',
+      emoji: '📝',
       features: [
         '✨ Freeform Journaling',
         '🎙️ Voice Dictation',
-        '🔥 Mindful Streaks',
+        '🔥 Daily Streaks',
       ],
       glowColor: Color(0xFF2D6A4F),
     ),
     _OnboardingSlideData(
       badge: 'ZERO-KNOWLEDGE PRIVACY',
-      title: 'Your Sacred Private Space.',
+      title: 'Your Private Space.',
       description:
-          'Your deepest thoughts belong strictly to you. Protected by client-side AES-256 encryption, hardware Keystore, and biometric App Lock.',
+          'Your thoughts belong strictly to you. Protected by client-side AES-256 encryption, hardware Keystore, and biometric App Lock.',
       emoji: '🔒',
       features: [
         '🛡️ End-to-End Encrypted',
@@ -49,14 +49,14 @@ class _OnboardingPageState extends State<OnboardingPage>
       glowColor: Color(0xFF1B4332),
     ),
     _OnboardingSlideData(
-      badge: 'MEMORIES & KEEPSAKES',
-      title: 'Celebrate Your Growth.',
+      badge: 'BACKUPS & REMINDERS',
+      title: 'Track Your Journey.',
       description:
-          'Export beautifully bound keepsake PDFs of your year, receive gentle evening reminder chimes, and cherish your mindful journey.',
+          'Export clean PDF backups of your entries, receive daily reminders, and track your mood trends over time.',
       emoji: '📖',
       features: [
-        '📚 Printable Keepsake PDF',
-        '🔔 Evening Chimes',
+        '📚 Printable PDF Export',
+        '🔔 Daily Reminders',
         '📊 Mood Analytics',
       ],
       glowColor: Color(0xFF52B788),

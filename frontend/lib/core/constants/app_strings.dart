@@ -3,13 +3,13 @@ class AppStrings {
   AppStrings._();
 
   static const String appName = 'Daily Reflection';
-  static const String welcomeSubtitle = 'Welcome back to your quiet space.';
+  static const String welcomeSubtitle = 'Welcome back to Daily Reflection.';
 
   // Journal CTAs and Prompts
   static const String writeJournalPrompt = "What's on your mind?";
   static const String writeJournalSubtitle =
-      'Write freely anytime. Capture your thoughts, feelings, or small moments of the day.';
-  static const String writeButtonLabel = 'Write a Thought';
+      'Write freely anytime. Capture your thoughts, feelings, or moments from your day.';
+  static const String writeButtonLabel = 'Write Entry';
 
   // Legacy Question Prompts (preserved for reading historical guided entries)
   static const Map<int, String> questionPrompts = {

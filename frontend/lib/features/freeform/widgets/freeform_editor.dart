@@ -369,13 +369,11 @@ class FreeformEditor extends StatelessWidget {
                 height: 1.6,
               ),
               decoration: InputDecoration(
-                hintText:
-                    'Write whatever comes to mind — your thoughts, feelings, quiet observations, or reflections...',
+                hintText: 'Write your thoughts here...',
                 hintStyle: GoogleFonts.inter(
                   fontSize: 15,
-                  color: AppColors.textHint.withValues(alpha: 0.55),
+                  color: AppColors.textHint.withValues(alpha: 0.6),
                   height: 1.6,
-                  fontStyle: FontStyle.italic,
                 ),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.only(top: 4, bottom: 12),

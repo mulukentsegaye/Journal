@@ -464,7 +464,7 @@ class _JournalPageState extends State<JournalPage> {
                                 Text('Your Journal', style: AppTextStyles.greeting),
                                 const SizedBox(height: 2),
                                 Text(
-                                  'Past thoughts, reflections, and quiet moments.',
+                                  'All your past entries in one place.',
                                   style: AppTextStyles.subtitle,
                                 ),
                                 const SizedBox(height: 6),

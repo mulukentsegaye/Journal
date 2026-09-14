@@ -19,7 +19,7 @@ class YesterdaySummaryCard extends StatelessWidget {
     required this.mood,
     required this.moodEmoji,
     this.photoUrl,
-    this.title = 'Recent Thought',
+    this.title = 'Recent Entry',
     this.onTap,
   });
 
@@ -33,62 +33,56 @@ class YesterdaySummaryCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.divider.withValues(alpha: 0.6),
+            width: 1,
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            decoration: BoxDecoration(
-              border: Border(
-                left: BorderSide(
-                  color: AppColors.calmTagText.withValues(alpha: 0.5),
-                  width: 4,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Header row ─────────────────────────────────────
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: AppTextStyles.sectionTitle,
+                  ),
                 ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.streakBadgeBg,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(date, style: AppTextStyles.dateTag),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // ── Summary text ───────────────────────────────────
+            Text(
+              summary,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.body.copyWith(
+                fontSize: 14,
+                height: 1.5,
+                color: AppColors.textSecondary,
               ),
             ),
-            padding: const EdgeInsets.fromLTRB(18, 20, 20, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Header row ─────────────────────────────────────
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: AppTextStyles.sectionTitle,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.streakBadgeBg,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(date, style: AppTextStyles.dateTag),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-
-                // ── Summary text ───────────────────────────────────
-                Text(
-                  '"$summary"',
-                  style: AppTextStyles.summaryQuote,
-                ),
-                const SizedBox(height: 14),
+            const SizedBox(height: 14),
 
                 // ── Mood tag & Photo tag ───────────────────────────
                 Row(
@@ -136,8 +130,6 @@ class YesterdaySummaryCard extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-        ),
       ),
     );
   }

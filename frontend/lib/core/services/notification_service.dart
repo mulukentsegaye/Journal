@@ -227,8 +227,8 @@ class NotificationService {
 
       await _notificationsPlugin.zonedSchedule(
         id: reminderNotificationId,
-        title: 'Time to Reflect 🌙',
-        body: 'Take a quiet moment to record your thoughts and unwind for today.',
+        title: 'Time to Journal 📝',
+        body: 'Take a moment to record your thoughts for today.',
         scheduledDate: scheduledTime,
         notificationDetails: _notificationDetails(),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
@@ -324,11 +324,11 @@ class NotificationService {
       await _notificationsPlugin.show(
         id: testNotificationId,
         title: isMorning
-            ? 'Morning Intention Preview ☀️'
-            : 'Reflection Reminder Preview ✨',
+            ? 'Morning Reminder Preview ☀️'
+            : 'Journal Reminder Preview 📝',
         body: isMorning
-            ? 'Start your day with clarity. What are your intentions for today? 🌿'
-            : 'Take a quiet moment to record your thoughts and unwind for today. 🌙',
+            ? 'Start your day with clarity. What are your intentions for today?'
+            : 'Take a moment to record your thoughts for today.',
         notificationDetails: _notificationDetails(),
         payload: isMorning ? 'test_morning' : 'test_notification',
       );

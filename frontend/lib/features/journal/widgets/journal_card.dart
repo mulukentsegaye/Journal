@@ -408,8 +408,8 @@ class JournalCard extends StatelessWidget {
             // ── Title ─────────────────────────────────────────
             Text(
               entry.title,
-              style: GoogleFonts.lora(
-                fontSize: 17,
+              style: GoogleFonts.inter(
+                fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,
                 height: 1.3,
@@ -419,12 +419,11 @@ class JournalCard extends StatelessWidget {
 
             // ── Snippet ───────────────────────────────────────
             Text(
-              '"${entry.contentSnippet}"',
+              entry.contentSnippet,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.lora(
+              style: GoogleFonts.inter(
                 fontSize: 13.5,
-                fontStyle: FontStyle.italic,
                 color: AppColors.textSecondary,
                 height: 1.5,
               ),

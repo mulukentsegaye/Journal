@@ -187,18 +187,17 @@ class DayDetailCard extends StatelessWidget {
         const SizedBox(height: 12),
         Text(
           _isToday
-              ? 'No thoughts recorded today yet.'
+              ? 'No entries recorded today yet.'
               : 'No entries recorded for this day.',
           style: AppTextStyles.body.copyWith(
             color: AppColors.textHint,
-            fontStyle: FontStyle.italic,
           ),
           textAlign: TextAlign.center,
         ),
         if (_isToday) ...[
           const SizedBox(height: 4),
           Text(
-            'Every quiet moment counts.',
+            'Write an entry to record your thoughts.',
             style: AppTextStyles.bodySmall,
             textAlign: TextAlign.center,
           ),

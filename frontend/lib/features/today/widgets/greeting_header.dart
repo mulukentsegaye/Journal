@@ -23,8 +23,8 @@ class GreetingHeader extends StatelessWidget {
     final title =
         streak == 1 ? '1 Day Journal Streak' : '$streak Days Journal Streak';
     final description = streak > 0
-        ? 'You\'ve taken time for peace and presence. Keep this gentle rhythm alive.'
-        : 'Take a quiet moment to write your thoughts and begin your journal streak.';
+        ? 'You\'ve consistently journaled! Keep up your daily habit.'
+        : 'Write an entry today to start your journal streak.';
 
     showModalBottomSheet(
       context: context,

@@ -315,7 +315,9 @@ class _SummaryPageState extends State<SummaryPage> {
     }
 
     if (snippet.isEmpty) {
-      snippet = 'Captured a quiet moment of evening peace.';
+      snippet = widget.photoUrl != null && widget.photoUrl!.isNotEmpty
+          ? 'Photo entry'
+          : 'Journal entry';
     }
 
     showModalBottomSheet(
@@ -751,128 +753,53 @@ class _SummaryPageState extends State<SummaryPage> {
                             ],
                           ),
                           clipBehavior: Clip.antiAlias,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Stack(
+                            alignment: Alignment.topRight,
                             children: [
-                              // Card Top Header
+                              widget.photoUrl!.startsWith('http://') ||
+                                      widget.photoUrl!.startsWith('https://')
+                                  ? Image.network(
+                                      widget.photoUrl!,
+                                      height: 280,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (ctx, err, stack) => _buildPhotoFallback(),
+                                    )
+                                  : Image.file(
+                                      File(widget.photoUrl!),
+                                      height: 280,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (ctx, err, stack) => _buildPhotoFallback(),
+                                    ),
+                              // Clean Save Photo Button on Top-Right
                               Padding(
-                                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primary.withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Icon(
-                                        Icons.photo_camera_rounded,
-                                        size: 16,
-                                        color: AppColors.primary,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Captured Moment Photo',
-                                            style: GoogleFonts.lora(
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 14.5,
-                                              color: AppColors.textPrimary,
-                                            ),
-                                          ),
-                                          Text(
-                                            'Tap anywhere on the photo to expand & zoom',
-                                            style: GoogleFonts.inter(
-                                              fontSize: 11,
-                                              color: AppColors.textSecondary,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    // Save Button
-                                    GestureDetector(
-                                      onTap: () => _savePhoto(context),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primary.withValues(alpha: 0.12),
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(Icons.file_download_outlined, size: 14, color: AppColors.primary),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              Platform.isWindows ? 'Save to PC' : 'Save',
-                                              style: TextStyle(
-                                                color: AppColors.primary,
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Icon(
-                                      Icons.fullscreen_rounded,
-                                      size: 20,
-                                      color: AppColors.primary,
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                              // Image Container
-                              Stack(
-                                alignment: Alignment.bottomRight,
-                                children: [
-                                  widget.photoUrl!.startsWith('http://') ||
-                                          widget.photoUrl!.startsWith('https://')
-                                      ? Image.network(
-                                          widget.photoUrl!,
-                                          height: 240,
-                                          width: double.infinity,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (ctx, err, stack) => _buildPhotoFallback(),
-                                        )
-                                      : Image.file(
-                                          File(widget.photoUrl!),
-                                          height: 240,
-                                          width: double.infinity,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (ctx, err, stack) => _buildPhotoFallback(),
-                                        ),
-                                  Container(
-                                    margin: const EdgeInsets.all(12),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 6),
+                                padding: const EdgeInsets.all(12),
+                                child: GestureDetector(
+                                  onTap: () => _savePhoto(context),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: Colors.black.withValues(alpha: 0.65),
+                                      color: Colors.black.withValues(alpha: 0.6),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
-                                    child: const Row(
+                                    child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(Icons.zoom_in_rounded,
-                                            color: Colors.white, size: 14),
-                                        SizedBox(width: 4),
-                                        Text('Pinch to Zoom',
-                                            style: TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w500,
-                                                fontSize: 11)),
+                                        const Icon(Icons.file_download_outlined, size: 15, color: Colors.white),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          Platform.isWindows ? 'Save to PC' : 'Save',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
-                                ],
+                                ),
                               ),
                             ],
                           ),
@@ -883,11 +810,13 @@ class _SummaryPageState extends State<SummaryPage> {
 
                     // Section Title & Answer items (if user answered questions)
                     // Primary Journal Note Card
-                    if (widget.freeformNote != null &&
-                        widget.freeformNote!.trim().isNotEmpty) ...[
-                       FreeformSummaryCard(
+                    if ((widget.freeformNote != null &&
+                            widget.freeformNote!.trim().isNotEmpty) ||
+                        (widget.freeformTitle != null &&
+                            widget.freeformTitle!.trim().isNotEmpty)) ...[
+                      FreeformSummaryCard(
                         title: widget.freeformTitle,
-                        note: widget.freeformNote!.trim(),
+                        note: widget.freeformNote?.trim() ?? '',
                       ),
                       const SizedBox(height: 16),
                     ],
@@ -1049,48 +978,7 @@ class _SummaryPageState extends State<SummaryPage> {
                       const SizedBox(height: 18),
                     ],
 
-                    // Empty state if neither guided responses nor freeform note
-                    if (userResponses.isEmpty &&
-                        (widget.freeformNote == null ||
-                            widget.freeformNote!.trim().isEmpty))
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 32, horizontal: 20),
-                        decoration: BoxDecoration(
-                          color: AppColors.cardBackground,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(
-                            color: AppColors.divider.withValues(alpha: 0.6),
-                            width: 1,
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            const Text('🌿', style: TextStyle(fontSize: 28)),
-                            const SizedBox(height: 10),
-                            Text(
-                              'Quiet Check-in Recorded',
-                              style: GoogleFonts.lora(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Your mood and thoughts have been saved.',
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.textSecondary,
-                                fontSize: 12,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
 
-                    const SizedBox(height: 24),
                   ],
                 ),
               ),
