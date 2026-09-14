@@ -343,13 +343,9 @@ class PdfExportService {
                         pw.ClipRRect(
                           horizontalRadius: 8,
                           verticalRadius: 8,
-                          child: pw.Container(
-                            height: 150,
-                            width: double.infinity,
-                            child: pw.Image(
-                              loadedImages[entry.photoUrl]!,
-                              fit: pw.BoxFit.cover,
-                            ),
+                          child: pw.Image(
+                            loadedImages[entry.photoUrl]!,
+                            fit: pw.BoxFit.contain,
                           ),
                         ),
                         pw.SizedBox(height: 10),

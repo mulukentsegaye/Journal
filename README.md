@@ -13,13 +13,13 @@ A mindful, privacy-first daily reflection, mood tracking, and introspective jour
 ## ✨ Features at a Glance
 
 ### 🧘 Mindful Journaling & Reflection
-* **7-Step Guided Evening Flow**: Thoughtfully structured prompts guiding you through gratitude, self-awareness, daily wins, and lessons learned.
-* **Freeform Journaling**: Flexible open-ended writing mode with live word counts, mood selection, and custom reflection dates.
+* **Freeform Journaling with Tags**: Flexible open-ended writing mode with live word counts, mood selection, custom tags, and adjustable reflection dates.
+* **On-Device Voice Dictation**: Fast, zero-latency speech-to-text audio journaling. Transcribed directly on your device without sending voice recordings to external servers.
 * **📸 Daily Moment Photos & Lightbox Showcase**: Attach photos to captures, with interactive pinch-to-zoom full-screen lightbox viewing.
 * **Mood & Energy Tracking**: Visual mood tags, intuitive color palettes, and emotional trend tracking.
 
 ### 🔐 Zero-Knowledge Security & Privacy
-* **Client-Side E2EE (AES-256-CBC)**: Reflection titles, notes, and question responses are encrypted on-device before syncing to the cloud using PBKDF2-HMAC-SHA256 deterministic key derivation.
+* **Client-Side E2EE (AES-256-CBC)**: Reflection titles, notes, and responses are encrypted on-device before syncing to the cloud using PBKDF2-HMAC-SHA256 deterministic key derivation.
 * **App PIN & Security Lock**: Secure 4-digit PIN protection with PBKDF2 hashing, biometric support, and rate-limiting lockout protection against brute force.
 * **Privacy-Safe Telemetry**: Sentry crash reporting with zero-knowledge error sanitization ensuring private reflections are never sent in crash traces.
 
@@ -27,13 +27,13 @@ A mindful, privacy-first daily reflection, mood tracking, and introspective jour
 * **Instant 0ms UI Latency**: All changes write immediately to local device cache via background Dart isolates (`compute`).
 * **Reliable Cloud Sync**: Automatic synchronization with Supabase PostgreSQL, exponential backoff retries, and background sync upon app resume.
 * **Live Sync Status Indicator**: Real-time cloud status chips (`Synced`, `Syncing`, `Pending sync`, `Offline`) with 1-tap manual force sync.
-* **Multi-Device Support**: Access the same encrypted journal seamlessly on your Android Phone and Windows PC.
-* **Offline & Guest Mode**: Complete offline usability with full functionality without requiring an account.
+* **Multi-Device Support**: Access the same encrypted journal seamlessly on your Android Phone, Windows PC, iOS, or Web.
+* **Offline & Guest Mode**: Complete offline usability with full local-first storage functionality without requiring a cloud account.
 
-### 📊 Analytics, Keepsakes & Onboarding
-* **Interactive Onboarding**: Mindful first-time welcome tour introducing key concepts, re-accessible at any time from settings.
+### 📊 Analytics, Keepsakes & Reminders
+* **Morning & Evening Reminders**: Configurable daily push notifications to start your day with intention and end with a gentle reflection.
 * **Habit & Streak Tracking**: Automatic streak calculation, completion milestones, and monthly calendar visualizations.
-* **PDF Keepsake Export**: Generate clean, printable PDF records of your reflections for archiving and offline backup.
+* **Comprehensive Data Export**: Generate clean PDF keepsakes for printing, Markdown (`.md`) formatted text backups, or complete JSON exports of your journal data.
 
 ---
 
@@ -42,7 +42,7 @@ A mindful, privacy-first daily reflection, mood tracking, and introspective jour
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    Flutter UI Layer                     │
-│  (TodayPage | JournalPage | ReflectionPage | Summary)   │
+│  (TodayPage | JournalPage | ReflectionPage | History)   │
 └────────────────────────────┬────────────────────────────┘
                              │
                              ▼
@@ -73,7 +73,8 @@ A mindful, privacy-first daily reflection, mood tracking, and introspective jour
 | **Concurrency** | Dart Isolates via `compute()` | Background JSON serialization off the UI thread |
 | **Cryptography** | `encrypt`, `crypto` | AES-256-CBC, PBKDF2-HMAC-SHA256 (100,000 iterations) |
 | **Cloud Backend** | `supabase_flutter` | Auth, PostgreSQL database, Row Level Security (RLS) |
-| **Export** | `pdf`, `printing` | Monthly reflection keepsakes and printouts |
+| **Voice & Media** | `speech_to_text`, `image_picker` | On-device voice dictation and photo attachments |
+| **Export & Backups** | `pdf`, `printing`, `path_provider` | PDF keepsakes, Markdown (.md) & JSON backups |
 | **Telemetry** | `sentry_flutter` | Privacy-sanitized crash reporting and monitoring |
 
 ---
@@ -90,19 +91,19 @@ daily_reflection/
 │   ├── lib/
 │   │   ├── core/                      # Application core infrastructure
 │   │   │   ├── config/                # Supabase & Sentry configuration
-│   │   │   ├── constants/             # Prompts, quotes, and static assets
-│   │   │   ├── services/              # Encryption, Settings, Security, Notifications, Crash
+│   │   │   ├── constants/             # Strings, quotes, and static assets
+│   │   │   ├── services/              # Encryption, Settings, Security, Notifications, Voice, PDF, Photo
 │   │   │   ├── theme/                 # AppColors, typography, themes, smooth transitions
-│   │   │   └── utils/                 # CryptoUtils, StreakCalculator
+│   │   │   └── utils/                 # CryptoUtils, ErrorFormatter, StreakCalculator
 │   │   │
 │   │   ├── features/                  # Modular feature-driven domains
 │   │   │   ├── auth/                  # Supabase Auth, Guest Mode, AuthGate
-│   │   │   ├── freeform/              # Freeform writing canvas & photo attachments
+│   │   │   ├── freeform/              # Freeform writing canvas, tags & photo attachments
 │   │   │   ├── history/               # Calendar grid & streak history
 │   │   │   ├── journal/               # Unified journal feed, search, and filters
 │   │   │   ├── onboarding/            # First-time user welcome experience
-│   │   │   ├── reflection/            # 7-step guided questionnaire & database service
-│   │   │   ├── settings/              # Settings, Security PIN, PDF export, tour
+│   │   │   ├── reflection/            # Reflection models & database service
+│   │   │   ├── settings/              # Settings, Security PIN, Reminders, Data Export
 │   │   │   ├── summary/               # Daily recap, quote card, photo showcase
 │   │   │   └── today/                 # Daily prompt, mood check-in, yesterday's summary
 │   │   │
@@ -110,7 +111,7 @@ daily_reflection/
 │   │   ├── app.dart                   # Root MaterialApp & routing
 │   │   └── main.dart                  # Application initialization
 │   │
-│   ├── test/                          # Unit & integration test suites (30+ tests)
+│   ├── test/                          # Unit & integration test suites
 │   └── pubspec.yaml                   # Flutter dependencies
 │
 └── README.md                          # Project documentation
@@ -171,7 +172,7 @@ flutter build windows --release
 
 ## 🧪 Testing & Code Quality
 
-Run the comprehensive unit and service test suite (30+ tests covering PBKDF2 encryption, PIN security, notification scheduling, and onboarding):
+Run the comprehensive unit and service test suite:
 ```bash
 cd frontend
 flutter test
