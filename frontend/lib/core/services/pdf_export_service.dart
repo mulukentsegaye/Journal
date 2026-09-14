@@ -33,12 +33,13 @@ class PdfExportService {
     final fontBold = await PdfGoogleFonts.loraBold();
     final fontItalic = await PdfGoogleFonts.loraItalic();
     final fontSans = await PdfGoogleFonts.interRegular();
+    final fontEmoji = await PdfGoogleFonts.notoColorEmoji();
 
     final theme = pw.ThemeData.withFont(
       base: fontBase,
       bold: fontBold,
       italic: fontItalic,
-      fontFallback: [fontSans],
+      fontFallback: [fontSans, fontEmoji],
     );
 
     // Sort entries chronologically for the keepsake book
@@ -96,7 +97,7 @@ class PdfExportService {
                 pw.SizedBox(height: 10),
                 // Top ornament
                 pw.Text(
-                  '✧  ·  ✦  ·  ✧',
+                  '*  ·  *  ·  *',
                   style: pw.TextStyle(
                     color: const PdfColor.fromInt(0xFF8A9A86),
                     fontSize: 16,

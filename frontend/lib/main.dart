@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'app.dart';
 import 'core/config/supabase_config.dart';
@@ -12,6 +14,9 @@ import 'features/reflection/services/database_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+    await windowManager.ensureInitialized();
+  }
 
   // Initialize Crash Reporting and Error Telemetry
   await CrashService().initialize(

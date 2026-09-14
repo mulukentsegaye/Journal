@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../config/supabase_config.dart';
 import '../utils/crypto_utils.dart';
 
 /// Centralized manager for Biometric & PIN App Lock, PBKDF2 cryptography,
@@ -90,6 +92,30 @@ class SecurityService extends ChangeNotifier {
         }
       }
 
+      // 3. Sync from Supabase user metadata if available
+      try {
+        if (SupabaseConfig.isConfigured) {
+          final user = Supabase.instance.client.auth.currentUser;
+          if (user != null) {
+            final syncedHash = user.userMetadata?['app_lock_pin_hash'] as String?;
+            if (syncedHash != null && syncedHash.isNotEmpty && syncedHash != pinHash) {
+              pinHash = syncedHash;
+              await _secureStorage.write(key: _secureKeyPinHash, value: pinHash);
+              await prefs.setBool(_keyIsLockEnabled, true);
+              _isLockEnabled = true;
+              debugPrint('Synced PIN from Supabase profile.');
+            } else if (syncedHash == null && pinHash != null) {
+               // The cloud has no pin, but local device has one, let's sync local up to cloud
+               await Supabase.instance.client.auth.updateUser(
+                 UserAttributes(data: {'app_lock_pin_hash': pinHash}),
+               );
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('Failed to sync PIN with Supabase: $e');
+      }
+
       _pinHash = pinHash;
 
       // If lock is enabled, start locked
@@ -121,6 +147,15 @@ class SecurityService extends ChangeNotifier {
       await prefs.setBool(_keyIsLockEnabled, true);
       // Clean up legacy plaintext hash if present
       await prefs.remove(_legacyKeyPinHash);
+
+      if (SupabaseConfig.isConfigured) {
+        final user = Supabase.instance.client.auth.currentUser;
+        if (user != null) {
+          await Supabase.instance.client.auth.updateUser(
+            UserAttributes(data: {'app_lock_pin_hash': saltedHash}),
+          );
+        }
+      }
     } catch (e) {
       debugPrint('Error saving PIN to secure storage: $e');
     }
@@ -196,6 +231,15 @@ class SecurityService extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_legacyKeyPinHash);
       await prefs.setBool(_keyIsLockEnabled, false);
+      
+      if (SupabaseConfig.isConfigured) {
+        final user = Supabase.instance.client.auth.currentUser;
+        if (user != null) {
+          await Supabase.instance.client.auth.updateUser(
+            UserAttributes(data: {'app_lock_pin_hash': null}),
+          );
+        }
+      }
     } catch (e) {
       debugPrint('Error removing PIN: $e');
     }
