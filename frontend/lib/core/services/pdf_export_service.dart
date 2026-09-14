@@ -33,7 +33,7 @@ class PdfExportService {
     final fontBold = await PdfGoogleFonts.loraBold();
     final fontItalic = await PdfGoogleFonts.loraItalic();
     final fontSans = await PdfGoogleFonts.interRegular();
-    final fontEmoji = await PdfGoogleFonts.notoColorEmoji();
+    final fontEmoji = await PdfGoogleFonts.notoEmojiRegular();
 
     final theme = pw.ThemeData.withFont(
       base: fontBase,
@@ -344,9 +344,13 @@ class PdfExportService {
                         pw.ClipRRect(
                           horizontalRadius: 8,
                           verticalRadius: 8,
-                          child: pw.Image(
-                            loadedImages[entry.photoUrl]!,
-                            fit: pw.BoxFit.contain,
+                          child: pw.Container(
+                            constraints: const pw.BoxConstraints(maxHeight: 350),
+                            width: double.infinity,
+                            child: pw.Image(
+                              loadedImages[entry.photoUrl]!,
+                              fit: pw.BoxFit.contain,
+                            ),
                           ),
                         ),
                         pw.SizedBox(height: 10),
