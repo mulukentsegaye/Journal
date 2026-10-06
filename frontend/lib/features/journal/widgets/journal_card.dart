@@ -53,17 +53,7 @@ class JournalCard extends StatelessWidget {
     return '$h12:$minute $period';
   }
 
-  String _getReadingStats() {
-    final text = entry.contentSnippet.trim();
-    if (text.isEmpty && entry.photoUrl != null && entry.photoUrl!.isNotEmpty) {
-      return 'Moment photo';
-    }
-    final words = text.isEmpty ? 0 : text.split(RegExp(r'\s+')).length;
-    if (words == 0) return 'Journal entry';
-    if (words < 10) return '$words words';
-    final readMinutes = (words / 200).ceil();
-    return '$words words • ${readMinutes == 1 ? '1 min read' : '$readMinutes min read'}';
-  }
+
 
   Widget _buildPhotoThumbnail(BuildContext context) {
     if (entry.photoUrl == null || entry.photoUrl!.isEmpty) {
@@ -405,17 +395,7 @@ class JournalCard extends StatelessWidget {
             // ── Photo Thumbnail (if attached) ─────────────────
             _buildPhotoThumbnail(context),
 
-            // ── Title ─────────────────────────────────────────
-            Text(
-              entry.title,
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-                height: 1.3,
-              ),
-            ),
-            const SizedBox(height: 8),
+
 
             // ── Snippet ───────────────────────────────────────
             Text(
@@ -465,23 +445,8 @@ class JournalCard extends StatelessWidget {
 
             // ── Footer: Type / Questions answered + Arrow ────────
             Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Icon(
-                  entry.photoUrl != null && entry.contentSnippet.trim().isEmpty
-                      ? Icons.photo_camera_outlined
-                      : Icons.schedule_rounded,
-                  size: 13,
-                  color: AppColors.textHint,
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  _getReadingStats(),
-                  style: AppTextStyles.bodySmall.copyWith(
-                    fontSize: 11,
-                    color: AppColors.textHint,
-                  ),
-                ),
-                const Spacer(),
                 Text(
                   'Read entry →',
                   style: AppTextStyles.bodySmall.copyWith(

@@ -7,9 +7,7 @@ import '../../../shared/widgets/voice_input_button.dart';
 
 /// Card containing title and multi-line body editor for freeform reflection.
 class FreeformEditor extends StatelessWidget {
-  final TextEditingController titleController;
   final TextEditingController contentController;
-  final FocusNode? titleFocusNode;
   final FocusNode? contentFocusNode;
   final ValueChanged<String>? onContentChanged;
   final List<String> tags;
@@ -17,9 +15,7 @@ class FreeformEditor extends StatelessWidget {
 
   const FreeformEditor({
     super.key,
-    required this.titleController,
     required this.contentController,
-    this.titleFocusNode,
     this.contentFocusNode,
     this.onContentChanged,
     this.tags = const [],
@@ -44,11 +40,6 @@ class FreeformEditor extends StatelessWidget {
     'memories',
   ];
 
-  int get _wordCount {
-    final text = contentController.text.trim();
-    if (text.isEmpty) return 0;
-    return text.split(RegExp(r'\s+')).length;
-  }
 
   void _showAddTagDialog(BuildContext context) {
     final controller = TextEditingController();
@@ -220,16 +211,12 @@ class FreeformEditor extends StatelessWidget {
                     padding: const EdgeInsets.only(right: 8),
                     child: GestureDetector(
                       onTap: () {
-                        if (titleController.text.isEmpty) {
-                          titleController.text = prompt.replaceFirst(RegExp(r'^[^\w]+'), '').trim();
-                        } else {
-                          final current = contentController.text;
-                          final addition = current.isEmpty ? '$prompt\n' : '\n\n$prompt\n';
-                          contentController.text = current + addition;
-                          contentController.selection = TextSelection.fromPosition(
-                            TextPosition(offset: contentController.text.length),
-                          );
-                        }
+                        final current = contentController.text;
+                        final addition = current.isEmpty ? '$prompt\n' : '\n\n$prompt\n';
+                        contentController.text = current + addition;
+                        contentController.selection = TextSelection.fromPosition(
+                          TextPosition(offset: contentController.text.length),
+                        );
                         if (onContentChanged != null) {
                           onContentChanged!(contentController.text);
                         }
@@ -317,39 +304,7 @@ class FreeformEditor extends StatelessWidget {
             ),
           ),
 
-          Divider(color: AppColors.divider, height: 1),
 
-          // ── Title Input ───────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
-            child: TextField(
-              controller: titleController,
-              focusNode: titleFocusNode,
-              maxLength: 120,
-              buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
-              textCapitalization: TextCapitalization.sentences,
-              style: GoogleFonts.lora(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-                height: 1.3,
-              ),
-              decoration: InputDecoration(
-                hintText: "Title (optional)",
-                hintStyle: GoogleFonts.lora(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textHint.withValues(alpha: 0.5),
-                  height: 1.3,
-                ),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-          ),
-
-          Divider(color: AppColors.divider, height: 16),
 
           // ── Content / Note Body Input ─────────────────────
           Padding(
@@ -381,9 +336,9 @@ class FreeformEditor extends StatelessWidget {
             ),
           ),
 
-          // ── Voice Input & Word Count Bar ──────────────────
+          // ── Voice Input Bar ───────────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -391,38 +346,6 @@ class FreeformEditor extends StatelessWidget {
                   controller: contentController,
                   label: 'Speak your thoughts',
                   onTextChanged: onContentChanged,
-                ),
-                Text(
-                  '${contentController.text.length}/10,000 • $_wordCount words',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: contentController.text.length > 9500
-                        ? const Color(0xFFE53935)
-                        : AppColors.textHint,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ── Footer (Peace note) ───────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.spa_outlined,
-                  size: 13,
-                  color: AppColors.textHint.withValues(alpha: 0.6),
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  'No rules or expectations',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textHint.withValues(alpha: 0.7),
-                    fontSize: 11,
-                  ),
                 ),
               ],
             ),

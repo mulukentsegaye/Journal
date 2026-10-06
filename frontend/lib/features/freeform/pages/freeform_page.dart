@@ -55,7 +55,6 @@ class _FreeformPageState extends State<FreeformPage> {
   bool _isSaving = false;
   String? _photoPath;
   List<String> _tags = [];
-  late final TextEditingController _titleController;
   late final TextEditingController _contentController;
   final ImagePicker _picker = ImagePicker();
 
@@ -69,12 +68,10 @@ class _FreeformPageState extends State<FreeformPage> {
     _selectedEnergy = widget.initialMood?.toLowerCase() ?? 'calm';
     _photoPath = widget.initialPhotoUrl;
     _tags = widget.initialTags != null ? List.from(widget.initialTags!) : [];
-    _titleController = TextEditingController(text: widget.initialTitle ?? '');
     _contentController =
         TextEditingController(text: widget.initialContent ?? '');
 
     if (widget.id == null) {
-      _titleController.addListener(_scheduleAutoSave);
       _contentController.addListener(_scheduleAutoSave);
 
       if ((widget.initialTitle == null || widget.initialTitle!.isEmpty) &&
@@ -88,10 +85,8 @@ class _FreeformPageState extends State<FreeformPage> {
   void dispose() {
     _autoSaveTimer?.cancel();
     if (widget.id == null) {
-      _titleController.removeListener(_scheduleAutoSave);
       _contentController.removeListener(_scheduleAutoSave);
     }
-    _titleController.dispose();
     _contentController.dispose();
     super.dispose();
   }
@@ -100,13 +95,11 @@ class _FreeformPageState extends State<FreeformPage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final draftContent = prefs.getString(_keyDraftContent) ?? '';
-      final draftTitle = prefs.getString(_keyDraftTitle) ?? '';
       final draftPhoto = prefs.getString(_keyDraftPhoto);
       final draftTags = prefs.getStringList(_keyDraftTags) ?? [];
       final draftMood = prefs.getString(_keyDraftMood);
 
       final hasValidDraft = draftContent.trim().isNotEmpty ||
-          draftTitle.trim().isNotEmpty ||
           (draftPhoto != null && draftPhoto.isNotEmpty) ||
           draftTags.isNotEmpty;
 
@@ -114,7 +107,6 @@ class _FreeformPageState extends State<FreeformPage> {
         setState(() {
           _hasDraft = true;
           _cachedDraft = {
-            'title': draftTitle,
             'content': draftContent,
             'mood': draftMood ?? 'calm',
             'photo': draftPhoto,
@@ -128,7 +120,6 @@ class _FreeformPageState extends State<FreeformPage> {
   void _restoreDraft() {
     if (_cachedDraft == null) return;
     setState(() {
-      _titleController.text = _cachedDraft!['title'] ?? '';
       _contentController.text = _cachedDraft!['content'] ?? '';
       _selectedEnergy = _cachedDraft!['mood'] ?? 'calm';
       _photoPath = _cachedDraft!['photo'];
@@ -157,17 +148,15 @@ class _FreeformPageState extends State<FreeformPage> {
   Future<void> _saveDraft() async {
     if (widget.id != null) return;
     try {
-      final title = _titleController.text.trim();
       final content = _contentController.text.trim();
       final hasPhoto = _photoPath != null && _photoPath!.isNotEmpty;
 
-      if (title.isEmpty && content.isEmpty && !hasPhoto && _tags.isEmpty) {
+      if (content.isEmpty && !hasPhoto && _tags.isEmpty) {
         await _clearDraft();
         return;
       }
 
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyDraftTitle, _titleController.text);
       await prefs.setString(_keyDraftContent, _contentController.text);
       await prefs.setString(_keyDraftMood, _selectedEnergy);
       await prefs.setStringList(_keyDraftTags, _tags);
@@ -363,11 +352,10 @@ class _FreeformPageState extends State<FreeformPage> {
 
     FocusScope.of(context).unfocus();
 
-    final title = _titleController.text.trim();
     final content = _contentController.text.trim();
     final hasPhoto = _photoPath != null && _photoPath!.isNotEmpty;
 
-    if (title.isEmpty && content.isEmpty && !hasPhoto) {
+    if (content.isEmpty && !hasPhoto) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: AppColors.snackBarBackground,
@@ -409,7 +397,7 @@ class _FreeformPageState extends State<FreeformPage> {
         date: now,
         mood: selectedEnergyState.label,
         moodEmoji: selectedEnergyState.emoji,
-        freeformTitle: title.isNotEmpty ? title : null,
+        freeformTitle: null,
         freeformNote: content.isNotEmpty ? content : null,
         photoUrl: _photoPath,
         type: ReflectionType.freeform,
@@ -460,7 +448,7 @@ class _FreeformPageState extends State<FreeformPage> {
               date: widget.date,
               mood: selectedEnergyState.label,
               moodEmoji: selectedEnergyState.emoji,
-              freeformTitle: title.isNotEmpty ? title : null,
+              freeformTitle: null,
               freeformNote: content.isNotEmpty ? content : null,
               photoUrl: _photoPath,
               tags: _tags,
@@ -493,7 +481,6 @@ class _FreeformPageState extends State<FreeformPage> {
 
   void _confirmCancel() {
     if (_contentController.text.trim().isEmpty &&
-        _titleController.text.trim().isEmpty &&
         _photoPath == null) {
       Navigator.pop(context);
       return;
@@ -764,7 +751,6 @@ class _FreeformPageState extends State<FreeformPage> {
 
                     // Editor card
                     FreeformEditor(
-                      titleController: _titleController,
                       contentController: _contentController,
                       tags: _tags,
                       onTagsChanged: (newTags) {

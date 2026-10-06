@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS public.reflections (
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    tags TEXT[] NOT NULL DEFAULT '{}'
 );
 
 -- Migration helpers if table already exists

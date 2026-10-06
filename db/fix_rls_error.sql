@@ -14,6 +14,7 @@ ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS freeform_note TEXT;
 ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS answers JSONB NOT NULL DEFAULT '{}'::jsonb;
 ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS tags TEXT[] NOT NULL DEFAULT '{}';
 
 -- 2. Ensure Row Level Security is active
 ALTER TABLE public.reflections ENABLE ROW LEVEL SECURITY;
