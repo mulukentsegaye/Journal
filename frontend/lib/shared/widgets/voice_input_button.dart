@@ -130,7 +130,7 @@ class _VoiceInputButtonState extends State<VoiceInputButton>
                 child: Text(
                   _voiceService.lastError != null
                       ? ErrorFormatter.format(_voiceService.lastError)
-                      : 'Microphone permission needed or voice input unavailable.',
+                      : 'Microphone unavailable. Check permissions.',
                   style: const TextStyle(color: Colors.white, fontSize: 12.5),
                 ),
               ),

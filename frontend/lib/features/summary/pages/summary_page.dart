@@ -139,7 +139,7 @@ class _SummaryPageState extends State<SummaryPage> {
                       const Text('🌿', style: TextStyle(fontSize: 18)),
                       const SizedBox(width: 6),
                       Text(
-                        'Daily Reflection',
+                        'Journal',
                         style: GoogleFonts.lora(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -243,7 +243,7 @@ class _SummaryPageState extends State<SummaryPage> {
                       onPressed: () async {
                         Navigator.pop(ctx);
                         final cardText =
-                            '🌿 Daily Reflection ($dateStr)\nMood: ${widget.mood} ${widget.moodEmoji}\n\n"$snippet"';
+                            '🌿 Journal ($dateStr)\nMood: ${widget.mood} ${widget.moodEmoji}\n\n"$snippet"';
                         await Clipboard.setData(ClipboardData(text: cardText));
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -254,7 +254,7 @@ class _SummaryPageState extends State<SummaryPage> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               content: const Text(
-                                'Entry card copied!',
+                                'Card copied.',
                                 style: TextStyle(color: Colors.white),
                               ),
                             ),
@@ -286,7 +286,7 @@ class _SummaryPageState extends State<SummaryPage> {
     final effectiveDate = widget.date ?? DateTime.now();
     final dateStr = DateFormat('MMMM d, yyyy').format(effectiveDate);
     final buffer = StringBuffer();
-    buffer.writeln('Daily Reflection — $dateStr');
+    buffer.writeln('Journal — $dateStr');
     buffer.writeln('Mood: ${widget.mood} ${widget.moodEmoji}\n');
 
     String snippet = widget.freeformNote?.trim() ?? '';
@@ -377,7 +377,7 @@ class _SummaryPageState extends State<SummaryPage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           content: const Text(
-                            'Entry copied to clipboard!',
+                            'Entry copied.',
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
@@ -1039,7 +1039,7 @@ class _SummaryPageState extends State<SummaryPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Photo saved to device!',
+                        'Photo saved.',
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                       Text(

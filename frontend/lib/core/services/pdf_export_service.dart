@@ -26,7 +26,7 @@ class PdfExportService {
     final doc = pw.Document(
       title: title,
       author: AuthService().userName,
-      creator: 'Daily Reflection App',
+      creator: 'Journal App',
     );
 
     final fontBase = await PdfGoogleFonts.loraRegular();
@@ -109,7 +109,7 @@ class PdfExportService {
                 pw.Column(
                   children: [
                     pw.Text(
-                      'DAILY REFLECTION',
+                      'JOURNAL',
                       style: pw.TextStyle(
                         fontSize: 26,
                         fontWeight: pw.FontWeight.bold,
@@ -189,7 +189,7 @@ class PdfExportService {
                     ),
                     pw.SizedBox(height: 14),
                     pw.Text(
-                      'Created with Daily Reflection',
+                      'Created with Journal',
                       style: pw.TextStyle(
                         fontSize: 9,
                         color: const PdfColor.fromInt(0xFFA0AEC0),
@@ -227,7 +227,7 @@ class PdfExportService {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
-                    'DAILY REFLECTION  ·  KEEPSAKE',
+                    'JOURNAL  ·  KEEPSAKE',
                     style: pw.TextStyle(
                       fontSize: 8.5,
                       letterSpacing: 1.2,

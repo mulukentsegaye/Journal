@@ -63,10 +63,10 @@ class _PdfExportDialogState extends State<PdfExportDialog> {
 
   String _getExportTitle() {
     if (_selectedScope == ExportScope.allTime) {
-      return 'Daily Reflection — Keepsake Collection';
+      return 'Journal — Keepsake Collection';
     }
     final monthName = DateFormat('MMMM yyyy').format(_targetMonth);
-    return 'Daily Reflection — $monthName';
+    return 'Journal — $monthName';
   }
 
   String _getExportSubtitle() {
@@ -82,7 +82,7 @@ class _PdfExportDialogState extends State<PdfExportDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text(
-            'No reflections found in this period to export.',
+            'No entries found to export.',
             style: TextStyle(color: Colors.white),
           ),
           backgroundColor: AppColors.snackBarBackground,
@@ -128,7 +128,7 @@ class _PdfExportDialogState extends State<PdfExportDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text(
-            'No entries found in this period to export.',
+            'No entries found to export.',
             style: TextStyle(color: Colors.white),
           ),
           backgroundColor: AppColors.snackBarBackground,

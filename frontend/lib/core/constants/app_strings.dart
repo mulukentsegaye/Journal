@@ -2,8 +2,8 @@
 class AppStrings {
   AppStrings._();
 
-  static const String appName = 'Daily Reflection';
-  static const String welcomeSubtitle = 'Welcome back to Daily Reflection.';
+  static const String appName = 'Journal';
+  static const String welcomeSubtitle = 'Welcome back to Journal.';
 
   // Journal CTAs and Prompts
   static const String writeJournalPrompt = "What's on your mind?";

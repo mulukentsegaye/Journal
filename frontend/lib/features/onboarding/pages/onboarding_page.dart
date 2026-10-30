@@ -36,13 +36,13 @@ class _OnboardingPageState extends State<OnboardingPage>
       glowColor: Color(0xFF2D6A4F),
     ),
     _OnboardingSlideData(
-      badge: 'ZERO-KNOWLEDGE PRIVACY',
+      badge: 'PRIVACY FIRST',
       title: 'Your Private Space.',
       description:
-          'Your thoughts belong strictly to you. Protected by client-side AES-256 encryption, hardware Keystore, and biometric App Lock.',
+          'Your thoughts belong strictly to you. Your reflections are completely private and secured with biometric App Lock.',
       emoji: '🔒',
       features: [
-        '🛡️ End-to-End Encrypted',
+        '🛡️ Privacy Protected',
         '👆 Biometric & PIN Lock',
         '📴 100% Offline First',
       ],
@@ -146,7 +146,7 @@ class _OnboardingPageState extends State<OnboardingPage>
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Daily Reflection',
+                          'Journal',
                           style: GoogleFonts.lora(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,

@@ -367,7 +367,7 @@ class _FreeformPageState extends State<FreeformPage> {
               SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Please write a thought or attach a photo before saving.',
+                  'Write a thought or attach a photo.',
                   style: TextStyle(color: Colors.white, fontSize: 13),
                 ),
               ),
@@ -417,13 +417,13 @@ class _FreeformPageState extends State<FreeformPage> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           content: Row(
             children: [
-              const Text('✨', style: TextStyle(fontSize: 16)),
+              const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 18),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   widget.id != null
-                      ? 'Journal entry updated.'
-                      : 'Journal entry saved.',
+                      ? 'Entry updated.'
+                      : 'Entry saved.',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 13,

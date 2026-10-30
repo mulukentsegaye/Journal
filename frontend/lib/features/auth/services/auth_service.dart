@@ -152,7 +152,7 @@ class AuthService extends ChangeNotifier {
   }) async {
     final client = _auth;
     if (client == null) {
-      throw 'Supabase is not configured. Please check your Supabase credentials or use Guest Mode.';
+      throw 'Cloud service unavailable. Try Guest Mode.';
     }
 
     try {
@@ -178,7 +178,7 @@ class AuthService extends ChangeNotifier {
   }) async {
     final client = _auth;
     if (client == null) {
-      throw 'Supabase is not configured. Please check your Supabase credentials or use Guest Mode.';
+      throw 'Cloud service unavailable. Try Guest Mode.';
     }
 
     try {
@@ -205,7 +205,7 @@ class AuthService extends ChangeNotifier {
   Future<void> sendPasswordResetEmail(String email) async {
     final client = _auth;
     if (client == null) {
-      throw 'Supabase is not configured.';
+      throw 'Cloud service is currently unavailable.';
     }
 
     try {
@@ -224,7 +224,7 @@ class AuthService extends ChangeNotifier {
   Future<UserResponse> updateUserPassword(String newPassword) async {
     final client = _auth;
     if (client == null) {
-      throw 'Supabase is not configured.';
+      throw 'Cloud service is currently unavailable.';
     }
 
     try {

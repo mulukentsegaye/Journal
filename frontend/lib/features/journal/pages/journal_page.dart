@@ -21,6 +21,7 @@ import '../../reflection/models/reflection_entry_model.dart';
 import '../../reflection/services/reflection_service.dart';
 import '../../reflection/services/database_service.dart';
 import '../../settings/widgets/pdf_export_dialog.dart';
+import '../../auth/pages/auth_page.dart';
 
 enum JournalViewMode {
   timeline,
@@ -240,8 +241,13 @@ class _JournalPageState extends State<JournalPage> {
         color = const Color(0xFFE53935);
         break;
       case SyncStatus.offline:
-        icon = Icons.cloud_off_rounded;
+        icon = Icons.wifi_off_rounded;
         label = 'Offline';
+        color = const Color(0xFFFF9800);
+        break;
+      case SyncStatus.notSignedIn:
+        icon = Icons.cloud_outlined;
+        label = 'Local';
         color = AppColors.textHint;
         break;
       case SyncStatus.idle:
@@ -263,7 +269,7 @@ class _JournalPageState extends State<JournalPage> {
                     Icon(Icons.cloud_done_rounded, color: Colors.white, size: 18),
                     SizedBox(width: 8),
                     Text(
-                      'Synced with cloud ✓',
+                      'Synced ✓',
                       style: TextStyle(color: Colors.white),
                     ),
                   ],
@@ -277,20 +283,39 @@ class _JournalPageState extends State<JournalPage> {
           }
         } catch (e) {
           if (mounted) {
+            final errorMsg = ErrorFormatter.format(e);
+            final isNotSignedIn = e.toString().contains('not signed in') || errorMsg.contains('not signed in');
+            final isOffline = e.toString().contains('internet') || errorMsg.contains('internet') || errorMsg.contains('offline');
+            final errorIcon = isNotSignedIn
+                ? Icons.account_circle_outlined
+                : (isOffline ? Icons.wifi_off_rounded : Icons.cloud_off_rounded);
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Row(
                   children: [
-                    const Icon(Icons.cloud_off_rounded, color: Colors.white, size: 18),
+                    Icon(errorIcon, color: Colors.white, size: 18),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        ErrorFormatter.format(e),
+                        errorMsg,
                         style: const TextStyle(color: Colors.white),
                       ),
                     ),
                   ],
                 ),
+                action: isNotSignedIn
+                    ? SnackBarAction(
+                        label: 'Sign In',
+                        textColor: Colors.white,
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            SmoothPageRoute(builder: (_) => const AuthPage()),
+                          );
+                        },
+                      )
+                    : null,
                 backgroundColor: const Color(0xFFD32F2F),
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -406,7 +431,7 @@ class _JournalPageState extends State<JournalPage> {
                             Icon(Icons.cloud_done_rounded, color: Colors.white, size: 18),
                             SizedBox(width: 8),
                             Text(
-                              'Synced with cloud ✓',
+                              'Synced ✓',
                               style: TextStyle(color: Colors.white),
                             ),
                           ],
@@ -420,20 +445,39 @@ class _JournalPageState extends State<JournalPage> {
                   }
                 } catch (e) {
                   if (context.mounted) {
+                    final errorMsg = ErrorFormatter.format(e);
+                    final isNotSignedIn = e.toString().contains('not signed in') || errorMsg.contains('not signed in');
+                    final isOffline = e.toString().contains('internet') || errorMsg.contains('internet') || errorMsg.contains('offline');
+                    final errorIcon = isNotSignedIn
+                        ? Icons.account_circle_outlined
+                        : (isOffline ? Icons.wifi_off_rounded : Icons.cloud_off_rounded);
+
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Row(
                           children: [
-                            const Icon(Icons.cloud_off_rounded, color: Colors.white, size: 18),
+                            Icon(errorIcon, color: Colors.white, size: 18),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                ErrorFormatter.format(e),
+                                errorMsg,
                                 style: const TextStyle(color: Colors.white),
                               ),
                             ),
                           ],
                         ),
+                        action: isNotSignedIn
+                            ? SnackBarAction(
+                                label: 'Sign In',
+                                textColor: Colors.white,
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    SmoothPageRoute(builder: (_) => const AuthPage()),
+                                  );
+                                },
+                              )
+                            : null,
                         backgroundColor: const Color(0xFFD32F2F),
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -646,7 +690,7 @@ class _JournalPageState extends State<JournalPage> {
                             onSelected: (id) =>
                                 setState(() => _selectedFilter = id),
                           ),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 14),
                         ],
                       ),
                     ),

@@ -204,11 +204,11 @@ class SettingsService extends ChangeNotifier {
     final entries = rawEntries.where((e) => !e.isDeleted).toList();
 
     if (entries.isEmpty) {
-      return '# Daily Reflection Journal Backup\n\nNo reflection entries found yet.';
+      return '# Journal Backup\n\nNo entries found yet.';
     }
 
     final buffer = StringBuffer();
-    buffer.writeln('# Daily Reflection Journal Backup');
+    buffer.writeln('# Journal Backup');
     buffer.writeln('Exported on: ${DateFormat('MMMM d, yyyy — h:mm a').format(DateTime.now())}');
     buffer.writeln('Total Reflections: ${entries.length}\n');
     buffer.writeln('---\n');
@@ -257,7 +257,7 @@ class SettingsService extends ChangeNotifier {
     final entries = rawEntries.where((e) => !e.isDeleted).toList();
 
     final exportData = {
-      'app': 'Daily Reflection',
+      'app': 'Journal',
       'version': '1.0.0',
       'exported_at': DateTime.now().toIso8601String(),
       'total_entries': entries.length,

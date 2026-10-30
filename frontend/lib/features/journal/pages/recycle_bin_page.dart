@@ -152,7 +152,7 @@ class RecycleBinPage extends StatelessWidget {
               Icon(Icons.restore_rounded, color: Colors.white, size: 18),
               SizedBox(width: 8),
               Text(
-                'Entry restored to your journal.',
+                'Entry restored.',
                 style: TextStyle(color: Colors.white),
               ),
             ],

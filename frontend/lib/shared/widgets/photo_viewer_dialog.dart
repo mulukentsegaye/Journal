@@ -62,7 +62,7 @@ class _PhotoViewerDialogState extends State<PhotoViewerDialog> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Photo saved to device!',
+                        'Photo saved.',
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                       Text(

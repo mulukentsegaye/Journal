@@ -209,8 +209,7 @@ void main() {
       // 42501 RLS error
       final rlsError = 'PostgrestException(message: new row violates row-level security policy (USING expression) for table "reflections", code: 42501, details: Forbidden, hint: null)';
       final formattedRls = db.formatSyncError(rlsError);
-      expect(formattedRls, contains('Database permission error (42501)'));
-      expect(formattedRls, contains('Supabase RLS policy'));
+      expect(formattedRls, contains('Cloud sync permission error'));
 
       // Network socket error
       final netError = 'SocketException: Failed host lookup';
@@ -225,7 +224,7 @@ void main() {
       // PGRST204 Missing column schema cache error
       final pgrstError = "PostgrestException(message: Could not find the 'deleted_at' column of 'reflections' in the schema cache, code: PGRST204, details: Bad Request, hint: null)";
       final formattedPgrst = db.formatSyncError(pgrstError);
-      expect(formattedPgrst, contains('Database schema missing columns'));
+      expect(formattedPgrst, contains('Unable to sync with database'));
     });
 
     test('ReflectionEntryModel serializes and deserializes tags correctly', () {

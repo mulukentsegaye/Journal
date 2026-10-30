@@ -17,7 +17,7 @@ class NotificationService {
   static const int morningReminderNotificationId = 1002;
   static const int testNotificationId = 9999;
   static const String channelId = 'daily_reflection_reminder';
-  static const String channelName = 'Daily Reflection Reminders';
+  static const String channelName = 'Journal Reminders';
   static const String channelDescription =
       'Daily evening reminders to reflect and journal';
 

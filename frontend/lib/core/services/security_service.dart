@@ -301,7 +301,7 @@ class SecurityService extends ChangeNotifier {
       if (!canAuth) return false;
 
       final authenticated = await _localAuth.authenticate(
-        localizedReason: 'Please authenticate to unlock Daily Reflection',
+        localizedReason: 'Please authenticate to unlock Journal',
         options: const AuthenticationOptions(
           stickyAuth: true,
           biometricOnly: false,

@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/services/settings_service.dart';
 import '../../../core/services/notification_service.dart';
+import '../../../core/utils/error_formatter.dart';
 import '../../auth/services/auth_service.dart';
 import '../../reflection/services/reflection_service.dart';
 import '../widgets/pdf_export_dialog.dart';
@@ -28,7 +29,6 @@ class _SettingsPageState extends State<SettingsPage> {
   final _notificationService = NotificationService();
   bool _isSendingTest = false;
   bool _isExportingMd = false;
-  bool _isExportingJson = false;
 
   Future<void> _exportMarkdownBackup() async {
     setState(() => _isExportingMd = true);
@@ -54,8 +54,8 @@ class _SettingsPageState extends State<SettingsPage> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           content: Text(
             savedPath != null
-                ? 'Markdown backup saved to Downloads & copied to clipboard!'
-                : 'Markdown backup copied to clipboard!',
+                ? 'Backup saved to Downloads.'
+                : 'Backup copied to clipboard.',
             style: const TextStyle(color: Colors.white),
           ),
         ),
@@ -68,61 +68,13 @@ class _SettingsPageState extends State<SettingsPage> {
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           content: Text(
-            'Failed to export markdown: $e',
+            ErrorFormatter.format(e),
             style: const TextStyle(color: Colors.white),
           ),
         ),
       );
     } finally {
       if (mounted) setState(() => _isExportingMd = false);
-    }
-  }
-
-  Future<void> _exportJsonBackup() async {
-    setState(() => _isExportingJson = true);
-    try {
-      final jsonStr = await _settingsService.exportAllReflectionsJson();
-      await Clipboard.setData(ClipboardData(text: jsonStr));
-
-      String? savedPath;
-      try {
-        final dir = await getDownloadsDirectory() ?? await getApplicationDocumentsDirectory();
-        final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-        final file = File('${dir.path}/daily_reflection_backup_$timestamp.json');
-        await file.writeAsString(jsonStr);
-        savedPath = file.path;
-      } catch (_) {}
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: AppColors.snackBarBackground,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          content: Text(
-            savedPath != null
-                ? 'JSON backup saved to Downloads & copied to clipboard!'
-                : 'JSON backup copied to clipboard!',
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: const Color(0xFFE02424),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          content: Text(
-            'Failed to export JSON: $e',
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _isExportingJson = false);
     }
   }
 
@@ -137,7 +89,7 @@ class _SettingsPageState extends State<SettingsPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         content: Text(
           enabled
-              ? 'Evening reminder active for ${_settingsService.formattedReminderTime} 🌙'
+              ? 'Evening reminder enabled.'
               : 'Evening reminder disabled.',
           style: const TextStyle(color: Colors.white),
         ),
@@ -175,7 +127,7 @@ class _SettingsPageState extends State<SettingsPage> {
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             content: Text(
-              'Evening reminder set for ${_settingsService.formattedReminderTime} 🌙',
+              'Evening reminder set to ${_settingsService.formattedReminderTime}.',
               style: const TextStyle(color: Colors.white),
             ),
           ),
@@ -195,7 +147,7 @@ class _SettingsPageState extends State<SettingsPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         content: Text(
           enabled
-              ? 'Morning reminder active for ${_settingsService.formattedMorningReminderTime} ☀️'
+              ? 'Morning reminder enabled.'
               : 'Morning reminder disabled.',
           style: const TextStyle(color: Colors.white),
         ),
@@ -233,7 +185,7 @@ class _SettingsPageState extends State<SettingsPage> {
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             content: Text(
-              'Morning reminder set for ${_settingsService.formattedMorningReminderTime} ☀️',
+              'Morning reminder set to ${_settingsService.formattedMorningReminderTime}.',
               style: const TextStyle(color: Colors.white),
             ),
           ),
@@ -256,8 +208,8 @@ class _SettingsPageState extends State<SettingsPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         content: Text(
           sent
-              ? 'Test reminder delivered! Check your notifications ✨'
-              : 'Could not deliver test notification. Please verify notification permissions.',
+              ? 'Test reminder sent.'
+              : 'Notification failed. Check permissions.',
           style: const TextStyle(color: Colors.white),
         ),
       ),
@@ -271,7 +223,7 @@ class _SettingsPageState extends State<SettingsPage> {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         content: const Text(
-          'Local storage cache is healthy and fully optimized!',
+          'Storage cache optimized.',
           style: TextStyle(color: Colors.white),
         ),
       ),
@@ -597,17 +549,17 @@ class _SettingsPageState extends State<SettingsPage> {
                       _DiagnosticRow(
                         label: 'Storage Mode',
                         value: _authService.isLocalGuest
-                            ? 'Local-First Offline Storage'
-                            : 'Supabase Cloud Sync',
+                            ? 'Local Offline Storage'
+                            : 'Cloud Sync',
                         icon: _authService.isLocalGuest
                             ? Icons.phone_android_rounded
                             : Icons.cloud_done_rounded,
                       ),
                       const Divider(height: 20),
                       _DiagnosticRow(
-                        label: 'Encryption Status',
-                        value: 'AES-256 Client-Side E2EE Active',
-                        icon: Icons.lock_outline_rounded,
+                        label: 'Privacy Status',
+                        value: 'Protected & Private',
+                        icon: Icons.shield_outlined,
                       ),
                       const Divider(height: 20),
                       _DiagnosticRow(
@@ -713,43 +665,6 @@ class _SettingsPageState extends State<SettingsPage> {
                             : const Icon(Icons.download_rounded, size: 18),
                         onTap: _isExportingMd ? null : _exportMarkdownBackup,
                       ),
-                      Divider(height: 1, color: AppColors.divider),
-                      ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(Icons.data_object_rounded, color: AppColors.primary, size: 20),
-                        ),
-                        title: Text(
-                          'Export Complete JSON Backup (.json)',
-                          style: AppTextStyles.body.copyWith(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13.5,
-                          ),
-                        ),
-                        subtitle: Text(
-                          'Machine-readable backup containing all journal data',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
-                            fontSize: 11.5,
-                          ),
-                        ),
-                        trailing: _isExportingJson
-                            ? SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppColors.primary,
-                                ),
-                              )
-                            : const Icon(Icons.download_rounded, size: 18),
-                        onTap: _isExportingJson ? null : _exportJsonBackup,
-                      ),
                     ],
                   ),
                 ),
@@ -771,7 +686,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Daily Reflection',
+                            'Journal',
                             style: GoogleFonts.lora(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,

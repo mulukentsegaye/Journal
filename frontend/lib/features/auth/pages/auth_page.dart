@@ -64,7 +64,7 @@ class _AuthPageState extends State<AuthPage> {
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               content: const Text(
-                'Account created! If confirmation is required, please check your email inbox.',
+                'Account created! Please check your email to confirm.',
                 style: TextStyle(color: Colors.white),
               ),
             ),
@@ -178,9 +178,9 @@ class _AuthPageState extends State<AuthPage> {
                             behavior: SnackBarBehavior.floating,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12)),
-                            content: Text(
-                              'Password reset link sent to $email.',
-                              style: const TextStyle(color: Colors.white),
+                            content: const Text(
+                              'Password reset link sent.',
+                              style: TextStyle(color: Colors.white),
                             ),
                           ),
                         );
@@ -221,7 +221,7 @@ class _AuthPageState extends State<AuthPage> {
                       final email = resetEmailController.text.trim();
                       if (email.isEmpty || !email.contains('@')) {
                         setDialogState(() {
-                          resetError = 'Please enter a valid email address';
+                          resetError = 'Please enter a valid email.';
                         });
                         return;
                       }
@@ -239,9 +239,9 @@ class _AuthPageState extends State<AuthPage> {
                               behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12)),
-                              content: Text(
-                                'Password reset link sent to $email.',
-                                style: const TextStyle(color: Colors.white),
+                              content: const Text(
+                                'Password reset link sent.',
+                                style: TextStyle(color: Colors.white),
                               ),
                             ),
                           );
@@ -312,7 +312,7 @@ class _AuthPageState extends State<AuthPage> {
 
                     // ── App Title ─────────────────────────────────
                     Text(
-                      'Daily Reflection',
+                      'Journal',
                       textAlign: TextAlign.center,
                       style: AppTextStyles.greeting.copyWith(
                         fontSize: 26,
@@ -644,7 +644,7 @@ class _AuthPageState extends State<AuthPage> {
 
                     // ── Helper text ───────────────────────────────
                     Text(
-                      'Your reflections are encrypted and permanently synced to your personal cloud.',
+                      'Your reflections are completely private and safely synced to your account.',
                       textAlign: TextAlign.center,
                       style: AppTextStyles.bodySmall.copyWith(
                         fontSize: 12,

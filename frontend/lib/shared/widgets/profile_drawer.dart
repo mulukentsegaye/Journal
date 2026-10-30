@@ -124,7 +124,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        isGuest ? 'Client AES-256 E2EE (Local)' : 'Cloud Synced & Encrypted',
+                        isGuest ? 'Privacy Protected (Local)' : 'Cloud Synced & Protected',
                         style: GoogleFonts.inter(
                           color: isDark ? AppColors.darkCalmTagText : AppColors.lightCalmTagText,
                           fontSize: 11,
@@ -227,7 +227,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Choose how Daily Reflection looks on your device.',
+                  'Choose how Journal looks on your device.',
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: textSecondary,
@@ -324,7 +324,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Your journal is encrypted and protected with biometric security.',
+                  'Your journal is private and protected with biometric security.',
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: textSecondary,
@@ -561,39 +561,6 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                           _exportMarkdownBackup();
                         },
                       ),
-                      Divider(height: 1, color: divider),
-                      ListTile(
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: primary.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(Icons.data_object_rounded,
-                              color: primary, size: 20),
-                        ),
-                        title: Text(
-                          'Complete Backup (JSON)',
-                          style: GoogleFonts.inter(
-                            color: textPrimary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                        subtitle: Text(
-                          'Complete raw journal data backup',
-                          style: GoogleFonts.inter(
-                            color: textSecondary,
-                            fontSize: 12,
-                          ),
-                        ),
-                        trailing: Icon(Icons.copy_rounded,
-                            size: 16, color: textSecondary),
-                        onTap: () {
-                          Navigator.pop(ctx);
-                          _exportJsonBackup();
-                        },
-                      ),
                     ],
                   ),
                 ),
@@ -805,24 +772,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         content: const Text(
-          'Markdown journal backup copied to clipboard!',
-          style: TextStyle(color: Colors.white),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _exportJsonBackup() async {
-    final jsonStr = await _settingsService.exportAllReflectionsJson();
-    await Clipboard.setData(ClipboardData(text: jsonStr));
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: AppColors.snackBarBackground,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        content: const Text(
-          'Complete JSON backup copied to clipboard!',
+          'Backup copied to clipboard.',
           style: TextStyle(color: Colors.white),
         ),
       ),
@@ -846,7 +796,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                 fontWeight: FontWeight.w600,
                 color: textPrimary)),
         content: Text(
-          'Your reflections will remain safely encrypted in local storage and synced with your account.',
+          'Your entries will remain safe on your account.',
           style: GoogleFonts.inter(color: textSecondary, fontSize: 13),
         ),
         actions: [
@@ -900,7 +850,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
           ],
         ),
         content: Text(
-          'This action is irreversible. All your journal entries, attached photos, and account data will be permanently wiped.',
+          'This will permanently delete all your entries and account data.',
           style: GoogleFonts.inter(color: textSecondary, fontSize: 13),
         ),
         actions: [
@@ -1074,7 +1024,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                         title: 'Privacy & Security',
                         subtitle: _securityService.isLockEnabled
                             ? 'App Lock Active'
-                            : 'Biometrics & Encryption',
+                            : 'Biometric & PIN Lock',
                         isDark: isDark,
                         onTap: _showPrivacySheet,
                       ),
@@ -1082,7 +1032,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                       _DrawerMenuItem(
                         icon: Icons.menu_book_rounded,
                         title: 'Keepsakes & Export',
-                        subtitle: 'PDF Book & Backup',
+                        subtitle: 'PDF Book & Markdown',
                         isDark: isDark,
                         onTap: _showKeepsakesSheet,
                       ),
@@ -1171,7 +1121,7 @@ class _ProfileDrawerState extends State<ProfileDrawer> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Daily Reflection · Peaceful Mind',
+                        'Journal · Peaceful Mind',
                         style: GoogleFonts.inter(
                           color: textSecondary.withValues(alpha: 0.7),
                           fontSize: 10.5,

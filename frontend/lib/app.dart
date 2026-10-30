@@ -68,7 +68,7 @@ class _DailyReflectionAppState extends State<DailyReflectionApp>
       listenable: Listenable.merge([SettingsService(), _securityService]),
       builder: (context, _) {
         return MaterialApp(
-          title: 'Daily Reflection',
+          title: 'Journal',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,

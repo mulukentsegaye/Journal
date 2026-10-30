@@ -47,8 +47,10 @@ enum SyncStatus {
   pendingChanges,
   /// Sync failed with an error.
   error,
-  /// User is offline or not authenticated — cloud sync is disabled.
+  /// Device has no internet connection.
   offline,
+  /// User is not signed in to a cloud account (Local / Guest mode).
+  notSignedIn,
 }
 
 /// Database service with Local-First offline persistence, AES-256 Client-Side
@@ -119,6 +121,27 @@ class DatabaseService {
     final client = _client;
     final user = AuthService().currentUser;
     return client != null && user != null && !AuthService().isLocalGuest;
+  }
+
+  /// Checks whether the device currently has active internet connectivity.
+  Future<bool> hasInternetConnection() async {
+    if (kIsWeb) return true;
+    try {
+      final host = SupabaseConfig.isConfigured
+          ? Uri.parse(SupabaseConfig.supabaseUrl).host
+          : 'google.com';
+      final res = await InternetAddress.lookup(host)
+          .timeout(const Duration(seconds: 3));
+      return res.isNotEmpty && res[0].rawAddress.isNotEmpty;
+    } catch (_) {
+      try {
+        final fallback = await InternetAddress.lookup('cloudflare.com')
+            .timeout(const Duration(seconds: 3));
+        return fallback.isNotEmpty && fallback[0].rawAddress.isNotEmpty;
+      } catch (_) {
+        return false;
+      }
+    }
   }
   // ── Account Isolation ────────────────────────────────────────
 
@@ -361,16 +384,25 @@ class DatabaseService {
 
   /// Pushes any pending writes and deletes to Supabase (with client-side E2EE).
   Future<void> syncPendingChanges() async {
-    if (!_isOnlineAndAuth) {
-      _setSyncStatus(SyncStatus.offline);
-      debugPrint('[DatabaseService] Sync skipped: offline or not authenticated (isLocalGuest=${AuthService().isLocalGuest}, currentUser=${AuthService().currentUser?.id})');
+    final auth = AuthService();
+    if (auth.isGuest || auth.currentUser == null) {
+      _setSyncStatus(SyncStatus.notSignedIn);
+      debugPrint('[DatabaseService] Sync skipped: user is not signed in to a cloud account');
       return;
     }
-    final client = _client;
-    final user = AuthService().currentUser;
-    if (client == null || user == null) {
+
+    final isOnline = await hasInternetConnection();
+    if (!isOnline) {
       _setSyncStatus(SyncStatus.offline);
-      debugPrint('[DatabaseService] Sync skipped: client=$client, user=$user');
+      debugPrint('[DatabaseService] Sync skipped: device has no internet connection');
+      return;
+    }
+
+    final client = _client;
+    final user = auth.currentUser;
+    if (client == null || user == null) {
+      _setSyncStatus(SyncStatus.error);
+      debugPrint('[DatabaseService] Sync skipped: cloud client unavailable');
       return;
     }
 
@@ -477,15 +509,23 @@ class DatabaseService {
   /// Unlike [syncPendingChanges], this throws errors instead of swallowing them
   /// so the caller can show user-facing feedback.
   Future<void> forceSyncNow() async {
-    if (!_isOnlineAndAuth) {
-      _setSyncStatus(SyncStatus.offline);
-      throw 'You are offline or not signed in. Please sign in with your email to enable cloud sync.';
+    final auth = AuthService();
+    if (auth.isGuest || auth.currentUser == null) {
+      _setSyncStatus(SyncStatus.notSignedIn);
+      throw 'You are not signed in. Please sign in to your account to enable cloud sync.';
     }
-    final client = _client;
-    final user = AuthService().currentUser;
-    if (client == null || user == null) {
+
+    final isOnline = await hasInternetConnection();
+    if (!isOnline) {
       _setSyncStatus(SyncStatus.offline);
-      throw 'Cloud connection unavailable. Please check your internet connection.';
+      throw 'Network connection unavailable. Please check your internet connection and try again.';
+    }
+
+    final client = _client;
+    final user = auth.currentUser;
+    if (client == null || user == null) {
+      _setSyncStatus(SyncStatus.error);
+      throw 'Unable to sync with cloud right now. Please try again later.';
     }
 
     _setSyncStatus(SyncStatus.syncing);
@@ -844,6 +884,9 @@ class DatabaseService {
         await _queueWrite(entryWithId);
         _scheduleRetrySync();
       }
+    } else if (AuthService().isGuest || AuthService().currentUser == null) {
+      _setSyncStatus(SyncStatus.notSignedIn);
+      debugPrint('[DatabaseService] Saved locally in guest mode');
     } else {
       debugPrint('[DatabaseService] Offline — queuing entry $docId for later sync');
       await _queueWrite(entryWithId);
@@ -856,10 +899,11 @@ class DatabaseService {
     yield initial;
 
     // Trigger background sync when stream is listened
-    if (_isOnlineAndAuth) {
-      unawaited(syncPendingChanges());
+    final auth = AuthService();
+    if (auth.isGuest || auth.currentUser == null) {
+      _setSyncStatus(SyncStatus.notSignedIn);
     } else {
-      _setSyncStatus(SyncStatus.offline);
+      unawaited(syncPendingChanges());
     }
 
     yield* _streamController.stream;
@@ -936,6 +980,8 @@ class DatabaseService {
           await _queueWrite(trashed);
           _scheduleRetrySync();
         }
+      } else if (AuthService().isGuest || AuthService().currentUser == null) {
+        _setSyncStatus(SyncStatus.notSignedIn);
       } else {
         debugPrint('[DatabaseService] Offline — queuing soft delete for $docId');
         await _queueWrite(trashed);
@@ -972,6 +1018,8 @@ class DatabaseService {
           await _queueWrite(restored);
           _scheduleRetrySync();
         }
+      } else if (AuthService().isGuest || AuthService().currentUser == null) {
+        _setSyncStatus(SyncStatus.notSignedIn);
       } else {
         await _queueWrite(restored);
       }
@@ -998,6 +1046,8 @@ class DatabaseService {
         debugPrint('[DatabaseService] ✗ Permanent cloud delete failed for $docId: $e');
         await _queueDelete(docId);
       }
+    } else if (AuthService().isGuest || AuthService().currentUser == null) {
+      // Local guest mode, deletion is already local
     } else {
       await _queueDelete(docId);
     }

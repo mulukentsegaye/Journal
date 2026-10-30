@@ -134,7 +134,7 @@ void main() {
       expect(jsonString, isNotEmpty);
 
       final decoded = json.decode(jsonString) as Map<String, dynamic>;
-      expect(decoded['app'], equals('Daily Reflection'));
+      expect(decoded['app'], equals('Journal'));
       expect(decoded['total_entries'], equals(1));
       expect(decoded['entries'], isA<List>());
       final entriesList = decoded['entries'] as List;

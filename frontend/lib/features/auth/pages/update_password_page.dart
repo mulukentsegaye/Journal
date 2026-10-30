@@ -49,7 +49,7 @@ class _UpdatePasswordPageState extends State<UpdatePasswordPage> {
               children: [
                 Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
                 SizedBox(width: 8),
-                Text('Password updated successfully! Welcome back.'),
+                Text('Password updated.'),
               ],
             ),
             backgroundColor: const Color(0xFF2E7D32),
@@ -119,7 +119,7 @@ class _UpdatePasswordPageState extends State<UpdatePasswordPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Enter and confirm a strong password for your Daily Reflection account.',
+                      'Enter and confirm a strong password for your Journal account.',
                       style: AppTextStyles.subtitle,
                       textAlign: TextAlign.center,
                     ),

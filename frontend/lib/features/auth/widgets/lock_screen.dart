@@ -63,7 +63,7 @@ class _LockScreenState extends State<LockScreen>
       } else {
         setState(() {
           _errorMessage =
-              'Too many failed attempts. Try again in ${_securityService.lockoutSecondsRemaining}s';
+              'Too many attempts. Wait ${_securityService.lockoutSecondsRemaining}s';
         });
       }
     });
@@ -82,7 +82,7 @@ class _LockScreenState extends State<LockScreen>
     if (_securityService.isRateLimited) {
       setState(() {
         _errorMessage =
-            'Locked out. Please wait ${_securityService.lockoutSecondsRemaining}s';
+            'Locked out. Wait ${_securityService.lockoutSecondsRemaining}s';
       });
       return;
     }
@@ -119,10 +119,10 @@ class _LockScreenState extends State<LockScreen>
       setState(() {
         if (_securityService.isRateLimited) {
           _errorMessage =
-              'Too many failed attempts. Try again in ${_securityService.lockoutSecondsRemaining}s';
+              'Too many attempts. Wait ${_securityService.lockoutSecondsRemaining}s';
           _startLockoutCountdown();
         } else {
-          _errorMessage = 'Incorrect PIN code';
+          _errorMessage = 'Incorrect PIN';
         }
         _enteredPin = '';
       });
@@ -218,7 +218,7 @@ class _LockScreenState extends State<LockScreen>
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Daily Reflection',
+                  'Journal',
                   style: GoogleFonts.lora(
                     fontSize: 24,
                     fontWeight: FontWeight.w600,

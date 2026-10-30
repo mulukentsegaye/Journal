@@ -1,6 +1,6 @@
 {
-    "name": "daily_reflection",
-    "short_name": "daily_reflection",
+    "name": "Journal",
+    "short_name": "Journal",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

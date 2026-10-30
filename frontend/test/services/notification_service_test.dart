@@ -27,7 +27,7 @@ void main() {
       expect(NotificationService.morningReminderNotificationId, equals(1002));
       expect(NotificationService.testNotificationId, equals(9999));
       expect(NotificationService.channelId, equals('daily_reflection_reminder'));
-      expect(NotificationService.channelName, equals('Daily Reflection Reminders'));
+      expect(NotificationService.channelName, equals('Journal Reminders'));
     });
 
     test('nextInstanceOfTime schedules future time correctly', () {
