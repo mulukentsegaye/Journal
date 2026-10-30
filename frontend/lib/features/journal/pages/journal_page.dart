@@ -806,6 +806,8 @@ class _JournalPageState extends State<JournalPage> {
                               _focusedMonth.year,
                               _focusedMonth.month,
                             ),
+                            currentStreak: _reflectionService.streakCount,
+                            longestStreak: _reflectionService.longestStreakCount,
                           ),
                           const SizedBox(height: 18),
 

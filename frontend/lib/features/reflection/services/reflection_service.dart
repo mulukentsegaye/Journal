@@ -75,6 +75,9 @@ class ReflectionService extends ChangeNotifier with WidgetsBindingObserver {
   /// Reactive streak computed from current active cached entries.
   int get streakCount => StreakCalculator.calculateStreak(entries);
 
+  /// Longest consecutive reflection streak achieved across all time.
+  int get longestStreakCount => StreakCalculator.calculateLongestStreak(entries);
+
   /// Reactive list of journal entries (active only).
   List<JournalEntry> get journalEntries =>
       entries.map((m) => m.toJournalEntry()).toList();

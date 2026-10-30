@@ -98,9 +98,16 @@ class AppShell extends StatefulWidget {
   static final GlobalKey<ScaffoldState> scaffoldKey =
       GlobalKey<ScaffoldState>();
 
+  static _AppShellState? _state;
+
   /// Static helper to open the right-side profile drawer from anywhere in the app
   static void openDrawer() {
     scaffoldKey.currentState?.openEndDrawer();
+  }
+
+  /// Static helper to switch bottom navigation tabs (0 = Today, 1 = Journal)
+  static void switchToTab(int index) {
+    _state?._onTabTapped(index);
   }
 
   @override
@@ -110,6 +117,20 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
   int _previousIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    AppShell._state = this;
+  }
+
+  @override
+  void dispose() {
+    if (AppShell._state == this) {
+      AppShell._state = null;
+    }
+    super.dispose();
+  }
 
   void _onTabTapped(int index) {
     if (index == _currentIndex) return;

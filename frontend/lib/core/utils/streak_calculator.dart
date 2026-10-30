@@ -35,6 +35,41 @@ class StreakCalculator {
     return streak;
   }
 
+  /// Calculates the longest consecutive reflection streak achieved across all time.
+  static int calculateLongestStreak(List<ReflectionEntryModel> entries) {
+    if (entries.isEmpty) return 0;
+
+    final Set<DateTime> uniqueDates = entries
+        .map((e) => DateTime(e.date.year, e.date.month, e.date.day))
+        .toSet();
+
+    if (uniqueDates.isEmpty) return 0;
+
+    final sortedDates = uniqueDates.toList()..sort();
+
+    int maxStreak = 1;
+    int currentStreak = 1;
+
+    for (int i = 1; i < sortedDates.length; i++) {
+      final prev = sortedDates[i - 1];
+      final curr = sortedDates[i];
+      final nextDayOfPrev = DateTime(prev.year, prev.month, prev.day + 1);
+
+      if (curr.year == nextDayOfPrev.year &&
+          curr.month == nextDayOfPrev.month &&
+          curr.day == nextDayOfPrev.day) {
+        currentStreak++;
+        if (currentStreak > maxStreak) {
+          maxStreak = currentStreak;
+        }
+      } else {
+        currentStreak = 1;
+      }
+    }
+
+    return maxStreak;
+  }
+
   /// Calculates the number of unique days the user reflected during the specified month.
   static int calculateCompletedDaysInMonth(
     List<ReflectionEntryModel> entries,
