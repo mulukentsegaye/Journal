@@ -112,7 +112,7 @@ class JournalCard extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
           itemCount: entry.photoUrls.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          separatorBuilder: (context, index) => const SizedBox(width: 8),
           itemBuilder: (context, index) {
             final url = entry.photoUrls[index];
             final isNetwork = url.startsWith('http://') || url.startsWith('https://');
@@ -138,7 +138,7 @@ class JournalCard extends StatelessWidget {
                       Image(
                         image: imageProvider,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        errorBuilder: (context, error, stackTrace) => Container(
                           color: AppColors.surface,
                           child: Icon(Icons.broken_image_rounded, color: AppColors.textHint, size: 24),
                         ),

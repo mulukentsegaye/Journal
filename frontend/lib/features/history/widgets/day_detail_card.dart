@@ -367,7 +367,7 @@ class _EntryItem extends StatelessWidget {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: entry.photoUrls.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                separatorBuilder: (context, index) => const SizedBox(width: 8),
                 itemBuilder: (context, index) {
                   final url = entry.photoUrls[index];
                   return GestureDetector(
@@ -387,7 +387,7 @@ class _EntryItem extends StatelessWidget {
                                   width: 90,
                                   height: 90,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
+                                  errorBuilder: (context, error, stackTrace) =>
                                       const SizedBox.shrink(),
                                 )
                               : Image.file(
@@ -395,7 +395,7 @@ class _EntryItem extends StatelessWidget {
                                   width: 90,
                                   height: 90,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
+                                  errorBuilder: (context, error, stackTrace) =>
                                       const SizedBox.shrink(),
                                 ),
                           Positioned(

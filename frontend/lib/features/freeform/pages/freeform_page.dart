@@ -543,7 +543,7 @@ class _FreeformPageState extends State<FreeformPage> {
 
   void _confirmCancel() {
     if (_contentController.text.trim().isEmpty &&
-        _photoPath == null) {
+        _photoPaths.isEmpty) {
       Navigator.pop(context);
       return;
     }
@@ -659,7 +659,7 @@ class _FreeformPageState extends State<FreeformPage> {
                         height: 180,
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        errorBuilder: (context, error, stackTrace) => Container(
                           height: 120,
                           color: AppColors.surface,
                           alignment: Alignment.center,
@@ -696,7 +696,7 @@ class _FreeformPageState extends State<FreeformPage> {
                   scrollDirection: Axis.horizontal,
                   physics: const BouncingScrollPhysics(),
                   itemCount: _photoPaths.length + (_photoPaths.length < maxPhotos ? 1 : 0),
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  separatorBuilder: (context, index) => const SizedBox(width: 8),
                   itemBuilder: (context, index) {
                     if (index == _photoPaths.length) {
                       // Add Photo Tile at the end
@@ -754,7 +754,7 @@ class _FreeformPageState extends State<FreeformPage> {
                               child: Image(
                                 image: provider,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
+                                errorBuilder: (context, error, stackTrace) => Container(
                                   color: AppColors.surface,
                                   child: Icon(Icons.broken_image_rounded, color: AppColors.textHint, size: 24),
                                 ),
