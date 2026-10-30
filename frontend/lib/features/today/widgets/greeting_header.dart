@@ -20,6 +20,7 @@ class GreetingHeader extends StatelessWidget {
   }
 
   void _showStreakSheet(BuildContext context, int streak) {
+    final longest = ReflectionService().longestStreakCount;
     final title =
         streak == 1 ? '1 Day Journal Streak' : '$streak Days Journal Streak';
     final description = streak > 0
@@ -58,6 +59,66 @@ class GreetingHeader extends StatelessWidget {
               description,
               style: AppTextStyles.body,
               textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.divider),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          streak > 0 ? '🔥 $streak' : '🌱 0',
+                          style:
+                              AppTextStyles.sectionTitle.copyWith(fontSize: 18),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Current Streak',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.divider),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          '⭐ $longest',
+                          style:
+                              AppTextStyles.sectionTitle.copyWith(fontSize: 18),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Longest Streak',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 20),
             SizedBox(

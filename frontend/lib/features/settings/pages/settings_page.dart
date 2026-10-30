@@ -567,6 +567,13 @@ class _SettingsPageState extends State<SettingsPage> {
                         value: '${_reflectionService.entries.length} entries stored',
                         icon: Icons.folder_open_rounded,
                       ),
+                      const Divider(height: 20),
+                      _DiagnosticRow(
+                        label: 'Longest Streak',
+                        value:
+                            '${_reflectionService.longestStreakCount} ${_reflectionService.longestStreakCount == 1 ? 'day' : 'days'}',
+                        icon: Icons.emoji_events_outlined,
+                      ),
                       const SizedBox(height: 14),
                       SizedBox(
                         width: double.infinity,
