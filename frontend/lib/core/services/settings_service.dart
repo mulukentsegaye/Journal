@@ -231,8 +231,12 @@ class SettingsService extends ChangeNotifier {
         buffer.writeln('${entry.freeformNote}\n');
       }
 
-      if (entry.photoUrl != null && entry.photoUrl!.isNotEmpty) {
-        buffer.writeln('![Photo Attachment](${entry.photoUrl})\n');
+      if (entry.photoUrls.isNotEmpty) {
+        for (final photo in entry.photoUrls) {
+          if (photo.isNotEmpty) {
+            buffer.writeln('![Photo Attachment]($photo)\n');
+          }
+        }
       }
 
       if (entry.answers.isNotEmpty) {

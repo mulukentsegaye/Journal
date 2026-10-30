@@ -19,7 +19,7 @@ class ReflectionEntryModel {
   final Map<int, String> answers;
   final String? freeformTitle;
   final String? freeformNote;
-  final String? photoUrl;
+  final List<String> photoUrls;
   final bool isBookmarked;
   final ReflectionType type;
   final bool isDeleted;
@@ -27,7 +27,10 @@ class ReflectionEntryModel {
   final DateTime createdAt;
   final List<String> tags;
 
-  const ReflectionEntryModel({
+  /// Returns the first photo URL for backward compatibility.
+  String? get photoUrl => photoUrls.isNotEmpty ? photoUrls.first : null;
+
+  ReflectionEntryModel({
     required this.id,
     required this.date,
     this.mood = 'Calm',
@@ -35,14 +38,15 @@ class ReflectionEntryModel {
     this.answers = const {},
     this.freeformTitle,
     this.freeformNote,
-    this.photoUrl,
+    String? photoUrl,
+    List<String>? photoUrls,
     this.isBookmarked = false,
     this.type = ReflectionType.freeform,
     this.isDeleted = false,
     this.deletedAt,
     required this.createdAt,
     this.tags = const [],
-  });
+  }) : photoUrls = photoUrls ?? (photoUrl != null && photoUrl.isNotEmpty ? [photoUrl] : const []);
 
   /// Convert to local/JSON Map
   Map<String, dynamic> toMap() {
@@ -55,6 +59,7 @@ class ReflectionEntryModel {
       'freeformTitle': freeformTitle,
       'freeformNote': freeformNote,
       'photoUrl': photoUrl,
+      'photoUrls': photoUrls,
       'isBookmarked': isBookmarked,
       'type': type.name,
       'isDeleted': isDeleted,
@@ -74,7 +79,8 @@ class ReflectionEntryModel {
       'answers': answers.map((k, v) => MapEntry(k.toString(), v)),
       'freeform_title': freeformTitle,
       'freeform_note': freeformNote,
-      'photo_url': photoUrl,
+      'photo_url': photoUrls.length > 1 ? jsonEncode(photoUrls) : photoUrl,
+      'photo_urls': photoUrls,
       'is_bookmarked': isBookmarked,
       'type': type.name,
       'is_deleted': isDeleted,
@@ -116,6 +122,37 @@ class ReflectionEntryModel {
       }
     }
 
+    // Parse photoUrls list (supports list, json array string, or single legacy string)
+    List<String> parsedPhotos = [];
+    final rawPhotos = map['photoUrls'] ?? map['photo_urls'];
+    if (rawPhotos is List) {
+      parsedPhotos = rawPhotos.map((p) => p.toString()).toList();
+    } else if (rawPhotos is String && rawPhotos.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(rawPhotos);
+        if (decoded is List) {
+          parsedPhotos = decoded.map((p) => p.toString()).toList();
+        }
+      } catch (_) {}
+    }
+    if (parsedPhotos.isEmpty) {
+      final single = (map['photoUrl'] ?? map['photo_url'])?.toString();
+      if (single != null && single.isNotEmpty) {
+        if (single.startsWith('[') && single.endsWith(']')) {
+          try {
+            final decoded = jsonDecode(single);
+            if (decoded is List) {
+              parsedPhotos = decoded.map((p) => p.toString()).toList();
+            }
+          } catch (_) {
+            parsedPhotos = [single];
+          }
+        } else {
+          parsedPhotos = [single];
+        }
+      }
+    }
+
     final typeStr = (map['type'] ?? map['entry_type'])?.toString();
     final parsedType = typeStr == 'freeform'
         ? ReflectionType.freeform
@@ -135,7 +172,7 @@ class ReflectionEntryModel {
       answers: parsedAnswers,
       freeformTitle: (map['freeformTitle'] ?? map['freeform_title'])?.toString(),
       freeformNote: (map['freeformNote'] ?? map['freeform_note'])?.toString(),
-      photoUrl: (map['photoUrl'] ?? map['photo_url'])?.toString(),
+      photoUrls: parsedPhotos,
       isBookmarked: (map['isBookmarked'] ?? map['is_bookmarked']) == true,
       type: parsedType,
       isDeleted: (map['isDeleted'] ?? map['is_deleted']) == true,
@@ -197,7 +234,7 @@ class ReflectionEntryModel {
       questionsCount: answers.length,
       isBookmarked: isBookmarked,
       entryType: type.name,
-      photoUrl: photoUrl,
+      photoUrls: photoUrls,
       tags: tags,
     );
   }
@@ -233,6 +270,7 @@ class ReflectionEntryModel {
     String? freeformTitle,
     String? freeformNote,
     String? photoUrl,
+    List<String>? photoUrls,
     bool? isBookmarked,
     ReflectionType? type,
     bool? isDeleted,
@@ -249,7 +287,7 @@ class ReflectionEntryModel {
       answers: answers ?? this.answers,
       freeformTitle: freeformTitle ?? this.freeformTitle,
       freeformNote: freeformNote ?? this.freeformNote,
-      photoUrl: photoUrl ?? this.photoUrl,
+      photoUrls: photoUrls ?? (photoUrl != null ? [photoUrl] : this.photoUrls),
       isBookmarked: isBookmarked ?? this.isBookmarked,
       type: type ?? this.type,
       isDeleted: isDeleted ?? this.isDeleted,

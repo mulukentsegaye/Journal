@@ -264,6 +264,63 @@ void main() {
       final retrieved = list.firstWhere((e) => e.id == 'db_tags_test');
       expect(retrieved.tags, equals(['work', 'ideas']));
     });
+
+    test('ReflectionEntryModel supports multiple moment photos and backward compatibility', () {
+      // 1. Single photo legacy compatibility
+      final legacyMap = {
+        'mood': 'Calm',
+        'mood_emoji': '🌿',
+        'answers': {},
+        'photo_url': 'https://example.com/single.jpg',
+        'created_at': DateTime(2026, 9, 10).toIso8601String(),
+        'date': DateTime(2026, 9, 10).toIso8601String(),
+      };
+      final fromLegacy = ReflectionEntryModel.fromMap(legacyMap, 'legacy_entry_1');
+      expect(fromLegacy.photoUrls, equals(['https://example.com/single.jpg']));
+      expect(fromLegacy.photoUrl, equals('https://example.com/single.jpg'));
+
+      // 2. Multi-photo serialization (up to 5)
+      final photos = [
+        'https://example.com/photo1.jpg',
+        'https://example.com/photo2.jpg',
+        'https://example.com/photo3.jpg',
+        'https://example.com/photo4.jpg',
+        'https://example.com/photo5.jpg',
+      ];
+      final multiEntry = ReflectionEntryModel(
+        id: 'multi_test_1',
+        date: DateTime(2026, 9, 10),
+        mood: 'Calm',
+        photoUrls: photos,
+        createdAt: DateTime(2026, 9, 10),
+      );
+
+      expect(multiEntry.photoUrls.length, equals(5));
+      expect(multiEntry.photoUrl, equals('https://example.com/photo1.jpg'));
+
+      final localMap = multiEntry.toMap();
+      expect(localMap['photoUrls'], equals(photos));
+
+      final restoredFromLocal = ReflectionEntryModel.fromMap(localMap, 'multi_test_1');
+      expect(restoredFromLocal.photoUrls, equals(photos));
+
+      // Supabase map encoding as JSON array string for backwards compatibility
+      final supabaseMap = multiEntry.toSupabaseMap(userId: 'user_xyz');
+      expect(supabaseMap['photo_url'], contains('photo1.jpg'));
+      expect(supabaseMap['photo_url'], contains('photo5.jpg'));
+
+      // Restoring from Supabase JSON string format
+      final restoredFromSupabase = ReflectionEntryModel.fromMap({
+        ...supabaseMap,
+        'date': DateTime(2026, 9, 10).toIso8601String(),
+      }, 'multi_test_1');
+      expect(restoredFromSupabase.photoUrls, equals(photos));
+
+      // JournalEntry conversion
+      final journal = restoredFromSupabase.toJournalEntry();
+      expect(journal.photoUrls, equals(photos));
+      expect(journal.photoUrl, equals('https://example.com/photo1.jpg'));
+    });
   });
 }
 

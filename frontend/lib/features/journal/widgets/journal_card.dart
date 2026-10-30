@@ -56,45 +56,114 @@ class JournalCard extends StatelessWidget {
 
 
   Widget _buildPhotoThumbnail(BuildContext context) {
-    if (entry.photoUrl == null || entry.photoUrl!.isEmpty) {
+    if (entry.photoUrls.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    final isNetwork = entry.photoUrl!.startsWith('http://') || entry.photoUrl!.startsWith('https://');
-    final imageProvider = isNetwork
-        ? NetworkImage(entry.photoUrl!) as ImageProvider
-        : FileImage(File(entry.photoUrl!));
+    if (entry.photoUrls.length == 1) {
+      final url = entry.photoUrls.first;
+      final isNetwork = url.startsWith('http://') || url.startsWith('https://');
+      final imageProvider = isNetwork
+          ? NetworkImage(url) as ImageProvider
+          : FileImage(File(url));
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: GestureDetector(
-        onTap: () => PhotoViewerDialog.show(
-          context,
-          photoUrl: entry.photoUrl!,
-          caption: entry.title,
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Image(
-            image: imageProvider,
-            height: 160,
-            width: double.infinity,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Container(
-              height: 100,
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12.0),
+        child: GestureDetector(
+          onTap: () => PhotoViewerDialog.show(
+            context,
+            photos: entry.photoUrls,
+            initialIndex: 0,
+            caption: entry.title,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image(
+              image: imageProvider,
+              height: 160,
               width: double.infinity,
-              color: AppColors.surface,
-              alignment: Alignment.center,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.photo_camera_outlined, color: AppColors.textSecondary, size: 20),
-                  const SizedBox(width: 8),
-                  Text('Moment Photo Attached', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                ],
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                height: 100,
+                width: double.infinity,
+                color: AppColors.surface,
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.photo_camera_outlined, color: AppColors.textSecondary, size: 20),
+                    const SizedBox(width: 8),
+                    Text('Moment Photo Attached', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                  ],
+                ),
               ),
             ),
           ),
+        ),
+      );
+    }
+
+    // Multiple photos: horizontal scrollable thumbnail strip
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: SizedBox(
+        height: 110,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: entry.photoUrls.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (context, index) {
+            final url = entry.photoUrls[index];
+            final isNetwork = url.startsWith('http://') || url.startsWith('https://');
+            final imageProvider = isNetwork
+                ? NetworkImage(url) as ImageProvider
+                : FileImage(File(url));
+
+            return GestureDetector(
+              onTap: () => PhotoViewerDialog.show(
+                context,
+                photos: entry.photoUrls,
+                initialIndex: index,
+                caption: entry.title,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: SizedBox(
+                  width: 110,
+                  height: 110,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image(
+                        image: imageProvider,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: AppColors.surface,
+                          child: Icon(Icons.broken_image_rounded, color: AppColors.textHint, size: 24),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 4,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '${index + 1}/${entry.photoUrls.length}',
+                            style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -253,7 +322,7 @@ class JournalCard extends StatelessWidget {
                 ),
 
                 // Photo indicator badge
-                if (entry.photoUrl != null && entry.photoUrl!.isNotEmpty) ...[
+                if (entry.photoUrls.isNotEmpty) ...[
                   const SizedBox(width: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -267,7 +336,9 @@ class JournalCard extends StatelessWidget {
                         Icon(Icons.photo_camera_rounded, size: 12, color: AppColors.primary),
                         const SizedBox(width: 4),
                         Text(
-                          'Photo',
+                          entry.photoUrls.length > 1
+                              ? '${entry.photoUrls.length} Photos'
+                              : 'Photo',
                           style: AppTextStyles.tag.copyWith(
                             color: AppColors.primary,
                             fontSize: 11,
@@ -314,12 +385,20 @@ class JournalCard extends StatelessWidget {
                         onEdit!();
                       } else if (value == 'delete' && onDelete != null) {
                         onDelete!();
-                      } else if (value == 'save_photo' && entry.photoUrl != null) {
-                        _savePhotoToDevice(context, entry.photoUrl!, entry.title);
+                      } else if (value == 'save_photo' && entry.photoUrls.isNotEmpty) {
+                        for (int i = 0; i < entry.photoUrls.length; i++) {
+                          _savePhotoToDevice(
+                            context,
+                            entry.photoUrls[i],
+                            entry.photoUrls.length > 1
+                                ? '${entry.title}_${i + 1}'
+                                : entry.title,
+                          );
+                        }
                       }
                     },
                     itemBuilder: (context) => [
-                      if (entry.photoUrl != null && entry.photoUrl!.isNotEmpty)
+                      if (entry.photoUrls.isNotEmpty)
                         PopupMenuItem(
                           value: 'save_photo',
                           child: Row(
@@ -328,7 +407,13 @@ class JournalCard extends StatelessWidget {
                                   size: 18, color: AppColors.textPrimary),
                               const SizedBox(width: 10),
                               Text(
-                                Platform.isWindows ? 'Save Photo to PC' : 'Save Photo',
+                                entry.photoUrls.length > 1
+                                    ? (Platform.isWindows
+                                        ? 'Save Photos to PC'
+                                        : 'Save Photos')
+                                    : (Platform.isWindows
+                                        ? 'Save Photo to PC'
+                                        : 'Save Photo'),
                                 style: const TextStyle(fontSize: 14),
                               ),
                             ],

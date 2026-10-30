@@ -5,22 +5,37 @@ import '../../../core/services/photo_save_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/error_formatter.dart';
 
-/// Fullscreen or modal viewer for a daily moment photo with pinch-to-zoom and save-to-device capability.
+/// Fullscreen or modal viewer for moment photos with pinch-to-zoom,
+/// multi-photo swiping, and save-to-device capability.
 class PhotoViewerDialog extends StatefulWidget {
-  final String photoUrl;
+  final List<String> photos;
+  final int initialIndex;
   final String? caption;
 
-  const PhotoViewerDialog({
+  PhotoViewerDialog({
     super.key,
-    required this.photoUrl,
+    String? photoUrl,
+    List<String>? photos,
+    this.initialIndex = 0,
     this.caption,
-  });
+  }) : photos = photos ?? (photoUrl != null && photoUrl.isNotEmpty ? [photoUrl] : const []);
 
-  static void show(BuildContext context, {required String photoUrl, String? caption}) {
+  static void show(
+    BuildContext context, {
+    String? photoUrl,
+    List<String>? photos,
+    int initialIndex = 0,
+    String? caption,
+  }) {
     showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.88),
-      builder: (ctx) => PhotoViewerDialog(photoUrl: photoUrl, caption: caption),
+      builder: (ctx) => PhotoViewerDialog(
+        photoUrl: photoUrl,
+        photos: photos,
+        initialIndex: initialIndex,
+        caption: caption,
+      ),
     );
   }
 
@@ -29,24 +44,47 @@ class PhotoViewerDialog extends StatefulWidget {
 }
 
 class _PhotoViewerDialogState extends State<PhotoViewerDialog> {
+  late PageController _pageController;
+  late int _currentIndex;
   bool _isSaving = false;
-  bool _hasSaved = false;
+  final Set<int> _savedIndices = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex.clamp(
+      0,
+      widget.photos.isEmpty ? 0 : widget.photos.length - 1,
+    );
+    _pageController = PageController(initialPage: _currentIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  String get _currentPhotoUrl =>
+      widget.photos.isNotEmpty ? widget.photos[_currentIndex] : '';
 
   Future<void> _savePhoto() async {
     if (_isSaving) return;
+    if (_currentPhotoUrl.isEmpty) return;
+
     setState(() => _isSaving = true);
     HapticFeedback.lightImpact();
 
     try {
       final savedPath = await PhotoSaveService().savePhotoToDevice(
-        photoUrl: widget.photoUrl,
+        photoUrl: _currentPhotoUrl,
         customPrefix: widget.caption,
       );
 
       if (mounted) {
         setState(() {
           _isSaving = false;
-          _hasSaved = true;
+          _savedIndices.add(_currentIndex);
         });
 
         final filename = savedPath.split(Platform.pathSeparator).last;
@@ -104,12 +142,12 @@ class _PhotoViewerDialogState extends State<PhotoViewerDialog> {
     }
   }
 
-  Widget _buildImage() {
-    final isNetwork = widget.photoUrl.startsWith('http://') || widget.photoUrl.startsWith('https://');
+  Widget _buildImage(String url) {
+    final isNetwork = url.startsWith('http://') || url.startsWith('https://');
 
     if (isNetwork) {
       return Image.network(
-        widget.photoUrl,
+        url,
         fit: BoxFit.contain,
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
@@ -125,7 +163,7 @@ class _PhotoViewerDialogState extends State<PhotoViewerDialog> {
       );
     }
 
-    final file = File(widget.photoUrl);
+    final file = File(url);
     if (file.existsSync()) {
       return Image.file(
         file,
@@ -150,13 +188,16 @@ class _PhotoViewerDialogState extends State<PhotoViewerDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final hasSavedCurrent = _savedIndices.contains(_currentIndex);
+    final count = widget.photos.length;
+
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── Top Bar: Save Button & Close Button ─────────────────
+          // ── Top Bar: Save Button, Counter & Close Button ─────────────────
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -166,7 +207,7 @@ class _PhotoViewerDialogState extends State<PhotoViewerDialog> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: _hasSaved
+                    color: hasSavedCurrent
                         ? const Color(0xFF2E7D32)
                         : AppColors.primary.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(20),
@@ -192,7 +233,7 @@ class _PhotoViewerDialogState extends State<PhotoViewerDialog> {
                         )
                       else
                         Icon(
-                          _hasSaved
+                          hasSavedCurrent
                               ? Icons.check_circle_outline_rounded
                               : Icons.file_download_outlined,
                           color: Colors.white,
@@ -200,7 +241,7 @@ class _PhotoViewerDialogState extends State<PhotoViewerDialog> {
                         ),
                       const SizedBox(width: 6),
                       Text(
-                        _hasSaved
+                        hasSavedCurrent
                             ? 'Saved'
                             : (Platform.isWindows ? 'Save to PC' : 'Save Photo'),
                         style: const TextStyle(
@@ -213,6 +254,24 @@ class _PhotoViewerDialogState extends State<PhotoViewerDialog> {
                   ),
                 ),
               ),
+
+              // Page counter (if multiple photos)
+              if (count > 1)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    '${_currentIndex + 1} / $count',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
 
               // Close button
               IconButton(
@@ -230,17 +289,30 @@ class _PhotoViewerDialogState extends State<PhotoViewerDialog> {
           ),
           const SizedBox(height: 8),
 
-          // ── Zoomable photo view ────────────────────────────────
+          // ── Zoomable photo view (or PageView for multiple) ────────
           Flexible(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
               child: Container(
                 color: Colors.black,
-                child: InteractiveViewer(
-                  maxScale: 4.0,
-                  minScale: 0.8,
-                  child: _buildImage(),
-                ),
+                child: count <= 1
+                    ? InteractiveViewer(
+                        maxScale: 4.0,
+                        minScale: 0.8,
+                        child: _buildImage(_currentPhotoUrl),
+                      )
+                    : PageView.builder(
+                        controller: _pageController,
+                        itemCount: count,
+                        onPageChanged: (idx) => setState(() => _currentIndex = idx),
+                        itemBuilder: (context, index) {
+                          return InteractiveViewer(
+                            maxScale: 4.0,
+                            minScale: 0.8,
+                            child: _buildImage(widget.photos[index]),
+                          );
+                        },
+                      ),
               ),
             ),
           ),

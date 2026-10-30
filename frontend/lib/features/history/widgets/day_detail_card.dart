@@ -244,8 +244,7 @@ class _EntryItem extends StatelessWidget {
     final snippet = _snippet;
     final hasTitle = entry.freeformTitle != null &&
         entry.freeformTitle!.trim().isNotEmpty;
-    final hasPhoto =
-        entry.photoUrl != null && entry.photoUrl!.trim().isNotEmpty;
+    final hasPhoto = entry.photoUrls.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -306,60 +305,125 @@ class _EntryItem extends StatelessWidget {
 
         // Photo Attachment (if present)
         if (hasPhoto) ...[
-          GestureDetector(
-            onTap: () => PhotoViewerDialog.show(
-              context,
-              photoUrl: entry.photoUrl!,
-              caption: hasTitle ? entry.freeformTitle : snippet,
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  entry.photoUrl!.startsWith('http://') ||
-                          entry.photoUrl!.startsWith('https://')
-                      ? Image.network(
-                          entry.photoUrl!,
-                          height: 120,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const SizedBox.shrink(),
-                        )
-                      : Image.file(
-                          File(entry.photoUrl!),
-                          height: 120,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const SizedBox.shrink(),
-                        ),
-                  Container(
-                    margin: const EdgeInsets.all(8),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.black54,
-                      borderRadius: BorderRadius.circular(8),
+          if (entry.photoUrls.length == 1)
+            GestureDetector(
+              onTap: () => PhotoViewerDialog.show(
+                context,
+                photos: entry.photoUrls,
+                initialIndex: 0,
+                caption: hasTitle ? entry.freeformTitle : snippet,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    entry.photoUrls.first.startsWith('http://') ||
+                            entry.photoUrls.first.startsWith('https://')
+                        ? Image.network(
+                            entry.photoUrls.first,
+                            height: 120,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const SizedBox.shrink(),
+                          )
+                        : Image.file(
+                            File(entry.photoUrls.first),
+                            height: 120,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const SizedBox.shrink(),
+                          ),
+                    Container(
+                      margin: const EdgeInsets.all(8),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.zoom_in_rounded,
+                              color: Colors.white, size: 14),
+                          SizedBox(width: 4),
+                          Text(
+                            'Moment',
+                            style: TextStyle(color: Colors.white, fontSize: 10),
+                          ),
+                        ],
+                      ),
                     ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.zoom_in_rounded,
-                            color: Colors.white, size: 14),
-                        SizedBox(width: 4),
-                        Text(
-                          'Moment',
-                          style: TextStyle(color: Colors.white, fontSize: 10),
-                        ),
-                      ],
+                  ],
+                ),
+              ),
+            )
+          else
+            SizedBox(
+              height: 90,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: entry.photoUrls.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final url = entry.photoUrls[index];
+                  return GestureDetector(
+                    onTap: () => PhotoViewerDialog.show(
+                      context,
+                      photos: entry.photoUrls,
+                      initialIndex: index,
+                      caption: hasTitle ? entry.freeformTitle : snippet,
                     ),
-                  ),
-                ],
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Stack(
+                        children: [
+                          url.startsWith('http://') || url.startsWith('https://')
+                              ? Image.network(
+                                  url,
+                                  width: 90,
+                                  height: 90,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      const SizedBox.shrink(),
+                                )
+                              : Image.file(
+                                  File(url),
+                                  width: 90,
+                                  height: 90,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      const SizedBox.shrink(),
+                                ),
+                          Positioned(
+                            bottom: 4,
+                            right: 4,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 5, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.6),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '${index + 1}/${entry.photoUrls.length}',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
-          ),
           const SizedBox(height: 8),
         ],
 

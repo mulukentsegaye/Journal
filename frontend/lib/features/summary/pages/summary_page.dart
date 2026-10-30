@@ -17,7 +17,7 @@ import '../../freeform/pages/freeform_page.dart';
 import '../widgets/freeform_summary_card.dart';
 
 /// Entry Detail screen — displays saved entry details,
-/// thoughts, mood tag, moment photo, and share options.
+/// thoughts, mood tag, moment photos, and share options.
 class SummaryPage extends StatefulWidget {
   final String? id;
   final DateTime? date;
@@ -25,11 +25,13 @@ class SummaryPage extends StatefulWidget {
   final String moodEmoji;
   final String? freeformTitle;
   final String? freeformNote;
-  final String? photoUrl;
+  final List<String> photoUrls;
   final Map<int, String>? answers;
   final List<String> tags;
 
-  const SummaryPage({
+  String? get photoUrl => photoUrls.isNotEmpty ? photoUrls.first : null;
+
+  SummaryPage({
     super.key,
     this.id,
     this.date,
@@ -37,10 +39,11 @@ class SummaryPage extends StatefulWidget {
     this.moodEmoji = '🌿',
     this.freeformTitle,
     this.freeformNote,
-    this.photoUrl,
+    String? photoUrl,
+    List<String>? photoUrls,
     this.answers,
     this.tags = const [],
-  });
+  }) : photoUrls = photoUrls ?? (photoUrl != null && photoUrl.isNotEmpty ? [photoUrl] : const []);
 
   @override
   State<SummaryPage> createState() => _SummaryPageState();
@@ -50,6 +53,7 @@ class _SummaryPageState extends State<SummaryPage> {
   bool _isExpanded = false;
   late final String _docId;
   bool _isBookmarked = false;
+  int _activePhotoIndex = 0;
   final ReflectionService _reflectionService = ReflectionService();
 
   static const Map<int, String> _questionPrompts = AppStrings.questionPrompts;
@@ -86,7 +90,8 @@ class _SummaryPageState extends State<SummaryPage> {
       freeformNote: widget.freeformNote?.trim().isNotEmpty == true
           ? widget.freeformNote!.trim()
           : null,
-      photoUrl: widget.photoUrl,
+      photoUrls: widget.photoUrls,
+      tags: widget.tags,
       createdAt: entryDate,
     );
 
@@ -315,7 +320,7 @@ class _SummaryPageState extends State<SummaryPage> {
     }
 
     if (snippet.isEmpty) {
-      snippet = widget.photoUrl != null && widget.photoUrl!.isNotEmpty
+      snippet = widget.photoUrls.isNotEmpty
           ? 'Photo entry'
           : 'Journal entry';
     }
@@ -490,7 +495,7 @@ class _SummaryPageState extends State<SummaryPage> {
                   ? widget.answers!.values.first
                   : ''),
           initialMood: widget.mood,
-          initialPhotoUrl: widget.photoUrl,
+          initialPhotoUrls: widget.photoUrls,
           initialTags: widget.tags,
         ),
       ),
@@ -729,82 +734,9 @@ class _SummaryPageState extends State<SummaryPage> {
                       const SizedBox(height: 16),
                     ],
 
-                    // ── Attached Daily Moment Photo ──────────────────
-                    if (widget.photoUrl != null && widget.photoUrl!.isNotEmpty) ...[
-                      GestureDetector(
-                        onTap: () => PhotoViewerDialog.show(
-                          context,
-                          photoUrl: widget.photoUrl!,
-                          caption: widget.freeformTitle ?? 'Daily Moment Photo',
-                        ),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.cardBackground,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: AppColors.divider.withValues(alpha: 0.8),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 18,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: Stack(
-                            alignment: Alignment.topRight,
-                            children: [
-                              widget.photoUrl!.startsWith('http://') ||
-                                      widget.photoUrl!.startsWith('https://')
-                                  ? Image.network(
-                                      widget.photoUrl!,
-                                      height: 280,
-                                      width: double.infinity,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (ctx, err, stack) => _buildPhotoFallback(),
-                                    )
-                                  : Image.file(
-                                      File(widget.photoUrl!),
-                                      height: 280,
-                                      width: double.infinity,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (ctx, err, stack) => _buildPhotoFallback(),
-                                    ),
-                              // Clean Save Photo Button on Top-Right
-                              Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: GestureDetector(
-                                  onTap: () => _savePhoto(context),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(alpha: 0.6),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(Icons.file_download_outlined, size: 15, color: Colors.white),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          Platform.isWindows ? 'Save to PC' : 'Save',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                    // ── Attached Moment Photo(s) ──────────────────
+                    if (widget.photoUrls.isNotEmpty) ...[
+                      _buildPhotoSection(context),
                       const SizedBox(height: 20),
                     ],
 
@@ -1016,13 +948,213 @@ class _SummaryPageState extends State<SummaryPage> {
     );
   }
 
-  Future<void> _savePhoto(BuildContext context) async {
-    if (widget.photoUrl == null || widget.photoUrl!.isEmpty) return;
+  Widget _buildPhotoSection(BuildContext context) {
+    if (widget.photoUrls.isEmpty) return const SizedBox.shrink();
+
+    if (widget.photoUrls.length == 1) {
+      final photo = widget.photoUrls.first;
+      return GestureDetector(
+        onTap: () => PhotoViewerDialog.show(
+          context,
+          photos: widget.photoUrls,
+          initialIndex: 0,
+          caption: widget.freeformTitle ?? 'Moment Photo',
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.cardBackground,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: AppColors.divider.withValues(alpha: 0.8),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 18,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            alignment: Alignment.topRight,
+            children: [
+              _buildPhotoWidget(photo),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: GestureDetector(
+                  onTap: () => _savePhoto(context, photo),
+                  child: _buildSaveButton(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Multiple photos PageView
+    final safeIndex = _activePhotoIndex.clamp(0, widget.photoUrls.length - 1);
+    final currentPhoto = widget.photoUrls[safeIndex];
+
+    return Container(
+      height: 280,
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.divider.withValues(alpha: 0.8),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        alignment: Alignment.topRight,
+        children: [
+          PageView.builder(
+            itemCount: widget.photoUrls.length,
+            onPageChanged: (idx) {
+              setState(() {
+                _activePhotoIndex = idx;
+              });
+            },
+            itemBuilder: (context, idx) {
+              final photo = widget.photoUrls[idx];
+              return GestureDetector(
+                onTap: () => PhotoViewerDialog.show(
+                  context,
+                  photos: widget.photoUrls,
+                  initialIndex: idx,
+                  caption: widget.freeformTitle ?? 'Moment Photo',
+                ),
+                child: _buildPhotoWidget(photo),
+              );
+            },
+          ),
+          // Photo Counter on Top Left
+          Positioned(
+            top: 12,
+            left: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.65),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.photo_library_outlined, size: 13, color: Colors.white),
+                  const SizedBox(width: 5),
+                  Text(
+                    '${safeIndex + 1} / ${widget.photoUrls.length}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Save Photo Button on Top Right
+          Positioned(
+            top: 12,
+            right: 12,
+            child: GestureDetector(
+              onTap: () => _savePhoto(context, currentPhoto),
+              child: _buildSaveButton(),
+            ),
+          ),
+          // Dot Indicators at bottom
+          Positioned(
+            bottom: 12,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                widget.photoUrls.length,
+                (idx) => Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: safeIndex == idx ? 16 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: safeIndex == idx
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhotoWidget(String photo) {
+    return photo.startsWith('http://') || photo.startsWith('https://')
+        ? Image.network(
+            photo,
+            height: 280,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            errorBuilder: (ctx, err, stack) => _buildPhotoFallback(),
+          )
+        : Image.file(
+            File(photo),
+            height: 280,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            errorBuilder: (ctx, err, stack) => _buildPhotoFallback(),
+          );
+  }
+
+  Widget _buildSaveButton() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.file_download_outlined, size: 15, color: Colors.white),
+          const SizedBox(width: 4),
+          Text(
+            Platform.isWindows ? 'Save to PC' : 'Save',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _savePhoto(BuildContext context, [String? targetUrl]) async {
+    final photo = targetUrl ??
+        (_activePhotoIndex < widget.photoUrls.length
+            ? widget.photoUrls[_activePhotoIndex]
+            : widget.photoUrl);
+    if (photo == null || photo.isEmpty) return;
     HapticFeedback.lightImpact();
 
     try {
       final savedPath = await PhotoSaveService().savePhotoToDevice(
-        photoUrl: widget.photoUrl!,
+        photoUrl: photo,
         customPrefix: widget.freeformTitle ?? 'DailyReflection',
       );
       final filename = savedPath.split(Platform.pathSeparator).last;

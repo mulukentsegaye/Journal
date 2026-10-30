@@ -24,6 +24,7 @@ class FreeformPage extends StatefulWidget {
   final String? initialContent;
   final String? initialMood;
   final String? initialPhotoUrl;
+  final List<String>? initialPhotoUrls;
   final DateTime? date;
   final VoidCallback? onSaved;
   final List<String>? initialTags;
@@ -35,6 +36,7 @@ class FreeformPage extends StatefulWidget {
     this.initialContent,
     this.initialMood,
     this.initialPhotoUrl,
+    this.initialPhotoUrls,
     this.date,
     this.onSaved,
     this.initialTags,
@@ -45,15 +47,17 @@ class FreeformPage extends StatefulWidget {
 }
 
 class _FreeformPageState extends State<FreeformPage> {
+  static const int maxPhotos = 5;
   static const _keyDraftTitle = 'draft_entry_title';
   static const _keyDraftContent = 'draft_entry_content';
   static const _keyDraftMood = 'draft_entry_mood';
   static const _keyDraftTags = 'draft_entry_tags';
   static const _keyDraftPhoto = 'draft_entry_photo';
+  static const _keyDraftPhotos = 'draft_entry_photos';
 
   String _selectedEnergy = 'calm';
   bool _isSaving = false;
-  String? _photoPath;
+  List<String> _photoPaths = [];
   List<String> _tags = [];
   late final TextEditingController _contentController;
   final ImagePicker _picker = ImagePicker();
@@ -66,7 +70,11 @@ class _FreeformPageState extends State<FreeformPage> {
   void initState() {
     super.initState();
     _selectedEnergy = widget.initialMood?.toLowerCase() ?? 'calm';
-    _photoPath = widget.initialPhotoUrl;
+    if (widget.initialPhotoUrls != null && widget.initialPhotoUrls!.isNotEmpty) {
+      _photoPaths = List.from(widget.initialPhotoUrls!);
+    } else if (widget.initialPhotoUrl != null && widget.initialPhotoUrl!.isNotEmpty) {
+      _photoPaths = [widget.initialPhotoUrl!];
+    }
     _tags = widget.initialTags != null ? List.from(widget.initialTags!) : [];
     _contentController =
         TextEditingController(text: widget.initialContent ?? '');
@@ -95,12 +103,16 @@ class _FreeformPageState extends State<FreeformPage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final draftContent = prefs.getString(_keyDraftContent) ?? '';
+      List<String> draftPhotos = prefs.getStringList(_keyDraftPhotos) ?? [];
       final draftPhoto = prefs.getString(_keyDraftPhoto);
+      if (draftPhotos.isEmpty && draftPhoto != null && draftPhoto.isNotEmpty) {
+        draftPhotos = [draftPhoto];
+      }
       final draftTags = prefs.getStringList(_keyDraftTags) ?? [];
       final draftMood = prefs.getString(_keyDraftMood);
 
       final hasValidDraft = draftContent.trim().isNotEmpty ||
-          (draftPhoto != null && draftPhoto.isNotEmpty) ||
+          draftPhotos.isNotEmpty ||
           draftTags.isNotEmpty;
 
       if (hasValidDraft && mounted) {
@@ -109,7 +121,7 @@ class _FreeformPageState extends State<FreeformPage> {
           _cachedDraft = {
             'content': draftContent,
             'mood': draftMood ?? 'calm',
-            'photo': draftPhoto,
+            'photos': draftPhotos,
             'tags': draftTags,
           };
         });
@@ -122,7 +134,7 @@ class _FreeformPageState extends State<FreeformPage> {
     setState(() {
       _contentController.text = _cachedDraft!['content'] ?? '';
       _selectedEnergy = _cachedDraft!['mood'] ?? 'calm';
-      _photoPath = _cachedDraft!['photo'];
+      _photoPaths = List<String>.from(_cachedDraft!['photos'] ?? []);
       _tags = List<String>.from(_cachedDraft!['tags'] ?? []);
       _hasDraft = false;
       _cachedDraft = null;
@@ -149,7 +161,7 @@ class _FreeformPageState extends State<FreeformPage> {
     if (widget.id != null) return;
     try {
       final content = _contentController.text.trim();
-      final hasPhoto = _photoPath != null && _photoPath!.isNotEmpty;
+      final hasPhoto = _photoPaths.isNotEmpty;
 
       if (content.isEmpty && !hasPhoto && _tags.isEmpty) {
         await _clearDraft();
@@ -160,9 +172,11 @@ class _FreeformPageState extends State<FreeformPage> {
       await prefs.setString(_keyDraftContent, _contentController.text);
       await prefs.setString(_keyDraftMood, _selectedEnergy);
       await prefs.setStringList(_keyDraftTags, _tags);
-      if (_photoPath != null && _photoPath!.isNotEmpty) {
-        await prefs.setString(_keyDraftPhoto, _photoPath!);
+      if (_photoPaths.isNotEmpty) {
+        await prefs.setStringList(_keyDraftPhotos, _photoPaths);
+        await prefs.setString(_keyDraftPhoto, _photoPaths.first);
       } else {
+        await prefs.remove(_keyDraftPhotos);
         await prefs.remove(_keyDraftPhoto);
       }
     } catch (_) {}
@@ -176,6 +190,7 @@ class _FreeformPageState extends State<FreeformPage> {
       await prefs.remove(_keyDraftMood);
       await prefs.remove(_keyDraftTags);
       await prefs.remove(_keyDraftPhoto);
+      await prefs.remove(_keyDraftPhotos);
     } catch (_) {}
   }
 
@@ -247,7 +262,42 @@ class _FreeformPageState extends State<FreeformPage> {
   }
 
   Future<void> _pickPhoto(ImageSource source) async {
+    if (_photoPaths.length >= maxPhotos) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Maximum $maxPhotos photos allowed per entry.'),
+            backgroundColor: AppColors.snackBarBackground,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+      return;
+    }
+
     try {
+      if (source == ImageSource.gallery) {
+        final remaining = maxPhotos - _photoPaths.length;
+        if (remaining > 1) {
+          final pickedList = await _picker.pickMultiImage(
+            maxWidth: 1800,
+            maxHeight: 1800,
+            imageQuality: 85,
+            limit: remaining,
+          );
+          if (pickedList.isNotEmpty) {
+            setState(() {
+              for (final xf in pickedList.take(remaining)) {
+                _photoPaths.add(xf.path);
+              }
+            });
+            _scheduleAutoSave();
+            return;
+          }
+        }
+      }
+
       final picked = await _picker.pickImage(
         source: source,
         maxWidth: 1800,
@@ -256,7 +306,7 @@ class _FreeformPageState extends State<FreeformPage> {
       );
       if (picked != null) {
         setState(() {
-          _photoPath = picked.path;
+          _photoPaths.add(picked.path);
         });
         _scheduleAutoSave();
       }
@@ -278,6 +328,18 @@ class _FreeformPageState extends State<FreeformPage> {
   }
 
   void _showPhotoOptions() {
+    if (_photoPaths.length >= maxPhotos) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Maximum $maxPhotos photos already attached.'),
+          backgroundColor: AppColors.snackBarBackground,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.cardBackground,
@@ -300,7 +362,7 @@ class _FreeformPageState extends State<FreeformPage> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Add Moment Photo',
+                _photoPaths.isEmpty ? 'Add Moment Photo' : 'Add Moment Photos',
                 style: GoogleFonts.lora(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -318,7 +380,7 @@ class _FreeformPageState extends State<FreeformPage> {
                   child: Icon(Icons.camera_alt_outlined, color: AppColors.primary),
                 ),
                 title: const Text('Take a Photo'),
-                subtitle: const Text('Capture your current surroundings'),
+                subtitle: Text('Capture with camera (${_photoPaths.length}/$maxPhotos)'),
                 onTap: () {
                   Navigator.pop(ctx);
                   _pickPhoto(ImageSource.camera);
@@ -334,7 +396,7 @@ class _FreeformPageState extends State<FreeformPage> {
                   child: Icon(Icons.photo_library_outlined, color: AppColors.primary),
                 ),
                 title: const Text('Choose from Library'),
-                subtitle: const Text('Select a memorable moment from today'),
+                subtitle: Text('Select from gallery (${maxPhotos - _photoPaths.length} remaining)'),
                 onTap: () {
                   Navigator.pop(ctx);
                   _pickPhoto(ImageSource.gallery);
@@ -353,7 +415,7 @@ class _FreeformPageState extends State<FreeformPage> {
     FocusScope.of(context).unfocus();
 
     final content = _contentController.text.trim();
-    final hasPhoto = _photoPath != null && _photoPath!.isNotEmpty;
+    final hasPhoto = _photoPaths.isNotEmpty;
 
     if (content.isEmpty && !hasPhoto) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -399,7 +461,7 @@ class _FreeformPageState extends State<FreeformPage> {
         moodEmoji: selectedEnergyState.emoji,
         freeformTitle: null,
         freeformNote: content.isNotEmpty ? content : null,
-        photoUrl: _photoPath,
+        photoUrls: _photoPaths,
         type: ReflectionType.freeform,
         createdAt: now,
         tags: _tags,
@@ -450,7 +512,7 @@ class _FreeformPageState extends State<FreeformPage> {
               moodEmoji: selectedEnergyState.emoji,
               freeformTitle: null,
               freeformNote: content.isNotEmpty ? content : null,
-              photoUrl: _photoPath,
+              photoUrls: _photoPaths,
               tags: _tags,
             ),
           ),
@@ -524,11 +586,8 @@ class _FreeformPageState extends State<FreeformPage> {
   }
 
   Widget _buildPhotoAttachmentCard() {
-    if (_photoPath != null && _photoPath!.isNotEmpty) {
-      final isNetwork = _photoPath!.startsWith('http://') || _photoPath!.startsWith('https://');
-      final imageProvider = isNetwork
-          ? NetworkImage(_photoPath!) as ImageProvider
-          : FileImage(File(_photoPath!));
+    if (_photoPaths.isNotEmpty) {
+      final isSingle = _photoPaths.length == 1;
 
       return Container(
         decoration: BoxDecoration(
@@ -548,7 +607,9 @@ class _FreeformPageState extends State<FreeformPage> {
                     const Text('📸', style: TextStyle(fontSize: 16)),
                     const SizedBox(width: 8),
                     Text(
-                      'Daily Moment Photo',
+                      isSingle
+                          ? 'Moment Photo'
+                          : 'Moment Photos (${_photoPaths.length}/$maxPhotos)',
                       style: AppTextStyles.body.copyWith(
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
@@ -558,16 +619,17 @@ class _FreeformPageState extends State<FreeformPage> {
                 ),
                 Row(
                   children: [
-                    IconButton(
-                      icon: Icon(Icons.change_circle_outlined, size: 20, color: AppColors.primary),
-                      tooltip: 'Change Photo',
-                      onPressed: _showPhotoOptions,
-                    ),
+                    if (_photoPaths.length < maxPhotos)
+                      IconButton(
+                        icon: Icon(Icons.add_a_photo_outlined, size: 20, color: AppColors.primary),
+                        tooltip: 'Add Photo',
+                        onPressed: _showPhotoOptions,
+                      ),
                     IconButton(
                       icon: const Icon(Icons.delete_outline_rounded, size: 20, color: Color(0xFFE02424)),
-                      tooltip: 'Remove Photo',
+                      tooltip: 'Remove All Photos',
                       onPressed: () {
-                        setState(() => _photoPath = null);
+                        setState(() => _photoPaths.clear());
                         _scheduleAutoSave();
                       },
                     ),
@@ -576,39 +638,172 @@ class _FreeformPageState extends State<FreeformPage> {
               ],
             ),
             const SizedBox(height: 8),
-            GestureDetector(
-              onTap: () => PhotoViewerDialog.show(context, photoUrl: _photoPath!),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: Stack(
-                  alignment: Alignment.bottomRight,
-                  children: [
-                    Image(
-                      image: imageProvider,
-                      height: 180,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
-                    Container(
-                      margin: const EdgeInsets.all(8),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.circular(8),
+
+            // Single Photo Preview
+            if (isSingle)
+              GestureDetector(
+                onTap: () => PhotoViewerDialog.show(
+                  context,
+                  photos: _photoPaths,
+                  initialIndex: 0,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Stack(
+                    alignment: Alignment.topRight,
+                    children: [
+                      Image(
+                        image: _photoPaths.first.startsWith('http://') || _photoPaths.first.startsWith('https://')
+                            ? NetworkImage(_photoPaths.first) as ImageProvider
+                            : FileImage(File(_photoPaths.first)),
+                        height: 180,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          height: 120,
+                          color: AppColors.surface,
+                          alignment: Alignment.center,
+                          child: Icon(Icons.broken_image_rounded, color: AppColors.textHint, size: 30),
+                        ),
                       ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.zoom_in_rounded, color: Colors.white, size: 14),
-                          SizedBox(width: 4),
-                          Text('View', style: TextStyle(color: Colors.white, fontSize: 11)),
-                        ],
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() => _photoPaths.clear());
+                            _scheduleAutoSave();
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.black54,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.close_rounded, size: 16, color: Colors.white),
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                ),
+              )
+            else
+              // Multiple Photos: Horizontal Thumbnail Strip with Add Tile
+              SizedBox(
+                height: 110,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: _photoPaths.length + (_photoPaths.length < maxPhotos ? 1 : 0),
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    if (index == _photoPaths.length) {
+                      // Add Photo Tile at the end
+                      return GestureDetector(
+                        onTap: _showPhotoOptions,
+                        child: Container(
+                          width: 85,
+                          height: 110,
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: AppColors.divider.withValues(alpha: 0.8),
+                              style: BorderStyle.solid,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add_a_photo_outlined, color: AppColors.primary, size: 22),
+                              const SizedBox(height: 4),
+                              Text(
+                                '+ Add',
+                                style: TextStyle(
+                                  color: AppColors.primary,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    final path = _photoPaths[index];
+                    final isNet = path.startsWith('http://') || path.startsWith('https://');
+                    final provider = isNet
+                        ? NetworkImage(path) as ImageProvider
+                        : FileImage(File(path));
+
+                    return Stack(
+                      children: [
+                        GestureDetector(
+                          onTap: () => PhotoViewerDialog.show(
+                            context,
+                            photos: _photoPaths,
+                            initialIndex: index,
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(14),
+                            child: SizedBox(
+                              width: 105,
+                              height: 110,
+                              child: Image(
+                                image: provider,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  color: AppColors.surface,
+                                  child: Icon(Icons.broken_image_rounded, color: AppColors.textHint, size: 24),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Remove single photo button
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _photoPaths.removeAt(index);
+                              });
+                              _scheduleAutoSave();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: const BoxDecoration(
+                                color: Colors.black54,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.close_rounded, size: 14, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                        // Index badge
+                        Positioned(
+                          bottom: 4,
+                          left: 4,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.black54,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '${index + 1}',
+                              style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
-            ),
           ],
         ),
       );
@@ -643,7 +838,7 @@ class _FreeformPageState extends State<FreeformPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Add Photo',
+                  'Add Moment Photo',
                   style: AppTextStyles.body.copyWith(
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
@@ -651,7 +846,7 @@ class _FreeformPageState extends State<FreeformPage> {
                   ),
                 ),
                 Text(
-                  'Attach a photo to this entry',
+                  'Capture with camera or choose from gallery (up to $maxPhotos)',
                   style: AppTextStyles.bodySmall.copyWith(
                     color: AppColors.textSecondary,
                     fontSize: 11,

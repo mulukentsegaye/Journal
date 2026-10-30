@@ -436,34 +436,77 @@ class _TrashedReflectionCard extends StatelessWidget {
           ),
 
           // Attached photo preview if present
-          if (entry.photoUrl != null && entry.photoUrl!.isNotEmpty) ...[
+          if (entry.photoUrls.isNotEmpty) ...[
             const SizedBox(height: 10),
-            GestureDetector(
-              onTap: () => PhotoViewerDialog.show(
-                context,
-                photoUrl: entry.photoUrl!,
-                caption: entry.freeformTitle ?? entry.mood,
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: entry.photoUrl!.startsWith('http://') ||
-                        entry.photoUrl!.startsWith('https://')
-                    ? Image.network(
-                        entry.photoUrl!,
-                        height: 60,
-                        width: 60,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                      )
-                    : Image.file(
-                        File(entry.photoUrl!),
-                        height: 60,
-                        width: 60,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+            if (entry.photoUrls.length == 1)
+              GestureDetector(
+                onTap: () => PhotoViewerDialog.show(
+                  context,
+                  photos: entry.photoUrls,
+                  initialIndex: 0,
+                  caption: entry.freeformTitle ?? entry.mood,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: entry.photoUrls.first.startsWith('http://') ||
+                          entry.photoUrls.first.startsWith('https://')
+                      ? Image.network(
+                          entry.photoUrls.first,
+                          height: 60,
+                          width: 60,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                        )
+                      : Image.file(
+                          File(entry.photoUrls.first),
+                          height: 60,
+                          width: 60,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                        ),
+                ),
+              )
+            else
+              SizedBox(
+                height: 60,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: entry.photoUrls.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final url = entry.photoUrls[index];
+                    return GestureDetector(
+                      onTap: () => PhotoViewerDialog.show(
+                        context,
+                        photos: entry.photoUrls,
+                        initialIndex: index,
+                        caption: entry.freeformTitle ?? entry.mood,
                       ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: url.startsWith('http://') ||
+                                url.startsWith('https://')
+                            ? Image.network(
+                                url,
+                                height: 60,
+                                width: 60,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const SizedBox.shrink(),
+                              )
+                            : Image.file(
+                                File(url),
+                                height: 60,
+                                width: 60,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const SizedBox.shrink(),
+                              ),
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
           ],
 
           const SizedBox(height: 14),

@@ -50,24 +50,25 @@ class PdfExportService {
     final Map<String, pw.MemoryImage> loadedImages = {};
     if (includePhotos) {
       for (final entry in sortedEntries) {
-        final url = entry.photoUrl;
-        if (url != null && url.isNotEmpty) {
-          try {
-            if (url.startsWith('http://') || url.startsWith('https://')) {
-              final response = await http.get(Uri.parse(url)).timeout(
-                const Duration(seconds: 10),
-              );
-              if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
-                loadedImages[url] = pw.MemoryImage(response.bodyBytes);
+        for (final url in entry.photoUrls) {
+          if (url.isNotEmpty && !loadedImages.containsKey(url)) {
+            try {
+              if (url.startsWith('http://') || url.startsWith('https://')) {
+                final response = await http.get(Uri.parse(url)).timeout(
+                  const Duration(seconds: 10),
+                );
+                if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
+                  loadedImages[url] = pw.MemoryImage(response.bodyBytes);
+                }
+              } else {
+                final file = File(url);
+                if (file.existsSync()) {
+                  final bytes = await file.readAsBytes();
+                  loadedImages[url] = pw.MemoryImage(bytes);
+                }
               }
-            } else {
-              final file = File(url);
-              if (file.existsSync()) {
-                final bytes = await file.readAsBytes();
-                loadedImages[url] = pw.MemoryImage(bytes);
-              }
-            }
-          } catch (_) {}
+            } catch (_) {}
+          }
         }
       }
     }
@@ -337,23 +338,84 @@ class PdfExportService {
                       ),
                       pw.SizedBox(height: 10),
 
-                      // Optional Attached Photo
+                      // Optional Attached Photo(s)
                       if (includePhotos &&
-                          entry.photoUrl != null &&
-                          loadedImages.containsKey(entry.photoUrl)) ...[
-                        pw.ClipRRect(
-                          horizontalRadius: 8,
-                          verticalRadius: 8,
-                          child: pw.Container(
-                            constraints: const pw.BoxConstraints(maxHeight: 350),
-                            width: double.infinity,
-                            child: pw.Image(
-                              loadedImages[entry.photoUrl]!,
-                              fit: pw.BoxFit.contain,
-                            ),
-                          ),
-                        ),
-                        pw.SizedBox(height: 10),
+                          entry.photoUrls.any((u) => loadedImages.containsKey(u))) ...[
+                        ...() {
+                          final validUrls = entry.photoUrls
+                              .where((u) => loadedImages.containsKey(u))
+                              .toList();
+                          if (validUrls.isEmpty) return <pw.Widget>[];
+
+                          if (validUrls.length == 1) {
+                            return [
+                              pw.ClipRRect(
+                                horizontalRadius: 8,
+                                verticalRadius: 8,
+                                child: pw.Container(
+                                  constraints: const pw.BoxConstraints(maxHeight: 350),
+                                  width: double.infinity,
+                                  child: pw.Image(
+                                    loadedImages[validUrls.first]!,
+                                    fit: pw.BoxFit.contain,
+                                  ),
+                                ),
+                              ),
+                              pw.SizedBox(height: 10),
+                            ];
+                          }
+
+                          // Multi-photo layout: 2-column grid without cropping
+                          final rows = <pw.Widget>[];
+                          for (int i = 0; i < validUrls.length; i += 2) {
+                            final first = validUrls[i];
+                            final hasSecond = i + 1 < validUrls.length;
+                            final second = hasSecond ? validUrls[i + 1] : null;
+
+                            rows.add(
+                              pw.Row(
+                                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                children: [
+                                  pw.Expanded(
+                                    child: pw.ClipRRect(
+                                      horizontalRadius: 6,
+                                      verticalRadius: 6,
+                                      child: pw.Container(
+                                        constraints: const pw.BoxConstraints(maxHeight: 180),
+                                        alignment: pw.Alignment.center,
+                                        child: pw.Image(
+                                          loadedImages[first]!,
+                                          fit: pw.BoxFit.contain,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  pw.SizedBox(width: 8),
+                                  if (hasSecond)
+                                    pw.Expanded(
+                                      child: pw.ClipRRect(
+                                        horizontalRadius: 6,
+                                        verticalRadius: 6,
+                                        child: pw.Container(
+                                          constraints: const pw.BoxConstraints(maxHeight: 180),
+                                          alignment: pw.Alignment.center,
+                                          child: pw.Image(
+                                            loadedImages[second!]!,
+                                            fit: pw.BoxFit.contain,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    pw.Expanded(child: pw.SizedBox()),
+                                ],
+                              ),
+                            );
+                            rows.add(pw.SizedBox(height: 8));
+                          }
+                          rows.add(pw.SizedBox(height: 2));
+                          return rows;
+                        }(),
                       ],
 
                       // Freeform Title if present

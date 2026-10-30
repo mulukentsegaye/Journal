@@ -187,7 +187,7 @@ class _JournalPageState extends State<JournalPage> {
           initialContent: model.freeformNote ??
               (model.answers.isNotEmpty ? model.answers.values.first : ''),
           initialMood: model.mood,
-          initialPhotoUrl: model.photoUrl,
+          initialPhotoUrls: model.photoUrls,
           initialTags: model.tags,
         ),
       ),
@@ -205,7 +205,7 @@ class _JournalPageState extends State<JournalPage> {
           moodEmoji: model.moodEmoji,
           freeformTitle: model.freeformTitle,
           freeformNote: model.freeformNote,
-          photoUrl: model.photoUrl,
+          photoUrls: model.photoUrls,
           answers: model.answers,
           tags: model.tags,
         ),

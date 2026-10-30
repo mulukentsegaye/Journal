@@ -55,7 +55,7 @@ class TodayPage extends StatelessWidget {
           initialContent: model.freeformNote ??
               (model.answers.isNotEmpty ? model.answers.values.first : ''),
           initialMood: model.mood,
-          initialPhotoUrl: model.photoUrl,
+          initialPhotoUrls: model.photoUrls,
           initialTags: model.tags,
         ),
       ),
@@ -74,7 +74,7 @@ class TodayPage extends StatelessWidget {
           freeformTitle: model.freeformTitle ?? 'Journal Entry',
           freeformNote: model.freeformNote,
           answers: model.answers,
-          photoUrl: model.photoUrl,
+          photoUrls: model.photoUrls,
           tags: model.tags,
         ),
       ),
@@ -396,7 +396,7 @@ class TodayPage extends StatelessWidget {
                             ? latestPast.freeformNote!.trim()
                             : (latestPast.answers.isNotEmpty == true
                                 ? latestPast.answers.values.first
-                                : (latestPast.photoUrl != null
+                                : (latestPast.photoUrls.isNotEmpty
                                     ? 'Photo entry'
                                     : 'Journal entry'));
 

@@ -303,7 +303,7 @@ class DatabaseService {
 
   /// Uploads an attached local photo to Supabase Storage bucket ('reflection_photos')
   /// and returns the public HTTP URL.
-  Future<String?> uploadReflectionPhoto(String localPath, String entryId, String userId) async {
+  Future<String?> uploadReflectionPhoto(String localPath, String entryId, String userId, {int index = 0}) async {
     if (!_isOnlineAndAuth) return null;
     final client = _client;
     if (client == null) return null;
@@ -315,7 +315,7 @@ class DatabaseService {
       final bytes = await file.readAsBytes();
       if (bytes.isEmpty) return null;
 
-      final filename = '${entryId}_moment.jpg';
+      final filename = index == 0 ? '${entryId}_moment.jpg' : '${entryId}_moment_$index.jpg';
       final storagePath = '$userId/$filename';
 
       await client.storage.from('reflection_photos').uploadBinary(
@@ -346,30 +346,43 @@ class DatabaseService {
 
       for (int i = 0; i < entries.length; i++) {
         final entry = entries[i];
-        if (entry.photoUrl != null &&
-            entry.photoUrl!.isNotEmpty &&
-            !entry.photoUrl!.startsWith('http://') &&
-            !entry.photoUrl!.startsWith('https://')) {
-          final file = File(entry.photoUrl!);
-          if (file.existsSync()) {
-            final cloudUrl = await uploadReflectionPhoto(entry.photoUrl!, entry.id, userId);
-            if (cloudUrl != null && cloudUrl.isNotEmpty) {
-              final updated = entry.copyWith(photoUrl: cloudUrl);
-              entries[i] = updated;
-              modified = true;
+        if (entry.photoUrls.isEmpty) continue;
 
-              // Also update Supabase database row with new photo_url
-              try {
-                await _client!
-                    .from('reflections')
-                    .update({'photo_url': cloudUrl})
-                    .eq('id', entry.id)
-                    .eq('user_id', userId);
-                debugPrint('[DatabaseService] ✓ Updated reflection ${entry.id} with cloud photo URL in Supabase');
-              } catch (e) {
-                debugPrint('[DatabaseService] ✗ Failed to update photo_url in reflections table: $e');
+        List<String> newUrls = List.from(entry.photoUrls);
+        bool entryModified = false;
+
+        for (int p = 0; p < newUrls.length; p++) {
+          final url = newUrls[p];
+          if (url.isNotEmpty &&
+              !url.startsWith('http://') &&
+              !url.startsWith('https://')) {
+            final file = File(url);
+            if (file.existsSync()) {
+              final cloudUrl = await uploadReflectionPhoto(url, entry.id, userId, index: p);
+              if (cloudUrl != null && cloudUrl.isNotEmpty) {
+                newUrls[p] = cloudUrl;
+                entryModified = true;
               }
             }
+          }
+        }
+
+        if (entryModified) {
+          final updated = entry.copyWith(photoUrls: newUrls);
+          entries[i] = updated;
+          modified = true;
+
+          // Also update Supabase database row with new photo_url
+          try {
+            final cloudPhotoUrl = newUrls.length > 1 ? jsonEncode(newUrls) : (newUrls.isNotEmpty ? newUrls.first : null);
+            await _client!
+                .from('reflections')
+                .update({'photo_url': cloudPhotoUrl})
+                .eq('id', entry.id)
+                .eq('user_id', userId);
+            debugPrint('[DatabaseService] ✓ Updated reflection ${entry.id} with cloud photo URLs in Supabase');
+          } catch (e) {
+            debugPrint('[DatabaseService] ✗ Failed to update photo_url in reflections table: $e');
           }
         }
       }
@@ -378,7 +391,7 @@ class DatabaseService {
         await _persistLocalEntries(entries);
       }
     } catch (e) {
-      debugPrint('[DatabaseService] Error in _uploadPendingLocalPhotos: $e');
+      debugPrint('[DatabaseService] ✗ Error uploading pending local photos: $e');
     }
   }
 
@@ -782,17 +795,19 @@ class DatabaseService {
         ? entry.id
         : generateUniqueId();
 
-    // If photo is a local file, upload to Supabase Storage for multi-device sync
-    String? effectivePhotoUrl = entry.photoUrl;
-    if (_isOnlineAndAuth &&
-        user != null &&
-        effectivePhotoUrl != null &&
-        effectivePhotoUrl.isNotEmpty &&
-        !effectivePhotoUrl.startsWith('http://') &&
-        !effectivePhotoUrl.startsWith('https://')) {
-      final cloudUrl = await uploadReflectionPhoto(effectivePhotoUrl, docId, user.id);
-      if (cloudUrl != null && cloudUrl.isNotEmpty) {
-        effectivePhotoUrl = cloudUrl;
+    // If photos are local files, upload to Supabase Storage for multi-device sync
+    List<String> effectivePhotoUrls = List.from(entry.photoUrls);
+    if (_isOnlineAndAuth && user != null) {
+      for (int i = 0; i < effectivePhotoUrls.length; i++) {
+        final path = effectivePhotoUrls[i];
+        if (path.isNotEmpty &&
+            !path.startsWith('http://') &&
+            !path.startsWith('https://')) {
+          final cloudUrl = await uploadReflectionPhoto(path, docId, user.id, index: i);
+          if (cloudUrl != null && cloudUrl.isNotEmpty) {
+            effectivePhotoUrls[i] = cloudUrl;
+          }
+        }
       }
     }
 
@@ -816,7 +831,7 @@ class DatabaseService {
       answers: sanitizedAnswers,
       freeformTitle: sanitizedTitle,
       freeformNote: sanitizedNote,
-      photoUrl: effectivePhotoUrl,
+      photoUrls: effectivePhotoUrls,
       isBookmarked: entry.isBookmarked,
       type: entry.type,
       isDeleted: entry.isDeleted,
