@@ -834,25 +834,28 @@ class _FreeformPageState extends State<FreeformPage> {
               child: Icon(Icons.add_a_photo_outlined, color: AppColors.primary, size: 20),
             ),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Add Moment Photo',
-                  style: AppTextStyles.body.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                    fontSize: 14,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Add Moment Photo',
+                    style: AppTextStyles.body.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                      fontSize: 14,
+                    ),
                   ),
-                ),
-                Text(
-                  'Capture with camera or choose from gallery (up to $maxPhotos)',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
-                    fontSize: 11,
+                  Text(
+                    'Capture with camera or choose from gallery',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../app.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/services/settings_service.dart';
@@ -14,9 +14,8 @@ import '../../reflection/models/reflection_entry_model.dart';
 import '../../reflection/services/reflection_service.dart';
 import '../../summary/pages/summary_page.dart';
 import '../widgets/greeting_header.dart';
-import '../widgets/yesterday_summary_card.dart';
 
-/// The main "Today" screen — the home page of Journal.
+/// The main "Reflect" / Home screen of Daily Reflection.
 class TodayPage extends StatelessWidget {
   const TodayPage({super.key});
 
@@ -93,19 +92,11 @@ class TodayPage extends StatelessWidget {
         final entries = reflectionService.entries;
         final now = DateTime.now();
 
-        // Saved entries for today
-        final todayEntries = entries.where((e) {
-          return e.date.year == now.year &&
-              e.date.month == now.month &&
-              e.date.day == now.day;
-        }).toList();
-
-        // Saved entries from earlier days
-        final pastEntries = entries.where((e) {
-          return !(e.date.year == now.year &&
-              e.date.month == now.month &&
-              e.date.day == now.day);
-        }).toList();
+        // Check if user has already reflected today
+        final hasReflectedToday = entries.any((e) =>
+            e.date.year == now.year &&
+            e.date.month == now.month &&
+            e.date.day == now.day);
 
         return Scaffold(
           backgroundColor: AppColors.background,
@@ -120,124 +111,8 @@ class TodayPage extends StatelessWidget {
                   const GreetingHeader(),
                   const SizedBox(height: 20),
 
-                  // ── Today's Saved Entries (or Write CTA if empty) ──
-                  if (todayEntries.isNotEmpty) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              "Today's Entries",
-                              style: AppTextStyles.sectionTitle.copyWith(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                '${todayEntries.length}',
-                                style: TextStyle(
-                                  color: AppColors.primary,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        TextButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              SmoothPageRoute(
-                                builder: (_) => const FreeformPage(),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.add_rounded, size: 16),
-                          label: const Text('New Entry'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.primary,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            textStyle: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // List of today's saved journal cards
-                    for (final entry in todayEntries) ...[
-                      JournalCard(
-                        key: ValueKey(entry.id),
-                        entry: entry.toJournalEntry(),
-                        onTap: () => _viewSummary(context, entry),
-                        onBookmarkToggle: () => reflectionService.toggleBookmark(
-                          entry.id,
-                          entry.isBookmarked,
-                        ),
-                        onDelete: () =>
-                            _confirmDelete(context, reflectionService, entry.id),
-                        onEdit: () => _editReflection(context, entry),
-                      ),
-                      const SizedBox(height: 14),
-                    ],
-
-                    // Quick button to add another thought for today
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          SmoothPageRoute(
-                            builder: (_) => const FreeformPage(),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 13, horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: AppColors.cardBackground,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: AppColors.divider.withValues(alpha: 0.7),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.edit_note_rounded,
-                                size: 18, color: AppColors.primary),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Write another thought for today',
-                              style: TextStyle(
-                                color: AppColors.primary,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ] else ...[
-                    // Empty state: Write Today's Journal CTA card
+                  // ── Daily Reflection Prompt Card ("that tab card") ──
+                  if (!hasReflectedToday)
                     GestureDetector(
                       onTap: () {
                         Navigator.push(
@@ -347,20 +222,99 @@ class TodayPage extends StatelessWidget {
                           ],
                         ),
                       ),
+                    )
+                  else
+                    // Quick banner if already reflected today
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          SmoothPageRoute(
+                            builder: (_) => const FreeformPage(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 14, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.cardBackground,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.2),
+                            width: 1,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.02),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(Icons.edit_note_rounded,
+                                  size: 20, color: AppColors.primary),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Capture another thought',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Add to today\'s reflections',
+                                    style: AppTextStyles.bodySmall.copyWith(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 11.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.12),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(Icons.add_rounded,
+                                  size: 16, color: AppColors.primary),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 24),
-                  ],
+                  const SizedBox(height: 24),
 
-                  // ── Past Summary / Reflections Section ───────
-                  if (pastEntries.isNotEmpty) ...[
+                  // ── Saved Entries Stream (Right after the prompt card!) ──
+                  if (entries.isNotEmpty) ...[
+                    // Subtle, un-intrusive section header
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Past Reflections',
-                          style: AppTextStyles.sectionTitle.copyWith(
-                            fontSize: 16,
+                          'SAVED ENTRIES',
+                          style: GoogleFonts.inter(
+                            fontSize: 11.5,
                             fontWeight: FontWeight.w600,
+                            letterSpacing: 0.8,
+                            color: AppColors.textHint,
                           ),
                         ),
                         GestureDetector(
@@ -372,14 +326,14 @@ class TodayPage extends StatelessWidget {
                                 'View Journal',
                                 style: TextStyle(
                                   color: AppColors.primary,
-                                  fontSize: 12.5,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 3),
                               Icon(
                                 Icons.arrow_forward_rounded,
-                                size: 14,
+                                size: 13,
                                 color: AppColors.primary,
                               ),
                             ],
@@ -389,40 +343,73 @@ class TodayPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
 
-                    Builder(
-                      builder: (context) {
-                        final latestPast = pastEntries.first;
-                        final summaryText = latestPast.freeformNote?.trim().isNotEmpty == true
-                            ? latestPast.freeformNote!.trim()
-                            : (latestPast.answers.isNotEmpty == true
-                                ? latestPast.answers.values.first
-                                : (latestPast.photoUrls.isNotEmpty
-                                    ? 'Photo entry'
-                                    : 'Journal entry'));
+                    // Saved entries cards (up to 10 most recent)
+                    for (final entry in entries.take(10)) ...[
+                      JournalCard(
+                        key: ValueKey(entry.id),
+                        entry: entry.toJournalEntry(),
+                        onTap: () => _viewSummary(context, entry),
+                        onBookmarkToggle: () => reflectionService.toggleBookmark(
+                          entry.id,
+                          entry.isBookmarked,
+                        ),
+                        onDelete: () =>
+                            _confirmDelete(context, reflectionService, entry.id),
+                        onEdit: () => _editReflection(context, entry),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
 
-                        final dateText =
-                            DateFormat('MMM d').format(latestPast.date);
-                        final yesterday = now.subtract(const Duration(days: 1));
-                        final isYesterday = latestPast.date.year == yesterday.year &&
-                            latestPast.date.month == yesterday.month &&
-                            latestPast.date.day == yesterday.day;
-
-                        return YesterdaySummaryCard(
-                          summary: summaryText,
-                          date: dateText,
-                          mood: latestPast.mood,
-                          moodEmoji: latestPast.moodEmoji,
-                          photoUrl: latestPast.photoUrl,
-                          title: latestPast.freeformTitle?.trim().isNotEmpty == true
-                              ? latestPast.freeformTitle!.trim()
-                              : (isYesterday
-                                  ? "Yesterday's Reflection"
-                                  : 'Recent Entry'),
-                          onTap: () => _viewSummary(context, latestPast),
-                        );
-                      },
+                    if (entries.length > 10) ...[
+                      const SizedBox(height: 4),
+                      Center(
+                        child: TextButton.icon(
+                          onPressed: () => AppShell.switchToTab(1),
+                          icon: const Icon(Icons.auto_stories_outlined, size: 16),
+                          label: Text(
+                            'View all ${entries.length} reflections in Journal →',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  ] else ...[
+                    // Empty state when no reflections exist yet
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 24, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.cardBackground.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppColors.divider.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.spa_outlined,
+                            size: 32,
+                            color: AppColors.textHint.withValues(alpha: 0.5),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Your saved reflections will appear here as you write them.',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.textSecondary,
+                              fontSize: 12.5,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 24),
                   ],
                 ],
               ),

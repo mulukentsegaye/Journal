@@ -43,7 +43,7 @@ class AppBottomNavBar extends StatelessWidget {
                 child: _NavTabItem(
                   iconActive: Icons.spa_rounded,
                   iconInactive: Icons.spa_outlined,
-                  label: 'Today',
+                  label: 'Reflect',
                   isActive: currentIndex == 0,
                   onTap: () {
                     HapticFeedback.selectionClick();
