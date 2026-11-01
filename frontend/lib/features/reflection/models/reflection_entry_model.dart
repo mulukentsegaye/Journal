@@ -223,6 +223,7 @@ class ReflectionEntryModel {
     return JournalEntry(
       id: id,
       date: date,
+      createdAt: createdAt,
       title: freeformTitle?.trim().isNotEmpty == true
           ? freeformTitle!.trim()
           : defaultTitle,

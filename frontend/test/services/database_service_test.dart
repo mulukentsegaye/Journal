@@ -320,6 +320,8 @@ void main() {
       final journal = restoredFromSupabase.toJournalEntry();
       expect(journal.photoUrls, equals(photos));
       expect(journal.photoUrl, equals('https://example.com/photo1.jpg'));
+      expect(journal.createdAt, equals(restoredFromSupabase.createdAt));
+      expect(journal.effectiveCreatedAt, equals(restoredFromSupabase.createdAt));
     });
   });
 }

@@ -53,6 +53,40 @@ class JournalCard extends StatelessWidget {
     return '$h12:$minute $period';
   }
 
+  String _formatRelativeTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.isNegative || difference.inSeconds < 5) {
+      return 'Just now';
+    }
+    if (difference.inSeconds < 60) {
+      return '${difference.inSeconds}s ago';
+    }
+    if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}m ago';
+    }
+    if (difference.inHours < 24) {
+      return '${difference.inHours}h ago';
+    }
+    if (difference.inDays == 1) {
+      return '1d ago';
+    }
+    if (difference.inDays < 7) {
+      return '${difference.inDays}d ago';
+    }
+    if (difference.inDays < 30) {
+      final weeks = (difference.inDays / 7).floor();
+      return '${weeks}w ago';
+    }
+    if (difference.inDays < 365) {
+      final months = (difference.inDays / 30).floor();
+      return '${months}mo ago';
+    }
+    final years = (difference.inDays / 365).floor();
+    return '${years}y ago';
+  }
+
 
 
   Widget _buildPhotoThumbnail(BuildContext context) {
@@ -505,10 +539,30 @@ class JournalCard extends StatelessWidget {
             ] else
               const SizedBox(height: 2),
 
-            // ── Footer: Type / Questions answered + Arrow ────────
+            // ── Footer: Relative timestamp + Read entry action ────
             Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.schedule_rounded,
+                      size: 13,
+                      color: AppColors.textHint.withValues(alpha: 0.8),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _formatRelativeTime(entry.effectiveCreatedAt),
+                      style: GoogleFonts.inter(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textHint,
+                      ),
+                    ),
+                  ],
+                ),
                 Text(
                   'Read entry →',
                   style: AppTextStyles.bodySmall.copyWith(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 class JournalEntry {
   final String id;
   final DateTime date;
+  final DateTime? createdAt;
   final String title;
   final String contentSnippet;
   final String mood;
@@ -18,9 +19,13 @@ class JournalEntry {
 
   String? get photoUrl => photoUrls.isNotEmpty ? photoUrls.first : null;
 
+  /// Returns the creation timestamp when available, falling back to the entry date.
+  DateTime get effectiveCreatedAt => createdAt ?? date;
+
   JournalEntry({
     required this.id,
     required this.date,
+    this.createdAt,
     required this.title,
     required this.contentSnippet,
     required this.mood,
@@ -40,10 +45,12 @@ class JournalEntry {
     String? entryType,
     String? photoUrl,
     List<String>? photoUrls,
+    DateTime? createdAt,
   }) {
     return JournalEntry(
       id: id,
       date: date,
+      createdAt: createdAt ?? this.createdAt,
       title: title,
       contentSnippet: contentSnippet,
       mood: mood,

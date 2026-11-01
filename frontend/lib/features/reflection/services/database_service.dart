@@ -124,23 +124,17 @@ class DatabaseService {
   }
 
   /// Checks whether the device currently has active internet connectivity.
-  Future<bool> hasInternetConnection() async {
+  Future<bool> hasInternetConnection({Duration timeout = const Duration(seconds: 2)}) async {
     if (kIsWeb) return true;
     try {
-      final host = SupabaseConfig.isConfigured
+      final host = SupabaseConfig.isConfigured && SupabaseConfig.supabaseUrl.isNotEmpty
           ? Uri.parse(SupabaseConfig.supabaseUrl).host
           : 'google.com';
       final res = await InternetAddress.lookup(host)
-          .timeout(const Duration(seconds: 3));
+          .timeout(timeout);
       return res.isNotEmpty && res[0].rawAddress.isNotEmpty;
     } catch (_) {
-      try {
-        final fallback = await InternetAddress.lookup('cloudflare.com')
-            .timeout(const Duration(seconds: 3));
-        return fallback.isNotEmpty && fallback[0].rawAddress.isNotEmpty;
-      } catch (_) {
-        return false;
-      }
+      return false;
     }
   }
   // ── Account Isolation ────────────────────────────────────────
@@ -325,7 +319,7 @@ class DatabaseService {
           upsert: true,
           contentType: 'image/jpeg',
         ),
-      );
+      ).timeout(const Duration(seconds: 15));
 
       final publicUrl = client.storage.from('reflection_photos').getPublicUrl(storagePath);
       debugPrint('[DatabaseService] ✓ Uploaded photo to Supabase storage: $publicUrl');
@@ -795,22 +789,6 @@ class DatabaseService {
         ? entry.id
         : generateUniqueId();
 
-    // If photos are local files, upload to Supabase Storage for multi-device sync
-    List<String> effectivePhotoUrls = List.from(entry.photoUrls);
-    if (_isOnlineAndAuth && user != null) {
-      for (int i = 0; i < effectivePhotoUrls.length; i++) {
-        final path = effectivePhotoUrls[i];
-        if (path.isNotEmpty &&
-            !path.startsWith('http://') &&
-            !path.startsWith('https://')) {
-          final cloudUrl = await uploadReflectionPhoto(path, docId, user.id, index: i);
-          if (cloudUrl != null && cloudUrl.isNotEmpty) {
-            effectivePhotoUrls[i] = cloudUrl;
-          }
-        }
-      }
-    }
-
     // Sanitize and cap field lengths to prevent layout breaking or excessive payloads
     final sanitizedTitle = entry.freeformTitle != null
         ? (entry.freeformTitle!.length > 120 ? entry.freeformTitle!.substring(0, 120) : entry.freeformTitle)
@@ -831,7 +809,7 @@ class DatabaseService {
       answers: sanitizedAnswers,
       freeformTitle: sanitizedTitle,
       freeformNote: sanitizedNote,
-      photoUrls: effectivePhotoUrls,
+      photoUrls: entry.photoUrls,
       isBookmarked: entry.isBookmarked,
       type: entry.type,
       isDeleted: entry.isDeleted,
@@ -852,59 +830,107 @@ class DatabaseService {
     await _persistLocalEntries(entries);
     debugPrint('[DatabaseService] ✓ Saved entry $docId locally');
 
-    // 2. Push encrypted payload to Supabase immediately, or queue for later
-    if (_isOnlineAndAuth) {
-      try {
-        final encrypted = await _encryption.encryptEntry(entryWithId);
-        await _client!.from('reflections').upsert(
-          encrypted.toSupabaseMap(userId: user?.id),
-          onConflict: 'id',
-        );
-        debugPrint('[DatabaseService] ✓ Pushed entry $docId to Supabase cloud');
-        _setSyncStatus(SyncStatus.synced);
-      } on PostgrestException catch (pe) {
-        if ((pe.code == '42501' ||
-                pe.message.contains('row-level security') ||
-                pe.message.contains('USING expression')) &&
-            user != null) {
-          debugPrint('[DatabaseService] 42501 on save $docId. Auto-rekeying with user prefix...');
-          final newId = generateUniqueId();
-          final rekeyed = entryWithId.copyWith(id: newId);
-          final reEncrypted = await _encryption.encryptEntry(rekeyed);
-          try {
-            await _client!.from('reflections').upsert(
-              reEncrypted.toSupabaseMap(userId: user.id),
-              onConflict: 'id',
-            );
-            final currentEntries = await _loadLocalEntries();
-            final idx = currentEntries.indexWhere((e) => e.id == docId);
-            if (idx >= 0) {
-              currentEntries[idx] = rekeyed;
-              await _persistLocalEntries(currentEntries);
-            }
-            debugPrint('[DatabaseService] ✓ Auto-recovered and pushed rekeyed entry $newId');
-            _setSyncStatus(SyncStatus.synced);
-          } catch (e) {
-            debugPrint('[DatabaseService] ✗ Cloud push failed for rekeyed entry $newId: $e');
-            await _queueWrite(rekeyed);
-            _scheduleRetrySync();
-          }
-        } else {
-          debugPrint('[DatabaseService] ✗ Cloud push failed for $docId, queuing: $pe');
-          await _queueWrite(entryWithId);
-          _scheduleRetrySync();
-        }
-      } catch (e) {
-        debugPrint('[DatabaseService] ✗ Cloud push failed for $docId, queuing: $e');
-        await _queueWrite(entryWithId);
-        _scheduleRetrySync();
-      }
-    } else if (AuthService().isGuest || AuthService().currentUser == null) {
+    // 2. Cloud sync management
+    if (AuthService().isGuest || user == null) {
       _setSyncStatus(SyncStatus.notSignedIn);
       debugPrint('[DatabaseService] Saved locally in guest mode');
-    } else {
-      debugPrint('[DatabaseService] Offline — queuing entry $docId for later sync');
-      await _queueWrite(entryWithId);
+      return;
+    }
+
+    // Always queue the write first so it is safely persisted for background sync
+    await _queueWrite(entryWithId);
+
+    // 3. Trigger background sync without blocking the caller UI
+    unawaited(_syncSingleEntryInBackground(entryWithId, user));
+  }
+
+  /// Background task to upload photos and push an encrypted entry to Supabase without blocking UI.
+  Future<void> _syncSingleEntryInBackground(ReflectionEntryModel entry, User user) async {
+    final client = _client;
+    if (client == null) return;
+
+    final isOnline = await hasInternetConnection();
+    if (!isOnline) {
+      _setSyncStatus(SyncStatus.offline);
+      debugPrint('[DatabaseService] Offline — entry ${entry.id} stays queued for cloud sync');
+      return;
+    }
+
+    try {
+      _setSyncStatus(SyncStatus.syncing);
+
+      // Upload local photos to cloud storage if any
+      List<String> effectivePhotoUrls = List.from(entry.photoUrls);
+      bool photoUploaded = false;
+      for (int i = 0; i < effectivePhotoUrls.length; i++) {
+        final path = effectivePhotoUrls[i];
+        if (path.isNotEmpty &&
+            !path.startsWith('http://') &&
+            !path.startsWith('https://')) {
+          final cloudUrl = await uploadReflectionPhoto(path, entry.id, user.id, index: i);
+          if (cloudUrl != null && cloudUrl.isNotEmpty) {
+            effectivePhotoUrls[i] = cloudUrl;
+            photoUploaded = true;
+          }
+        }
+      }
+
+      final entryToPush = photoUploaded
+          ? entry.copyWith(photoUrls: effectivePhotoUrls)
+          : entry;
+
+      if (photoUploaded) {
+        final currentEntries = await _loadLocalEntries();
+        final idx = currentEntries.indexWhere((e) => e.id == entry.id);
+        if (idx >= 0) {
+          currentEntries[idx] = entryToPush;
+          await _persistLocalEntries(currentEntries);
+        }
+      }
+
+      final encrypted = await _encryption.encryptEntry(entryToPush);
+      await client.from('reflections').upsert(
+        encrypted.toSupabaseMap(userId: user.id),
+        onConflict: 'id',
+      ).timeout(const Duration(seconds: 10));
+
+      await _removePendingWrite(entry.id);
+      debugPrint('[DatabaseService] ✓ Background pushed entry ${entry.id} to Supabase cloud');
+      _setSyncStatus(SyncStatus.synced);
+    } on PostgrestException catch (pe) {
+      if ((pe.code == '42501' ||
+              pe.message.contains('row-level security') ||
+              pe.message.contains('USING expression'))) {
+        debugPrint('[DatabaseService] 42501 on save ${entry.id}. Auto-rekeying with user prefix...');
+        final newId = generateUniqueId();
+        final rekeyed = entry.copyWith(id: newId);
+        final reEncrypted = await _encryption.encryptEntry(rekeyed);
+        try {
+          await client.from('reflections').upsert(
+            reEncrypted.toSupabaseMap(userId: user.id),
+            onConflict: 'id',
+          ).timeout(const Duration(seconds: 10));
+          final currentEntries = await _loadLocalEntries();
+          final idx = currentEntries.indexWhere((e) => e.id == entry.id);
+          if (idx >= 0) {
+            currentEntries[idx] = rekeyed;
+            await _persistLocalEntries(currentEntries);
+          }
+          await _removePendingWrite(entry.id);
+          debugPrint('[DatabaseService] ✓ Auto-recovered and pushed rekeyed entry $newId');
+          _setSyncStatus(SyncStatus.synced);
+        } catch (e) {
+          debugPrint('[DatabaseService] ✗ Cloud push failed for rekeyed entry $newId: $e');
+          await _queueWrite(rekeyed);
+          _scheduleRetrySync();
+        }
+      } else {
+        debugPrint('[DatabaseService] ✗ Cloud push failed for ${entry.id}, keeping queued: $pe');
+        _scheduleRetrySync();
+      }
+    } catch (e) {
+      debugPrint('[DatabaseService] ✗ Background sync failed for ${entry.id}, keeping queued: $e');
+      _scheduleRetrySync();
     }
   }
 
@@ -934,19 +960,11 @@ class DatabaseService {
       entries[index] = updated;
       await _persistLocalEntries(entries);
 
-      if (_isOnlineAndAuth) {
-        try {
-          await _client!
-              .from('reflections')
-              .update({'is_bookmarked': !currentBookmark}).eq('id', docId);
-          debugPrint('[DatabaseService] ✓ Updated bookmark for $docId in cloud');
-        } catch (e) {
-          debugPrint('[DatabaseService] ✗ Bookmark cloud update failed: $e');
-          await _queueWrite(updated);
-        }
-      } else {
-        await _queueWrite(updated);
-      }
+      final user = AuthService().currentUser;
+      if (AuthService().isGuest || user == null) return;
+
+      await _queueWrite(updated);
+      unawaited(_syncSingleEntryInBackground(updated, user));
     }
   }
 
@@ -966,6 +984,15 @@ class DatabaseService {
     } catch (_) {}
   }
 
+  Future<void> _removePendingDelete(String docId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final pendingDeletes = prefs.getStringList(_keyPendingDeletes) ?? [];
+      pendingDeletes.remove(docId);
+      await prefs.setStringList(_keyPendingDeletes, pendingDeletes);
+    } catch (_) {}
+  }
+
   /// Moves a reflection to the Recycle Bin (Soft Delete with cross-device sync).
   Future<void> deleteReflection(String docId) async {
     final entries = await _loadLocalEntries();
@@ -980,27 +1007,41 @@ class DatabaseService {
       await _persistLocalEntries(entries);
       await _removePendingWrite(docId);
 
-      if (_isOnlineAndAuth) {
-        try {
-          final user = AuthService().currentUser;
-          final encrypted = await _encryption.encryptEntry(trashed);
-          await _client!.from('reflections').upsert(
-            encrypted.toSupabaseMap(userId: user?.id),
-            onConflict: 'id',
-          );
-          debugPrint('[DatabaseService] ✓ Moved reflection $docId to Recycle Bin in cloud');
-          _setSyncStatus(SyncStatus.synced);
-        } catch (e) {
-          debugPrint('[DatabaseService] ✗ Recycle Bin cloud sync failed for $docId, queuing: $e');
-          await _queueWrite(trashed);
-          _scheduleRetrySync();
-        }
-      } else if (AuthService().isGuest || AuthService().currentUser == null) {
+      final user = AuthService().currentUser;
+      if (AuthService().isGuest || user == null) {
         _setSyncStatus(SyncStatus.notSignedIn);
-      } else {
-        debugPrint('[DatabaseService] Offline — queuing soft delete for $docId');
-        await _queueWrite(trashed);
+        return;
       }
+
+      await _queueWrite(trashed);
+      unawaited(_syncSoftDeleteInBackground(trashed, user));
+    }
+  }
+
+  Future<void> _syncSoftDeleteInBackground(ReflectionEntryModel trashed, User user) async {
+    final client = _client;
+    if (client == null) return;
+
+    final isOnline = await hasInternetConnection();
+    if (!isOnline) {
+      _setSyncStatus(SyncStatus.offline);
+      debugPrint('[DatabaseService] Offline — soft delete for ${trashed.id} stays queued');
+      return;
+    }
+
+    try {
+      _setSyncStatus(SyncStatus.syncing);
+      final encrypted = await _encryption.encryptEntry(trashed);
+      await client.from('reflections').upsert(
+        encrypted.toSupabaseMap(userId: user.id),
+        onConflict: 'id',
+      ).timeout(const Duration(seconds: 10));
+      await _removePendingWrite(trashed.id);
+      debugPrint('[DatabaseService] ✓ Moved reflection ${trashed.id} to Recycle Bin in cloud');
+      _setSyncStatus(SyncStatus.synced);
+    } catch (e) {
+      debugPrint('[DatabaseService] ✗ Recycle Bin cloud sync failed for ${trashed.id}, keeping queued: $e');
+      _scheduleRetrySync();
     }
   }
 
@@ -1018,26 +1059,14 @@ class DatabaseService {
       await _persistLocalEntries(entries);
       await _removePendingWrite(docId);
 
-      if (_isOnlineAndAuth) {
-        try {
-          final user = AuthService().currentUser;
-          final encrypted = await _encryption.encryptEntry(restored);
-          await _client!.from('reflections').upsert(
-            encrypted.toSupabaseMap(userId: user?.id),
-            onConflict: 'id',
-          );
-          debugPrint('[DatabaseService] ✓ Restored reflection $docId in cloud');
-          _setSyncStatus(SyncStatus.synced);
-        } catch (e) {
-          debugPrint('[DatabaseService] ✗ Restore cloud sync failed for $docId, queuing: $e');
-          await _queueWrite(restored);
-          _scheduleRetrySync();
-        }
-      } else if (AuthService().isGuest || AuthService().currentUser == null) {
+      final user = AuthService().currentUser;
+      if (AuthService().isGuest || user == null) {
         _setSyncStatus(SyncStatus.notSignedIn);
-      } else {
-        await _queueWrite(restored);
+        return;
       }
+
+      await _queueWrite(restored);
+      unawaited(_syncSingleEntryInBackground(restored, user));
     }
   }
 
@@ -1048,23 +1077,33 @@ class DatabaseService {
     await _persistLocalEntries(entries);
     await _removePendingWrite(docId);
 
-    if (_isOnlineAndAuth) {
-      try {
-        final user = AuthService().currentUser;
-        if (user != null) {
-          await _client!.from('reflections').delete().eq('id', docId).eq('user_id', user.id);
-        } else {
-          await _client!.from('reflections').delete().eq('id', docId);
-        }
-        debugPrint('[DatabaseService] ✓ Permanently deleted $docId from cloud');
-      } catch (e) {
-        debugPrint('[DatabaseService] ✗ Permanent cloud delete failed for $docId: $e');
-        await _queueDelete(docId);
-      }
-    } else if (AuthService().isGuest || AuthService().currentUser == null) {
-      // Local guest mode, deletion is already local
-    } else {
-      await _queueDelete(docId);
+    final user = AuthService().currentUser;
+    if (AuthService().isGuest || user == null) return;
+
+    await _queueDelete(docId);
+    unawaited(_syncPermanentDeleteInBackground(docId, user));
+  }
+
+  Future<void> _syncPermanentDeleteInBackground(String docId, User user) async {
+    final client = _client;
+    if (client == null) return;
+
+    final isOnline = await hasInternetConnection();
+    if (!isOnline) {
+      _setSyncStatus(SyncStatus.offline);
+      debugPrint('[DatabaseService] Offline — permanent delete for $docId stays queued');
+      return;
+    }
+
+    try {
+      _setSyncStatus(SyncStatus.syncing);
+      await client.from('reflections').delete().eq('id', docId).eq('user_id', user.id).timeout(const Duration(seconds: 10));
+      await _removePendingDelete(docId);
+      debugPrint('[DatabaseService] ✓ Permanently deleted $docId from cloud');
+      _setSyncStatus(SyncStatus.synced);
+    } catch (e) {
+      debugPrint('[DatabaseService] ✗ Permanent cloud delete failed for $docId, keeping queued: $e');
+      _scheduleRetrySync();
     }
   }
 
