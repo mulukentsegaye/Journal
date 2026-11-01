@@ -323,6 +323,32 @@ void main() {
       expect(journal.createdAt, equals(restoredFromSupabase.createdAt));
       expect(journal.effectiveCreatedAt, equals(restoredFromSupabase.createdAt));
     });
+
+    test('saveReflection completes immediately and preserves local photo paths offline', () async {
+      final db = DatabaseService();
+      final stopwatch = Stopwatch()..start();
+
+      final entry = ReflectionEntryModel(
+        id: 'fast_save_offline_test',
+        date: DateTime.now(),
+        mood: 'Radiant',
+        moodEmoji: '☀️',
+        freeformNote: 'Testing rapid offline save',
+        photoUrls: const ['/local/storage/path/photo1.jpg'],
+        createdAt: DateTime.now(),
+      );
+
+      await db.saveReflection(entry);
+      stopwatch.stop();
+
+      // Must complete well under 250ms (local-first instant save)
+      expect(stopwatch.elapsedMilliseconds, lessThan(250));
+
+      final entries = await db.streamReflections().first;
+      final saved = entries.firstWhere((e) => e.id == 'fast_save_offline_test');
+      expect(saved.freeformNote, equals('Testing rapid offline save'));
+      expect(saved.photoUrls, equals(['/local/storage/path/photo1.jpg']));
+    });
   });
 }
 
