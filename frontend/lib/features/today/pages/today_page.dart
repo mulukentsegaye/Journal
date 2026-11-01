@@ -16,8 +16,18 @@ import '../../summary/pages/summary_page.dart';
 import '../widgets/greeting_header.dart';
 
 /// The main "Reflect" / Home screen of Daily Reflection.
-class TodayPage extends StatelessWidget {
+class TodayPage extends StatefulWidget {
   const TodayPage({super.key});
+
+
+  @override
+  State<TodayPage> createState() => _TodayPageState();
+}
+
+class _TodayPageState extends State<TodayPage> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
 
   void _confirmDelete(BuildContext context, ReflectionService service, String id) {
     HapticFeedback.lightImpact();
@@ -82,6 +92,7 @@ class TodayPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final reflectionService = ReflectionService();
     final authService = AuthService();
     final settingsService = SettingsService();

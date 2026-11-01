@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/settings_service.dart';
@@ -116,12 +117,13 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
-  int _previousIndex = 0;
+  late final PageController _pageController;
 
   @override
   void initState() {
     super.initState();
     AppShell._state = this;
+    _pageController = PageController(initialPage: _currentIndex);
   }
 
   @override
@@ -129,13 +131,28 @@ class _AppShellState extends State<AppShell> {
     if (AppShell._state == this) {
       AppShell._state = null;
     }
+    _pageController.dispose();
     super.dispose();
   }
 
   void _onTabTapped(int index) {
     if (index == _currentIndex) return;
     setState(() {
-      _previousIndex = _currentIndex;
+      _currentIndex = index;
+    });
+    if (_pageController.hasClients) {
+      _pageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeInOutCubic,
+      );
+    }
+  }
+
+  void _onPageChanged(int index) {
+    if (index == _currentIndex) return;
+    HapticFeedback.selectionClick();
+    setState(() {
       _currentIndex = index;
     });
   }
@@ -146,8 +163,6 @@ class _AppShellState extends State<AppShell> {
       listenable: SettingsService(),
       builder: (context, _) {
         final currentTheme = SettingsService().themeMode;
-        // Direction: positive = moving right (Journal), negative = moving left (Today)
-        final goingForward = _currentIndex > _previousIndex;
 
         final pages = <Widget>[
           TodayPage(key: ValueKey('today_$currentTheme')),
@@ -157,32 +172,12 @@ class _AppShellState extends State<AppShell> {
         return Scaffold(
           key: AppShell.scaffoldKey,
           endDrawer: const ProfileDrawer(),
-          body: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 220),
-            switchInCurve: Curves.easeInOutCubic,
-            switchOutCurve: Curves.easeInOutCubic,
-            transitionBuilder: (child, animation) {
-              // Determine if this child is the incoming or outgoing widget
-              final isIncoming = animation.status == AnimationStatus.forward;
-              final slideBegin = isIncoming
-                  ? Offset(goingForward ? 0.06 : -0.06, 0.0)
-                  : Offset(goingForward ? -0.06 : 0.06, 0.0);
-
-              return SlideTransition(
-                position: Tween<Offset>(
-                  begin: slideBegin,
-                  end: Offset.zero,
-                ).animate(animation),
-                child: FadeTransition(
-                  opacity: animation,
-                  child: child,
-                ),
-              );
-            },
-            child: KeyedSubtree(
-              key: ValueKey('tab_${_currentIndex}_$currentTheme'),
-              child: pages[_currentIndex],
-            ),
+          endDrawerEnableOpenDragGesture: false,
+          body: PageView(
+            controller: _pageController,
+            onPageChanged: _onPageChanged,
+            physics: const PageScrollPhysics(),
+            children: pages,
           ),
           bottomNavigationBar: AppBottomNavBar(
             currentIndex: _currentIndex,

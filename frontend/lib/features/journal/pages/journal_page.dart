@@ -37,7 +37,10 @@ class JournalPage extends StatefulWidget {
   State<JournalPage> createState() => _JournalPageState();
 }
 
-class _JournalPageState extends State<JournalPage> {
+class _JournalPageState extends State<JournalPage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   JournalViewMode _viewMode = JournalViewMode.timeline;
   String _selectedFilter = 'all';
   final TextEditingController _searchController = TextEditingController();
@@ -352,6 +355,7 @@ class _JournalPageState extends State<JournalPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       floatingActionButton: FloatingActionButton.extended(
