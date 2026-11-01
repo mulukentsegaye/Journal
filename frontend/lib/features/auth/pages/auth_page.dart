@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/email_validator.dart';
 import '../../../core/utils/error_formatter.dart';
 import '../services/auth_service.dart';
 
@@ -41,52 +42,295 @@ class _AuthPageState extends State<AuthPage> {
     super.dispose();
   }
 
+  Future<bool> _showTypoSuggestionDialog({
+    required String original,
+    required String suggested,
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Check Email Spelling',
+          style: GoogleFonts.lora(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Did you mean to use:',
+              style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                suggested,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Instead of "$original"?',
+              style: GoogleFonts.inter(fontSize: 12, color: AppColors.textHint),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Edit Email',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            child: const Text('Use Suggested'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
+  Future<bool> _showEmailConfirmDialog(String email) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Confirm Email Address',
+          style: GoogleFonts.lora(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'A confirmation message will be sent to:',
+              style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                email,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Please verify this is spelled correctly so your confirmation is delivered.',
+              style: GoogleFonts.inter(fontSize: 12, color: AppColors.textHint),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Edit Email',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            child: const Text('Send Confirmation'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    final rawEmail = _emailController.text.trim();
+    final password = _passwordController.text;
 
-    try {
-      if (_isSignUp) {
+    if (_isSignUp) {
+      // 1. Check for common domain typos (e.g. @gmial.com)
+      final syntaxResult = EmailValidator.validateSyntax(rawEmail);
+      if (!syntaxResult.isValid) {
+        if (syntaxResult.suggestedEmail != null) {
+          final accepted = await _showTypoSuggestionDialog(
+            original: rawEmail,
+            suggested: syntaxResult.suggestedEmail!,
+          );
+          if (accepted) {
+            _emailController.text = syntaxResult.suggestedEmail!;
+          } else {
+            if (mounted) FocusScope.of(context).requestFocus(_emailFocusNode);
+            return;
+          }
+        } else {
+          setState(() {
+            _errorMessage = syntaxResult.errorMessage;
+          });
+          FocusScope.of(context).requestFocus(_emailFocusNode);
+          return;
+        }
+      }
+
+      final activeEmail = _emailController.text.trim();
+
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      // 2. Check if the domain actually exists via DNS lookup before sending
+      final domainError = await EmailValidator.checkDomainExists(activeEmail);
+      if (domainError != null) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _errorMessage = domainError;
+          });
+          FocusScope.of(context).requestFocus(_emailFocusNode);
+        }
+        return;
+      }
+
+      // 3. Check if an account already exists in Supabase before sending confirmation
+      final accountExists = await _authService.checkAccountExists(activeEmail);
+      if (accountExists == true) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _isSignUp = false; // Switch to Sign In tab
+            _errorMessage = 'Account already exists. Please sign in.';
+          });
+        }
+        return;
+      }
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+
+      // 4. Confirm Email Dialog so user can verify their email address
+      final confirmed = await _showEmailConfirmDialog(activeEmail);
+      if (!confirmed) {
+        if (mounted) FocusScope.of(context).requestFocus(_emailFocusNode);
+        return;
+      }
+
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      try {
         final res = await _authService.signUpWithEmail(
-          email: _emailController.text,
-          password: _passwordController.text,
+          email: activeEmail,
+          password: password,
           displayName:
-              _nameController.text.isNotEmpty ? _nameController.text : null,
+              _nameController.text.isNotEmpty ? _nameController.text.trim() : null,
         );
+
         if (res.session == null && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               backgroundColor: AppColors.snackBarBackground,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              content: const Text(
-                'Account created! Please check your email to confirm.',
-                style: TextStyle(color: Colors.white),
+              duration: const Duration(seconds: 5),
+              content: Text(
+                'Confirmation link sent to $activeEmail.',
+                style: const TextStyle(color: Colors.white),
               ),
             ),
           );
         }
-      } else {
+      } catch (e) {
+        if (mounted) {
+          final errorText = ErrorFormatter.format(e);
+          setState(() {
+            _errorMessage = errorText;
+            if (errorText.toLowerCase().contains('already exists')) {
+              _isSignUp = false; // Switch to Sign In tab
+            }
+          });
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    } else {
+      // Sign in
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      try {
         await _authService.signInWithEmail(
-          email: _emailController.text,
-          password: _passwordController.text,
+          email: rawEmail,
+          password: password,
         );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = ErrorFormatter.format(e);
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _errorMessage = ErrorFormatter.format(e);
+          });
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }

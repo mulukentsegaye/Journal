@@ -45,6 +45,15 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  SupabaseClient? get _client {
+    if (!SupabaseConfig.isConfigured) return null;
+    try {
+      return Supabase.instance.client;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Load persisted session state on app launch.
   Future<void> loadSession() async {
     try {
@@ -170,6 +179,27 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  /// Checks whether an account with the given email already exists in Supabase.
+  /// Returns true if the account exists, false if it does not, or null if unverified.
+  Future<bool?> checkAccountExists(String email) async {
+    final client = _client;
+    if (client == null) return null;
+
+    try {
+      final res = await client.rpc(
+        'check_email_exists',
+        params: {'email_to_check': email.trim()},
+      ).timeout(const Duration(seconds: 4));
+
+      if (res is bool) {
+        return res;
+      }
+    } catch (e) {
+      debugPrint('[AuthService] check_email_exists RPC unavailable: $e');
+    }
+    return null;
+  }
+
   /// Sign up with email, password, and optional display name.
   Future<AuthResponse> signUpWithEmail({
     required String email,
@@ -190,6 +220,12 @@ class AuthService extends ChangeNotifier {
             ? {'display_name': displayName.trim()}
             : null,
       );
+
+      // If user already exists in Supabase with email confirmations on,
+      // Supabase returns an empty identities list and does not send an email.
+      if (res.user != null && (res.user!.identities == null || res.user!.identities!.isEmpty)) {
+        throw 'Account already exists. Try signing in.';
+      }
 
       await _clearLocalGuest();
       _notifyAuthState();

@@ -95,6 +95,23 @@ CREATE POLICY "Authenticated users can delete photos"
         (storage.foldername(name))[1] = auth.uid()::text
     );
 
--- 6. Reload Supabase PostgREST schema cache so new columns are recognized immediately
+-- 6. Check Email Exists Helper (pre-checks before sending confirmation emails)
+CREATE OR REPLACE FUNCTION public.check_email_exists(email_to_check TEXT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM auth.users 
+        WHERE LOWER(email) = LOWER(TRIM(email_to_check))
+    );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.check_email_exists(TEXT) TO anon, authenticated;
+
+-- 7. Reload Supabase PostgREST schema cache so new columns and RPCs are recognized immediately
 NOTIFY pgrst, 'reload schema';
 

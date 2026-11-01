@@ -177,6 +177,21 @@ CREATE POLICY "Authenticated users can delete photos"
 --   WHERE reflections.user_id = auth.uid()
 --     AND 1 - (reflections.embedding <=> query_embedding) > match_threshold
 --   ORDER BY similarity DESC
---   LIMIT match_count;
--- END;
--- $$;
+-- ==============================================================================
+-- 8. Check If Email Exists (pre-validates accounts before dispatching confirmation)
+-- ==============================================================================
+CREATE OR REPLACE FUNCTION public.check_email_exists(email_to_check TEXT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM auth.users 
+        WHERE LOWER(email) = LOWER(TRIM(email_to_check))
+    );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.check_email_exists(TEXT) TO anon, authenticated;
