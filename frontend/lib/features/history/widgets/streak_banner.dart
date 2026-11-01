@@ -53,7 +53,7 @@ class StreakBanner extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Center(
-                  child: Text('📖', style: TextStyle(fontSize: 22)),
+                  child: Text('🔥', style: TextStyle(fontSize: 22)),
                 ),
               ),
               const SizedBox(width: 14),
@@ -104,9 +104,9 @@ class StreakBanner extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          currentStreak! > 0 ? '🔥' : '🌱',
-                          style: const TextStyle(fontSize: 12),
+                        const Text(
+                          '🔥',
+                          style: TextStyle(fontSize: 12),
                         ),
                         const SizedBox(width: 5),
                         Text(

@@ -47,8 +47,7 @@ class GreetingHeader extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 18),
-            Text(streak > 0 ? '🔥' : '🌱',
-                style: const TextStyle(fontSize: 40)),
+            const Text('🔥', style: TextStyle(fontSize: 40)),
             const SizedBox(height: 12),
             Text(
               title,
@@ -74,7 +73,7 @@ class GreetingHeader extends StatelessWidget {
                     child: Column(
                       children: [
                         Text(
-                          streak > 0 ? '🔥 $streak' : '🌱 0',
+                          '🔥 $streak',
                           style:
                               AppTextStyles.sectionTitle.copyWith(fontSize: 18),
                         ),
@@ -176,7 +175,6 @@ class GreetingHeader extends StatelessWidget {
                     builder: (context, _) {
                       final streak = ReflectionService().streakCount;
                       final streakText = '$streak Day Streak';
-                      final emoji = streak > 0 ? '🔥' : '🌱';
 
                       return GestureDetector(
                         onTap: () => _showStreakSheet(context, streak),
@@ -190,7 +188,7 @@ class GreetingHeader extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(emoji, style: const TextStyle(fontSize: 13)),
+                              const Text('🔥', style: TextStyle(fontSize: 13)),
                               const SizedBox(width: 4),
                               Text(
                                 streakText,
