@@ -30,7 +30,9 @@ class FreeformEditor extends StatelessWidget {
   ];
 
   static const List<String> presetTags = [
-    'gratitude',
+    'saved',
+    'grateful',
+    'calm',
     'ideas',
     'work',
     'mindset',

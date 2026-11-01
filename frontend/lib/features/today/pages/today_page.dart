@@ -98,6 +98,18 @@ class TodayPage extends StatelessWidget {
             e.date.month == now.month &&
             e.date.day == now.day);
 
+        // One recently saved entry (only one)
+        final recentEntry = entries.isNotEmpty ? entries.first : null;
+
+        // Entries with "saved" tag (and/or bookmarked)
+        final savedTagEntries = entries.where((e) {
+          final hasSavedTag = e.tags.any((t) {
+            final clean = t.trim().toLowerCase().replaceAll('#', '');
+            return clean == 'saved';
+          });
+          return hasSavedTag || e.isBookmarked;
+        }).toList();
+
         return Scaffold(
           backgroundColor: AppColors.background,
           body: SafeArea(
@@ -111,7 +123,7 @@ class TodayPage extends StatelessWidget {
                   const GreetingHeader(),
                   const SizedBox(height: 20),
 
-                  // ── Daily Reflection Prompt Card ("that tab card") ──
+                  // ── 1. CTA of write entry ("that tab card") ──
                   if (!hasReflectedToday)
                     GestureDetector(
                       onTap: () {
@@ -300,16 +312,15 @@ class TodayPage extends StatelessWidget {
                         ),
                       ),
                     ),
-                  const SizedBox(height: 24),
 
-                  // ── Saved Entries Stream (Right after the prompt card!) ──
-                  if (entries.isNotEmpty) ...[
-                    // Subtle, un-intrusive section header
+                  // ── 2. One Recently Saved Entry (Only One) ───
+                  if (recentEntry != null) ...[
+                    const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'SAVED ENTRIES',
+                          'RECENT ENTRY',
                           style: GoogleFonts.inter(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w600,
@@ -342,44 +353,143 @@ class TodayPage extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 12),
-
-                    // Saved entries cards (up to 10 most recent)
-                    for (final entry in entries.take(10)) ...[
-                      JournalCard(
-                        key: ValueKey(entry.id),
-                        entry: entry.toJournalEntry(),
-                        onTap: () => _viewSummary(context, entry),
-                        onBookmarkToggle: () => reflectionService.toggleBookmark(
-                          entry.id,
-                          entry.isBookmarked,
-                        ),
-                        onDelete: () =>
-                            _confirmDelete(context, reflectionService, entry.id),
-                        onEdit: () => _editReflection(context, entry),
+                    JournalCard(
+                      key: ValueKey('recent_${recentEntry.id}'),
+                      entry: recentEntry.toJournalEntry(),
+                      onTap: () => _viewSummary(context, recentEntry),
+                      onBookmarkToggle: () => reflectionService.toggleBookmark(
+                        recentEntry.id,
+                        recentEntry.isBookmarked,
                       ),
-                      const SizedBox(height: 14),
-                    ],
+                      onDelete: () => _confirmDelete(
+                          context, reflectionService, recentEntry.id),
+                      onEdit: () => _editReflection(context, recentEntry),
+                    ),
+                  ],
 
-                    if (entries.length > 10) ...[
-                      const SizedBox(height: 4),
-                      Center(
-                        child: TextButton.icon(
-                          onPressed: () => AppShell.switchToTab(1),
-                          icon: const Icon(Icons.auto_stories_outlined, size: 16),
-                          label: Text(
-                            'View all ${entries.length} reflections in Journal →',
-                            style: TextStyle(
+                  // ── 3. Entries with "saved" tag ───────────────
+                  if (entries.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.bookmark_rounded,
+                              size: 15,
                               color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
                             ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'SAVED ENTRIES',
+                              style: GoogleFonts.inter(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.8,
+                                color: AppColors.textHint,
+                              ),
+                            ),
+                            if (savedTagEntries.isNotEmpty) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color:
+                                      AppColors.primary.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '${savedTagEntries.length}',
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (savedTagEntries.isNotEmpty) ...[
+                      for (final entry in savedTagEntries) ...[
+                        JournalCard(
+                          key: ValueKey('saved_${entry.id}'),
+                          entry: entry.toJournalEntry(),
+                          onTap: () => _viewSummary(context, entry),
+                          onBookmarkToggle: () =>
+                              reflectionService.toggleBookmark(
+                            entry.id,
+                            entry.isBookmarked,
+                          ),
+                          onDelete: () => _confirmDelete(
+                              context, reflectionService, entry.id),
+                          onEdit: () => _editReflection(context, entry),
+                        ),
+                        const SizedBox(height: 14),
+                      ],
+                    ] else ...[
+                      // Empty state when user hasn't tagged any entry as "saved"
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.cardBackground.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppColors.divider.withValues(alpha: 0.6),
                           ),
                         ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.bookmark_outline_rounded,
+                                size: 18,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'No saved entries yet',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Tag your important reflections with #saved or tap the bookmark icon on any card to keep them pinned here.',
+                                    style: AppTextStyles.bodySmall.copyWith(
+                                      fontSize: 11,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 12),
                     ],
                   ] else ...[
-                    // Empty state when no reflections exist yet
+                    // Empty state when no reflections exist in the app yet
+                    const SizedBox(height: 12),
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(
@@ -400,7 +510,7 @@ class TodayPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            'Your saved reflections will appear here as you write them.',
+                            'Your reflections will appear here as you write them.',
                             style: AppTextStyles.bodySmall.copyWith(
                               color: AppColors.textSecondary,
                               fontSize: 12.5,
@@ -411,6 +521,7 @@ class TodayPage extends StatelessWidget {
                       ),
                     ),
                   ],
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
