@@ -23,41 +23,41 @@ class _OnboardingPageState extends State<OnboardingPage>
 
   final List<_OnboardingSlideData> _slides = const [
     _OnboardingSlideData(
-      badge: 'SIMPLE & DISTRACTION-FREE',
-      title: 'Write Freely, Anytime.',
+      badge: 'MINDFUL JOURNALING',
+      title: 'Write Freely, Speak Freely.',
       description:
-          'Capture your thoughts with distraction-free journaling, optional mood tagging, and daily streaks.',
-      emoji: '📝',
+          'Capture your thoughts effortlessly with freeform writing, fast voice dictation, and photo moments.',
+      emoji: '✍️',
       features: [
-        '✨ Freeform Journaling',
-        '🎙️ Voice Dictation',
-        '🔥 Daily Streaks',
+        _OnboardingFeature('✍️', 'Freeform'),
+        _OnboardingFeature('🎙️', 'Voice'),
+        _OnboardingFeature('📸', 'Photos'),
       ],
       glowColor: Color(0xFF2D6A4F),
     ),
     _OnboardingSlideData(
-      badge: 'PRIVACY FIRST',
-      title: 'Your Private Space.',
+      badge: '100% PRIVATE & SECURE',
+      title: 'Your Private Sanctuary.',
       description:
-          'Your thoughts belong strictly to you. Your reflections are completely private and secured with biometric App Lock.',
+          'Your reflections belong strictly to you. Protected by Biometric & PIN lock, with complete offline storage.',
       emoji: '🔒',
       features: [
-        '🛡️ Privacy Protected',
-        '👆 Biometric & PIN Lock',
-        '📴 100% Offline First',
+        _OnboardingFeature('🛡️', 'Private'),
+        _OnboardingFeature('👆', 'App Lock'),
+        _OnboardingFeature('📴', 'Offline'),
       ],
       glowColor: Color(0xFF1B4332),
     ),
     _OnboardingSlideData(
-      badge: 'BACKUPS & REMINDERS',
-      title: 'Track Your Journey.',
+      badge: 'CHERISH YOUR JOURNEY',
+      title: 'Remember Every Moment.',
       description:
-          'Export clean PDF backups of your entries, receive daily reminders, and track your mood trends over time.',
+          'Export printable Keepsake PDF books, revisit calendar memories, and build daily writing streaks.',
       emoji: '📖',
       features: [
-        '📚 Printable PDF Export',
-        '🔔 Daily Reminders',
-        '📊 Mood Analytics',
+        _OnboardingFeature('📚', 'PDF Book'),
+        _OnboardingFeature('🔥', 'Streaks'),
+        _OnboardingFeature('🔔', 'Reminders'),
       ],
       glowColor: Color(0xFF52B788),
     ),
@@ -179,134 +179,160 @@ class _OnboardingPageState extends State<OnboardingPage>
                   itemCount: _slides.length,
                   itemBuilder: (context, index) {
                     final slide = _slides[index];
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Spacer(flex: 1),
-
-                          // Floating Animated Hero Visual
-                          ScaleTransition(
-                            scale: _pulseAnimation,
-                            child: Container(
-                              width: 140,
-                              height: 140,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: slide.glowColor.withValues(alpha: 0.12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color:
-                                        slide.glowColor.withValues(alpha: 0.18),
-                                    blurRadius: 36,
-                                    spreadRadius: 8,
-                                  ),
-                                ],
-                                border: Border.all(
-                                  color: slide.glowColor.withValues(alpha: 0.25),
-                                  width: 2,
-                                ),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  slide.emoji,
-                                  style: const TextStyle(fontSize: 64),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 36),
-
-                          // Badge Pill
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: AppColors.primary.withValues(alpha: 0.2),
-                              ),
-                            ),
-                            child: Text(
-                              slide.badge,
-                              style: GoogleFonts.inter(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 1.1,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Title
-                          Text(
-                            slide.title,
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.lora(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w600,
-                              color: textPrimary,
-                              height: 1.25,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-
-                          // Description
-                          Text(
-                            slide.description,
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(
-                              fontSize: 14,
-                              height: 1.5,
-                              color: textSecondary,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Feature Tag Chips
-                          Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: slide.features.map((feat) {
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 7),
+                    return Center(
+                      child: SingleChildScrollView(
+                        physics: const ClampingScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 28, vertical: 8),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Floating Animated Hero Visual
+                            ScaleTransition(
+                              scale: _pulseAnimation,
+                              child: Container(
+                                width: 130,
+                                height: 130,
                                 decoration: BoxDecoration(
-                                  color: isDark
-                                      ? const Color(0xFF1E2321)
-                                      : Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: isDark
-                                        ? const Color(0xFF2D3632)
-                                        : AppColors.divider,
-                                  ),
+                                  shape: BoxShape.circle,
+                                  color: slide.glowColor.withValues(alpha: 0.12),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.02),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
+                                      color: slide.glowColor
+                                          .withValues(alpha: 0.18),
+                                      blurRadius: 36,
+                                      spreadRadius: 8,
                                     ),
                                   ],
-                                ),
-                                child: Text(
-                                  feat,
-                                  style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color: textPrimary,
+                                  border: Border.all(
+                                    color: slide.glowColor
+                                        .withValues(alpha: 0.25),
+                                    width: 2,
                                   ),
                                 ),
-                              );
-                            }).toList(),
-                          ),
+                                child: Center(
+                                  child: Text(
+                                    slide.emoji,
+                                    style: const TextStyle(fontSize: 58),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 28),
 
-                          const Spacer(flex: 2),
-                        ],
+                            // Badge Pill
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: AppColors.primary
+                                      .withValues(alpha: 0.2),
+                                ),
+                              ),
+                              child: Text(
+                                slide.badge,
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1.1,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Title
+                            Text(
+                              slide.title,
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.lora(
+                                fontSize: 26,
+                                fontWeight: FontWeight.w600,
+                                color: textPrimary,
+                                height: 1.25,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Description
+                            Text(
+                              slide.description,
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                height: 1.5,
+                                color: textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 22),
+
+                            // Feature Tag Chips - consistently aligned on a single row across all slides
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 4),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    for (int i = 0;
+                                        i < slide.features.length;
+                                        i++) ...[
+                                      if (i > 0) const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 7),
+                                        decoration: BoxDecoration(
+                                          color: isDark
+                                              ? const Color(0xFF1E2321)
+                                              : Colors.white,
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: isDark
+                                                ? const Color(0xFF2D3632)
+                                                : AppColors.divider,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black
+                                                  .withValues(alpha: 0.02),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              slide.features[i].emoji,
+                                              style: const TextStyle(
+                                                  fontSize: 13),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              slide.features[i].label,
+                                              style: GoogleFonts.inter(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: textPrimary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },
@@ -387,12 +413,19 @@ class _OnboardingPageState extends State<OnboardingPage>
   }
 }
 
+class _OnboardingFeature {
+  final String emoji;
+  final String label;
+
+  const _OnboardingFeature(this.emoji, this.label);
+}
+
 class _OnboardingSlideData {
   final String badge;
   final String title;
   final String description;
   final String emoji;
-  final List<String> features;
+  final List<_OnboardingFeature> features;
   final Color glowColor;
 
   const _OnboardingSlideData({

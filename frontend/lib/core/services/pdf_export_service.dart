@@ -302,7 +302,7 @@ class PdfExportService {
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      // Entry Header: Date & Mood Pill
+                      // Entry Header: Date
                       pw.Row(
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
@@ -312,26 +312,6 @@ class PdfExportService {
                               fontSize: 13,
                               fontWeight: pw.FontWeight.bold,
                               color: const PdfColor.fromInt(0xFF1C1917),
-                            ),
-                          ),
-                          pw.Container(
-                            padding: const pw.EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            decoration: pw.BoxDecoration(
-                              color: const PdfColor.fromInt(0xFFF5F5F4),
-                              borderRadius: pw.BorderRadius.circular(12),
-                              border: pw.Border.all(
-                                color: const PdfColor.fromInt(0xFFD6D3D1),
-                                width: 0.5,
-                              ),
-                            ),
-                            child: pw.Text(
-                              'Mood: ${entry.mood} ${entry.moodEmoji}',
-                              style: pw.TextStyle(
-                                fontSize: 9.5,
-                                fontWeight: pw.FontWeight.bold,
-                                color: const PdfColor.fromInt(0xFF44403C),
-                              ),
                             ),
                           ),
                         ],

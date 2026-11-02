@@ -9,7 +9,6 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/smooth_page_route.dart';
 import '../../../core/utils/error_formatter.dart';
 import '../../../shared/widgets/photo_viewer_dialog.dart';
-import '../widgets/energy_selector.dart';
 import '../widgets/freeform_editor.dart';
 import '../../summary/pages/summary_page.dart';
 import '../../reflection/models/reflection_entry_model.dart';
@@ -50,12 +49,10 @@ class _FreeformPageState extends State<FreeformPage> {
   static const int maxPhotos = 5;
   static const _keyDraftTitle = 'draft_entry_title';
   static const _keyDraftContent = 'draft_entry_content';
-  static const _keyDraftMood = 'draft_entry_mood';
   static const _keyDraftTags = 'draft_entry_tags';
   static const _keyDraftPhoto = 'draft_entry_photo';
   static const _keyDraftPhotos = 'draft_entry_photos';
 
-  String _selectedEnergy = 'calm';
   bool _isSaving = false;
   List<String> _photoPaths = [];
   List<String> _tags = [];
@@ -69,13 +66,12 @@ class _FreeformPageState extends State<FreeformPage> {
   @override
   void initState() {
     super.initState();
-    _selectedEnergy = widget.initialMood?.toLowerCase() ?? 'calm';
     if (widget.initialPhotoUrls != null && widget.initialPhotoUrls!.isNotEmpty) {
       _photoPaths = List.from(widget.initialPhotoUrls!);
     } else if (widget.initialPhotoUrl != null && widget.initialPhotoUrl!.isNotEmpty) {
       _photoPaths = [widget.initialPhotoUrl!];
     }
-    _tags = widget.initialTags != null ? List.from(widget.initialTags!) : [];
+    _tags = widget.initialTags != null ? widget.initialTags!.where((t) => t.replaceAll('#', '').trim().toLowerCase() == 'saved').toList() : [];
     _contentController =
         TextEditingController(text: widget.initialContent ?? '');
 
@@ -109,7 +105,6 @@ class _FreeformPageState extends State<FreeformPage> {
         draftPhotos = [draftPhoto];
       }
       final draftTags = prefs.getStringList(_keyDraftTags) ?? [];
-      final draftMood = prefs.getString(_keyDraftMood);
 
       final hasValidDraft = draftContent.trim().isNotEmpty ||
           draftPhotos.isNotEmpty ||
@@ -120,7 +115,6 @@ class _FreeformPageState extends State<FreeformPage> {
           _hasDraft = true;
           _cachedDraft = {
             'content': draftContent,
-            'mood': draftMood ?? 'calm',
             'photos': draftPhotos,
             'tags': draftTags,
           };
@@ -133,7 +127,6 @@ class _FreeformPageState extends State<FreeformPage> {
     if (_cachedDraft == null) return;
     setState(() {
       _contentController.text = _cachedDraft!['content'] ?? '';
-      _selectedEnergy = _cachedDraft!['mood'] ?? 'calm';
       _photoPaths = List<String>.from(_cachedDraft!['photos'] ?? []);
       _tags = List<String>.from(_cachedDraft!['tags'] ?? []);
       _hasDraft = false;
@@ -170,7 +163,6 @@ class _FreeformPageState extends State<FreeformPage> {
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_keyDraftContent, _contentController.text);
-      await prefs.setString(_keyDraftMood, _selectedEnergy);
       await prefs.setStringList(_keyDraftTags, _tags);
       if (_photoPaths.isNotEmpty) {
         await prefs.setStringList(_keyDraftPhotos, _photoPaths);
@@ -187,7 +179,6 @@ class _FreeformPageState extends State<FreeformPage> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_keyDraftTitle);
       await prefs.remove(_keyDraftContent);
-      await prefs.remove(_keyDraftMood);
       await prefs.remove(_keyDraftTags);
       await prefs.remove(_keyDraftPhoto);
       await prefs.remove(_keyDraftPhotos);
@@ -261,6 +252,237 @@ class _FreeformPageState extends State<FreeformPage> {
     );
   }
 
+  String? _getWindowsCameraRollPath() {
+    final userProfile = Platform.environment['USERPROFILE'];
+    if (userProfile == null || userProfile.isEmpty) return null;
+
+    final candidates = [
+      '$userProfile\\Pictures\\Camera Roll',
+      '$userProfile\\OneDrive\\Pictures\\Camera Roll',
+      '$userProfile\\Pictures',
+    ];
+    for (final candidate in candidates) {
+      if (Directory(candidate).existsSync()) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _capturePhotoOnWindows() async {
+    if (_photoPaths.length >= maxPhotos) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Maximum $maxPhotos photos allowed per entry.'),
+            backgroundColor: AppColors.snackBarBackground,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+      return;
+    }
+
+    final cameraRollPath = _getWindowsCameraRollPath();
+    final Set<String> existingFiles = {};
+    if (cameraRollPath != null) {
+      try {
+        final dir = Directory(cameraRollPath);
+        if (dir.existsSync()) {
+          for (final entity in dir.listSync()) {
+            if (entity is File) {
+              existingFiles.add(entity.path);
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    final launchTime = DateTime.now();
+
+    // Launch Windows native Camera app
+    try {
+      await Process.start('explorer.exe', ['microsoft.windows.camera:']);
+    } catch (e) {
+      debugPrint('[FreeformPage] Could not launch Windows camera protocol: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Could not open Windows Camera. Opening file picker...'),
+            backgroundColor: AppColors.snackBarBackground,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+        await _pickPhoto(ImageSource.gallery);
+      }
+      return;
+    }
+
+    if (!mounted) return;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: AppColors.cardBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(Icons.camera_alt_rounded, color: AppColors.primary, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Windows Camera Active',
+                style: GoogleFonts.lora(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Windows Camera is open. Take your photo, then tap "Attach Photo" below to add it to your entry.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.folder_outlined, size: 16, color: AppColors.primaryLight),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Photos saved to Camera Roll are automatically detected.',
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(dialogCtx);
+              await _pickPhoto(ImageSource.gallery);
+            },
+            child: Text('Browse Files...', style: TextStyle(color: AppColors.primaryLight)),
+          ),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            icon: const Icon(Icons.check, size: 18),
+            label: const Text('Attach Photo'),
+            onPressed: () async {
+              Navigator.pop(dialogCtx);
+              final List<String> newPhotoPaths = [];
+              if (cameraRollPath != null) {
+                try {
+                  final dir = Directory(cameraRollPath);
+                  if (dir.existsSync()) {
+                    final files = dir.listSync().whereType<File>().where((f) {
+                      final ext = f.path.toLowerCase();
+                      return ext.endsWith('.jpg') ||
+                          ext.endsWith('.jpeg') ||
+                          ext.endsWith('.png') ||
+                          ext.endsWith('.webp');
+                    }).toList();
+
+                    // 1. Files created since camera was launched
+                    final brandNew = files.where((f) => !existingFiles.contains(f.path)).toList();
+                    if (brandNew.isNotEmpty) {
+                      brandNew.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
+                      newPhotoPaths.addAll(brandNew.map((f) => f.path));
+                    } else {
+                      // 2. Check files modified within last 60 seconds
+                      files.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
+                      if (files.isNotEmpty &&
+                          files.first.lastModifiedSync().isAfter(launchTime.subtract(const Duration(seconds: 15)))) {
+                        newPhotoPaths.add(files.first.path);
+                      }
+                    }
+                  }
+                } catch (e) {
+                  debugPrint('[FreeformPage] Error scanning Camera Roll: $e');
+                }
+              }
+
+              final remaining = maxPhotos - _photoPaths.length;
+              if (newPhotoPaths.isNotEmpty && remaining > 0) {
+                setState(() {
+                  for (final p in newPhotoPaths.take(remaining)) {
+                    if (!_photoPaths.contains(p)) {
+                      _photoPaths.add(p);
+                    }
+                  }
+                });
+                _scheduleAutoSave();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Row(
+                        children: [
+                          Icon(Icons.photo_camera_rounded, color: Colors.white, size: 18),
+                          SizedBox(width: 8),
+                          Text('Photo attached ✓', style: TextStyle(color: Colors.white)),
+                        ],
+                      ),
+                      backgroundColor: const Color(0xFF2E7D32),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              } else {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Select your captured photo from your files.'),
+                      backgroundColor: AppColors.snackBarBackground,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+                await _pickPhoto(ImageSource.gallery);
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _pickPhoto(ImageSource source) async {
     if (_photoPaths.length >= maxPhotos) {
       if (mounted) {
@@ -273,6 +495,11 @@ class _FreeformPageState extends State<FreeformPage> {
           ),
         );
       }
+      return;
+    }
+
+    if (Platform.isWindows && source == ImageSource.camera) {
+      await _capturePhotoOnWindows();
       return;
     }
 
@@ -379,11 +606,17 @@ class _FreeformPageState extends State<FreeformPage> {
                   ),
                   child: Icon(Icons.camera_alt_outlined, color: AppColors.primary),
                 ),
-                title: const Text('Take a Photo'),
-                subtitle: Text('Capture with camera (${_photoPaths.length}/$maxPhotos)'),
+                title: Text(Platform.isWindows ? 'Take Photo (Windows Camera)' : 'Take a Photo'),
+                subtitle: Text(Platform.isWindows
+                    ? 'Launch camera app & capture moment'
+                    : 'Capture with camera (${_photoPaths.length}/$maxPhotos)'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _pickPhoto(ImageSource.camera);
+                  if (Platform.isWindows) {
+                    _capturePhotoOnWindows();
+                  } else {
+                    _pickPhoto(ImageSource.camera);
+                  }
                 },
               ),
               ListTile(
@@ -395,8 +628,10 @@ class _FreeformPageState extends State<FreeformPage> {
                   ),
                   child: Icon(Icons.photo_library_outlined, color: AppColors.primary),
                 ),
-                title: const Text('Choose from Library'),
-                subtitle: Text('Select from gallery (${maxPhotos - _photoPaths.length} remaining)'),
+                title: Text(Platform.isWindows ? 'Browse from PC' : 'Choose from Library'),
+                subtitle: Text(Platform.isWindows
+                    ? 'Select photos from your files (${maxPhotos - _photoPaths.length} remaining)'
+                    : 'Select from gallery (${maxPhotos - _photoPaths.length} remaining)'),
                 onTap: () {
                   Navigator.pop(ctx);
                   _pickPhoto(ImageSource.gallery);
@@ -445,10 +680,7 @@ class _FreeformPageState extends State<FreeformPage> {
       _isSaving = true;
     });
 
-    final selectedEnergyState = EnergySelector.states.firstWhere(
-      (s) => s.id == _selectedEnergy,
-      orElse: () => EnergySelector.states[2],
-    );
+
 
     try {
       final now = widget.date ?? DateTime.now();
@@ -457,14 +689,14 @@ class _FreeformPageState extends State<FreeformPage> {
       final entry = ReflectionEntryModel(
         id: docId,
         date: now,
-        mood: selectedEnergyState.label,
-        moodEmoji: selectedEnergyState.emoji,
+        mood: '',
+        moodEmoji: '',
         freeformTitle: null,
         freeformNote: content.isNotEmpty ? content : null,
         photoUrls: _photoPaths,
         type: ReflectionType.freeform,
         createdAt: now,
-        tags: _tags,
+        tags: _tags.where((t) => t.replaceAll('#', '').trim().toLowerCase() == 'saved').toList(),
       );
 
       await ReflectionService().saveReflection(entry);
@@ -508,12 +740,12 @@ class _FreeformPageState extends State<FreeformPage> {
             builder: (_) => SummaryPage(
               id: docId,
               date: widget.date,
-              mood: selectedEnergyState.label,
-              moodEmoji: selectedEnergyState.emoji,
+              mood: '',
+              moodEmoji: '',
               freeformTitle: null,
               freeformNote: content.isNotEmpty ? content : null,
               photoUrls: _photoPaths,
-              tags: _tags,
+              tags: _tags.where((t) => t.replaceAll('#', '').trim().toLowerCase() == 'saved').toList(),
             ),
           ),
         );
@@ -937,20 +1169,12 @@ class _FreeformPageState extends State<FreeformPage> {
                     // Draft banner (if unsaved draft was found)
                     if (_hasDraft) _buildDraftBanner(),
 
-                    // Energy / Mood selector
-                    EnergySelector(
-                      selectedId: _selectedEnergy,
-                      onSelected: (id) {
-                        setState(() => _selectedEnergy = id);
-                        _scheduleAutoSave();
-                      },
-                    ),
-                    const SizedBox(height: 20),
+
 
                     // Editor card
                     FreeformEditor(
                       contentController: _contentController,
-                      tags: _tags,
+                      tags: _tags.where((t) => t.replaceAll('#', '').trim().toLowerCase() == 'saved').toList(),
                       onTagsChanged: (newTags) {
                         setState(() => _tags = newTags);
                         _scheduleAutoSave();

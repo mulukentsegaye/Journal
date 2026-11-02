@@ -98,6 +98,10 @@ class ErrorFormatter {
         lower.contains('521') ||
         lower.contains('520') ||
         lower.contains('522') ||
+        lower.contains('523') ||
+        lower.contains('524') ||
+        lower.contains('525') ||
+        lower.contains('526') ||
         lower.contains('502') ||
         lower.contains('503') ||
         lower.contains('504') ||
@@ -108,6 +112,8 @@ class ErrorFormatter {
         lower.contains('web server is down') ||
         lower.contains('internal server error') ||
         lower.contains('server error') ||
+        lower.contains('origin server') ||
+        lower.contains('cloudflare') ||
         (lower.contains('retryable') && lower.contains('fetch'));
   }
 
