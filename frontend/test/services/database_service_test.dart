@@ -349,6 +349,37 @@ void main() {
       expect(saved.freeformNote, equals('Testing rapid offline save'));
       expect(saved.photoUrls, equals(['/local/storage/path/photo1.jpg']));
     });
+
+    test('recoverAllHistoricalEntries scans and rescues orphaned entries from prior guest or pending keys', () async {
+      final db = DatabaseService();
+      final prefs = await SharedPreferences.getInstance();
+
+      final orphanedEntry = ReflectionEntryModel(
+        id: 'orphaned_historical_1',
+        date: DateTime(2026, 10, 15),
+        mood: 'Calm',
+        moodEmoji: '🌿',
+        freeformTitle: 'Rescued memory',
+        freeformNote: 'Important thoughts that were saved in prior session',
+        createdAt: DateTime(2026, 10, 15),
+      );
+
+      final map = orphanedEntry.toMap();
+      map['id'] = orphanedEntry.id;
+      final encoded = jsonEncode(map);
+
+      // Simulate an orphaned key from a previous guest session
+      await prefs.setStringList('daily_reflections_local_cache_guest_1699999999', [encoded]);
+
+      // Run recovery scanner
+      final recoveredCount = await db.recoverAllHistoricalEntries();
+      expect(recoveredCount, greaterThanOrEqualTo(1));
+
+      final entries = await db.streamReflections().first;
+      expect(entries.any((e) => e.id == 'orphaned_historical_1'), isTrue);
+      final found = entries.firstWhere((e) => e.id == 'orphaned_historical_1');
+      expect(found.freeformTitle, equals('Rescued memory'));
+    });
   });
 }
 

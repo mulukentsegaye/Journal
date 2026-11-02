@@ -39,6 +39,7 @@ void main() async {
 
       await AuthService().loadSession();
       await DatabaseService().migrateUnscopedCache();
+      await DatabaseService().recoverAllHistoricalEntries();
       await SettingsService().loadSettings();
       await SecurityService().loadSecuritySettings();
 

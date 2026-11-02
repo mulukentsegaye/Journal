@@ -296,14 +296,23 @@ class AuthService extends ChangeNotifier {
 
   Future<void> _enableLocalGuest() async {
     _isLocalGuest = true;
-    _guestName = 'Guest';
-    _guestUid = 'guest_${DateTime.now().millisecondsSinceEpoch}';
     try {
       final prefs = await SharedPreferences.getInstance();
+      _guestName = prefs.getString(_keyGuestName) ?? 'Guest';
+      final existingUid = prefs.getString(_keyGuestUid);
+      if (existingUid != null && existingUid.isNotEmpty) {
+        _guestUid = existingUid;
+      } else if (_guestUid.isEmpty) {
+        _guestUid = 'guest_${DateTime.now().millisecondsSinceEpoch}';
+      }
       await prefs.setBool(_keyIsLocalGuest, true);
       await prefs.setString(_keyGuestName, _guestName);
       await prefs.setString(_keyGuestUid, _guestUid);
-    } catch (_) {}
+    } catch (_) {
+      if (_guestUid.isEmpty) {
+        _guestUid = 'guest_${DateTime.now().millisecondsSinceEpoch}';
+      }
+    }
   }
 
   Future<void> _clearLocalGuest() async {

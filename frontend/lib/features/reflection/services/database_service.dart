@@ -159,43 +159,133 @@ class DatabaseService {
     }
   }
 
-  /// One-time migration: if old unscoped cache exists and current user has no
-  /// scoped cache yet, move entries to the user-scoped key, then delete the old key.
+  /// Migration: non-destructively merges any legacy unscoped reflections into
+  /// the current user-scoped storage key.
   Future<void> migrateUnscopedCache() async {
     final uid = currentUserId;
     if (uid == null || uid.isEmpty) return;
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      // If the old unscoped key has data and our scoped key is empty, migrate
       final oldData = prefs.getStringList(_keyLocalReflectionsBase);
       final scopedKey = '${_keyLocalReflectionsBase}_$uid';
-      final scopedData = prefs.getStringList(scopedKey);
+      final scopedData = prefs.getStringList(scopedKey) ?? [];
 
-      if (oldData != null && oldData.isNotEmpty && (scopedData == null || scopedData.isEmpty)) {
-        await prefs.setStringList(scopedKey, oldData);
-        debugPrint('[DatabaseService] ✓ Migrated ${oldData.length} entries from unscoped to user-scoped cache');
+      if (oldData != null && oldData.isNotEmpty) {
+        final seenIds = <String>{};
+        final mergedRaw = <String>[];
 
-        // Migrate pending writes/deletes too
-        final oldWrites = prefs.getStringList(_keyPendingWritesBase);
-        if (oldWrites != null && oldWrites.isNotEmpty) {
-          await prefs.setStringList('${_keyPendingWritesBase}_$uid', oldWrites);
+        for (final item in scopedData) {
+          try {
+            final m = jsonDecode(item) as Map<String, dynamic>;
+            final id = m['id']?.toString();
+            if (id != null) seenIds.add(id);
+          } catch (_) {}
+          mergedRaw.add(item);
         }
-        final oldDeletes = prefs.getStringList(_keyPendingDeletesBase);
-        if (oldDeletes != null && oldDeletes.isNotEmpty) {
-          await prefs.setStringList('${_keyPendingDeletesBase}_$uid', oldDeletes);
+
+        for (final item in oldData) {
+          try {
+            final m = jsonDecode(item) as Map<String, dynamic>;
+            final id = m['id']?.toString();
+            if (id != null && !seenIds.contains(id)) {
+              seenIds.add(id);
+              mergedRaw.add(item);
+            }
+          } catch (_) {}
+        }
+
+        await prefs.setStringList(scopedKey, mergedRaw);
+        debugPrint('[DatabaseService] ✓ Merged ${oldData.length} unscoped entries into user-scoped cache');
+
+        // Migrate pending writes too
+        final oldWrites = prefs.getStringList(_keyPendingWritesBase) ?? [];
+        if (oldWrites.isNotEmpty) {
+          final scopedWritesKey = '${_keyPendingWritesBase}_$uid';
+          final scopedWrites = prefs.getStringList(scopedWritesKey) ?? [];
+          final combinedWrites = {...oldWrites, ...scopedWrites}.toList();
+          await prefs.setStringList(scopedWritesKey, combinedWrites);
         }
       }
-
-      // Clear old unscoped keys regardless
-      await prefs.remove(_keyLocalReflectionsBase);
-      await prefs.remove(_keyPendingWritesBase);
-      await prefs.remove(_keyPendingDeletesBase);
 
       // Track current user for future reference
       await prefs.setString(_keyLastUserId, uid);
     } catch (e) {
       debugPrint('[DatabaseService] Failed to migrate unscoped cache: $e');
+    }
+  }
+
+  /// Deep scan across all SharedPreferences keys to recover any orphaned reflections
+  /// (e.g. from prior guest sessions, unscoped storage, or interrupted migrations).
+  /// Merges discovered entries into the current active cache safely.
+  Future<int> recoverAllHistoricalEntries() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final allKeys = prefs.getKeys();
+
+      // Find all keys that could contain reflections or pending reflections
+      final candidateKeys = allKeys.where((k) =>
+        k.startsWith(_keyLocalReflectionsBase) ||
+        k.startsWith(_keyPendingWritesBase)
+      ).toList();
+
+      if (candidateKeys.isEmpty) return 0;
+
+      final currentLocal = await _loadLocalEntries();
+      final Map<String, ReflectionEntryModel> entryMap = {
+        for (final e in currentLocal) e.id: e,
+      };
+      final initialCount = entryMap.length;
+
+      // Extract entries from all candidate keys
+      for (final key in candidateKeys) {
+        List<String>? rawList;
+        try {
+          rawList = prefs.getStringList(key);
+        } catch (_) {
+          final single = prefs.getString(key);
+          if (single != null && single.isNotEmpty) {
+            try {
+              final decoded = jsonDecode(single);
+              if (decoded is List) {
+                rawList = decoded.map((e) => jsonEncode(e)).toList();
+              }
+            } catch (_) {}
+          }
+        }
+
+        if (rawList == null || rawList.isEmpty) continue;
+
+        for (final raw in rawList) {
+          try {
+            final map = jsonDecode(raw) as Map<String, dynamic>;
+            final id = map['id']?.toString();
+            if (id == null || id.isEmpty) continue;
+
+            final entry = ReflectionEntryModel.fromMap(map, id);
+            final existing = entryMap[id];
+            if (existing == null) {
+              entryMap[id] = entry;
+            } else if (entry.createdAt.isAfter(existing.createdAt)) {
+              entryMap[id] = entry;
+            }
+          } catch (_) {
+            // Skip unparseable item
+          }
+        }
+      }
+
+      final newlyRecovered = entryMap.length - initialCount;
+      if (newlyRecovered > 0) {
+        final mergedList = entryMap.values.toList();
+        mergedList.sort((a, b) => b.date.compareTo(a.date));
+        await _persistLocalEntries(mergedList);
+        debugPrint('[DatabaseService] ✓ Auto-recovery restored $newlyRecovered orphaned entry/entries! Total now: ${mergedList.length}');
+      }
+      return newlyRecovered;
+    } catch (e) {
+      debugPrint('[DatabaseService] Error during auto-recovery: $e');
+      return 0;
     }
   }
 
@@ -682,47 +772,32 @@ class DatabaseService {
       final localEntries = await _loadLocalEntries();
       final map = <String, ReflectionEntryModel>{};
 
-      // If we successfully pulled the complete ground-truth dataset from cloud
-      if (!hasMore) {
-        // Collect IDs of pending local writes so we don't accidentally remove offline creations
-        final prefs = await SharedPreferences.getInstance();
-        final pendingWrites = prefs.getStringList(_keyPendingWrites) ?? [];
-        final pendingIds = <String>{};
-        for (final item in pendingWrites) {
-          try {
-            final m = jsonDecode(item) as Map<String, dynamic>;
-            if (m['id'] != null) pendingIds.add(m['id'].toString());
-          } catch (_) {}
-        }
+      // Collect IDs of pending deletions so we don't accidentally restore deleted entries
+      final prefs = await SharedPreferences.getInstance();
+      final pendingDeletes = (prefs.getStringList(_keyPendingDeletes) ?? []).toSet();
 
-        final remoteIds = remoteEntries.map((e) => e.id).toSet();
-        for (final e in localEntries) {
-          if (remoteIds.contains(e.id) || pendingIds.contains(e.id)) {
+      // In local-first architecture, local entries are sacred.
+      // Preserve all local entries that aren't marked for deletion.
+      for (final e in localEntries) {
+        if (!pendingDeletes.contains(e.id)) {
+          map[e.id] = e;
+        }
+      }
+
+      // Merge remote entries: keep newer or non-conflicting
+      for (final e in remoteEntries) {
+        if (!pendingDeletes.contains(e.id)) {
+          final existing = map[e.id];
+          if (existing == null || e.createdAt.isAfter(existing.createdAt)) {
             map[e.id] = e;
-          } else {
-            debugPrint('[DatabaseService] Reconciled remotely deleted entry ${e.id}');
           }
         }
-        for (final e in remoteEntries) {
-          map[e.id] = e;
-        }
-        final merged = map.values.toList();
-        merged.sort((a, b) => b.date.compareTo(a.date));
-        await _persistLocalEntries(merged);
-        debugPrint('[DatabaseService] Reconciled ${merged.length} total entries (${localEntries.length} local -> ${merged.length})');
-      } else if (remoteEntries.isNotEmpty) {
-        // Fallback for very large datasets if pagination was truncated
-        for (final e in localEntries) {
-          map[e.id] = e;
-        }
-        for (final e in remoteEntries) {
-          map[e.id] = e;
-        }
-        final merged = map.values.toList();
-        merged.sort((a, b) => b.date.compareTo(a.date));
-        await _persistLocalEntries(merged);
-        debugPrint('[DatabaseService] Merged ${merged.length} total entries (${localEntries.length} local + ${remoteEntries.length} remote)');
       }
+
+      final merged = map.values.toList();
+      merged.sort((a, b) => b.date.compareTo(a.date));
+      await _persistLocalEntries(merged);
+      debugPrint('[DatabaseService] Synced and merged ${merged.length} total entries (${localEntries.length} local, ${remoteEntries.length} remote)');
     } catch (e) {
       debugPrint('[DatabaseService] ✗ Pull remote changes failed: $e');
       rethrow;
@@ -936,6 +1011,7 @@ class DatabaseService {
 
   /// Stream of reflections, emitting initial cached entries and updates.
   Stream<List<ReflectionEntryModel>> streamReflections() async* {
+    await recoverAllHistoricalEntries();
     final initial = await _loadLocalEntries();
     yield initial;
 

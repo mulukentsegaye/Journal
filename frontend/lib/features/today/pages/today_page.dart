@@ -376,6 +376,58 @@ class _TodayPageState extends State<TodayPage> with AutomaticKeepAliveClientMixi
                           context, reflectionService, recentEntry.id),
                       onEdit: () => _editReflection(context, recentEntry),
                     ),
+                    if (entries.length > 1) ...[
+                      const SizedBox(height: 10),
+                      GestureDetector(
+                        onTap: () => AppShell.switchToTab(1),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: AppColors.cardBackground.withValues(alpha: 0.7),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.divider.withValues(alpha: 0.6),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.history_edu_rounded,
+                                size: 16,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  '${entries.length - 1} earlier reflection${entries.length - 1 == 1 ? '' : 's'} in your Journal',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                'View all',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                size: 10,
+                                color: AppColors.primary,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
 
                   // ── 3. Entries with "saved" tag ───────────────
