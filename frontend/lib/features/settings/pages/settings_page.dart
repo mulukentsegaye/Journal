@@ -7,7 +7,6 @@ import 'package:path_provider/path_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/services/settings_service.dart';
-import '../../../core/services/notification_service.dart';
 import '../../../core/utils/error_formatter.dart';
 import '../../auth/services/auth_service.dart';
 import '../../reflection/services/database_service.dart';
@@ -27,8 +26,6 @@ class _SettingsPageState extends State<SettingsPage> {
   final _settingsService = SettingsService();
   final _authService = AuthService();
   final _reflectionService = ReflectionService();
-  final _notificationService = NotificationService();
-  bool _isSendingTest = false;
   bool _isExportingMd = false;
 
   Future<void> _exportMarkdownBackup() async {
@@ -193,28 +190,6 @@ class _SettingsPageState extends State<SettingsPage> {
         );
       }
     }
-  }
-
-  Future<void> _sendTestNotification({bool isMorning = false}) async {
-    setState(() => _isSendingTest = true);
-    final sent = await _notificationService.sendTestNotification(isMorning: isMorning);
-    if (!mounted) return;
-    setState(() => _isSendingTest = false);
-
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: sent ? const Color(0xFF2E7D32) : const Color(0xFFD32F2F),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        content: Text(
-          sent
-              ? 'Test reminder sent.'
-              : 'Notification failed. Check permissions.',
-          style: const TextStyle(color: Colors.white),
-        ),
-      ),
-    );
   }
 
   Future<void> _optimizeCache() async {
@@ -420,46 +395,6 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                       ],
 
-                      // --- Test Notification Preview ---
-                      if (_settingsService.reminderEnabled ||
-                          _settingsService.morningReminderEnabled) ...[
-                        Divider(height: 1, color: AppColors.divider),
-                        ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 2),
-                          leading: Icon(Icons.notifications_active_outlined,
-                              color: AppColors.primary, size: 20),
-                          title: Text(
-                            'Send Test Notification',
-                            style: AppTextStyles.body.copyWith(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 13.5,
-                            ),
-                          ),
-                          subtitle: Text(
-                            'Preview notification delivery immediately',
-                            style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.textSecondary,
-                              fontSize: 11.5,
-                            ),
-                          ),
-                          trailing: _isSendingTest
-                              ? SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: AppColors.primary,
-                                  ),
-                                )
-                              : Icon(
-                                  Icons.send_rounded,
-                                  size: 18,
-                                  color: AppColors.primary,
-                                ),
-                          onTap: _isSendingTest ? null : () => _sendTestNotification(isMorning: _settingsService.morningReminderEnabled && !_settingsService.reminderEnabled),
-                        ),
-                      ],
                     ],
                   ),
                 ),

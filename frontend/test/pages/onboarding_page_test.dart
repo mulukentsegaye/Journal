@@ -63,4 +63,27 @@ void main() {
 
     expect(SettingsService().hasCompletedOnboarding, isTrue);
   });
+
+  testWidgets('scroll drag triggers interactive transition effects without errors',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: OnboardingPage(),
+      ),
+    );
+    await tester.pump();
+
+    // Partial swipe left
+    await tester.drag(find.byType(PageView), const Offset(-180, 0));
+    await tester.pump(const Duration(milliseconds: 50));
+
+    // Release and fling swipe to next page
+    await tester.fling(find.byType(PageView), const Offset(-400, 0), 1000);
+    for (int i = 0; i < 15; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    // Settled on Slide 2
+    expect(find.text('100% PRIVATE & SECURE'), findsOneWidget);
+  });
 }
