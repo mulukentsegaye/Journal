@@ -10,6 +10,7 @@ import '../../../core/services/settings_service.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/utils/error_formatter.dart';
 import '../../auth/services/auth_service.dart';
+import '../../reflection/services/database_service.dart';
 import '../../reflection/services/reflection_service.dart';
 import '../widgets/pdf_export_dialog.dart';
 
@@ -216,15 +217,21 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _optimizeCache() {
+  Future<void> _optimizeCache() async {
+    final recovered = await DatabaseService().recoverAllHistoricalEntries();
+    _reflectionService.refresh();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: AppColors.snackBarBackground,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        content: const Text(
-          'Storage cache optimized.',
-          style: TextStyle(color: Colors.white),
+        content: Text(
+          recovered > 0
+              ? 'Found and recovered $recovered past reflection${recovered == 1 ? '' : 's'}!'
+              : 'Storage verified: All reflections are healthy and up to date.',
+          style: const TextStyle(color: Colors.white),
         ),
       ),
     );
