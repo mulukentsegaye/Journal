@@ -360,29 +360,7 @@ class _TrashedReflectionCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: primary.withValues(alpha: isDark ? 0.2 : 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(entry.moodEmoji, style: const TextStyle(fontSize: 12)),
-                        const SizedBox(width: 4),
-                        Text(
-                          entry.mood,
-                          style: GoogleFonts.inter(
-                            color: primary,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
+
                   Text(
                     entryDateStr,
                     style: GoogleFonts.inter(

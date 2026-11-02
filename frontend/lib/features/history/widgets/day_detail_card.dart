@@ -271,21 +271,7 @@ class _EntryItem extends StatelessWidget {
                 ),
               ],
             ),
-            // Mood pill
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.calmTagBg,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                '${entry.mood} ${entry.moodEmoji}',
-                style: AppTextStyles.tag.copyWith(
-                  color: AppColors.calmTagText,
-                  fontSize: 11,
-                ),
-              ),
-            ),
+
           ],
         ),
         const SizedBox(height: 8),

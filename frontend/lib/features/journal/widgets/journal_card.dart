@@ -327,33 +327,7 @@ class JournalCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
 
-                // Mood pill
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: entry.moodBgColor,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(entry.moodEmoji,
-                          style: const TextStyle(fontSize: 12)),
-                      const SizedBox(width: 4),
-                      Text(
-                        entry.mood,
-                        style: AppTextStyles.tag.copyWith(
-                          color: entry.moodTextColor,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
 
                 // Photo indicator badge
                 if (entry.photoUrls.isNotEmpty) ...[
@@ -507,11 +481,13 @@ class JournalCard extends StatelessWidget {
             const SizedBox(height: 10),
 
             // ── Tag Chips (if present) ─────────────────────────
-            if (entry.tags.isNotEmpty) ...[
+            if (entry.tags.any((t) => t.replaceAll('#', '').trim().toLowerCase() == 'saved')) ...[
               Wrap(
                 spacing: 6,
                 runSpacing: 4,
-                children: entry.tags.map((tag) {
+                children: entry.tags
+                    .where((t) => t.replaceAll('#', '').trim().toLowerCase() == 'saved')
+                    .map((tag) {
                   final display = tag.startsWith('#') ? tag : '#$tag';
                   return Container(
                     padding:

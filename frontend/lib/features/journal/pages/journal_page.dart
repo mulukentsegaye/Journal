@@ -87,25 +87,20 @@ class _JournalPageState extends State<JournalPage>
 
   List<JournalEntry> _applyFilters(List<JournalEntry> entries) {
     return entries.where((e) {
-      if (_selectedFilter == 'bookmarked' && !e.isBookmarked) return false;
-      if (_selectedFilter.startsWith('tag:')) {
-        final tag = _selectedFilter.substring(4);
-        final hasTag = e.tags
-            .any((t) => t.replaceAll('#', '').toLowerCase() == tag);
-        if (!hasTag) return false;
-      } else if (_selectedFilter != 'all' &&
-          _selectedFilter != 'bookmarked' &&
-          e.mood.toLowerCase() != _selectedFilter.toLowerCase()) {
-        return false;
+      if (_selectedFilter == 'saved' ||
+          _selectedFilter == 'bookmarked' ||
+          _selectedFilter == 'tag:saved') {
+        final isSaved = e.isBookmarked ||
+            e.tags.any((t) => t.replaceAll('#', '').trim().toLowerCase() == 'saved');
+        if (!isSaved) return false;
       }
 
       if (_searchQuery.isNotEmpty) {
         final q = _searchQuery.toLowerCase();
         final matchesTitle = e.title.toLowerCase().contains(q);
         final matchesSnippet = e.contentSnippet.toLowerCase().contains(q);
-        final matchesMood = e.mood.toLowerCase().contains(q);
         final matchesTags = e.tags.any((t) => t.toLowerCase().contains(q));
-        if (!matchesTitle && !matchesSnippet && !matchesMood && !matchesTags) {
+        if (!matchesTitle && !matchesSnippet && !matchesTags) {
           return false;
         }
       }
@@ -655,7 +650,7 @@ class _JournalPageState extends State<JournalPage>
                                 color: AppColors.textPrimary,
                               ),
                               decoration: InputDecoration(
-                                hintText: 'Search past thoughts or moods...',
+                                hintText: 'Search past thoughts...',
                                 hintStyle: GoogleFonts.inter(
                                   fontSize: 14,
                                   color: AppColors.textHint.withValues(alpha: 0.7),
@@ -744,7 +739,7 @@ class _JournalPageState extends State<JournalPage>
                               Text(
                                 _searchQuery.isNotEmpty ||
                                         _selectedFilter != 'all'
-                                    ? 'Try adjusting your search query or selected mood.'
+                                    ? 'Try adjusting your search query or filter.'
                                     : 'Write your thoughts or tap New Entry to begin.',
                                 style: AppTextStyles.bodySmall.copyWith(
                                   color: AppColors.textSecondary,

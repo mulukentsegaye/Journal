@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 
-/// Shows a summary of yesterday's reflection with mood tag and accent bar.
+/// Shows a summary of yesterday's reflection with optional photo tag and accent bar.
 class YesterdaySummaryCard extends StatelessWidget {
   final String summary;
   final String date;
@@ -49,87 +49,72 @@ class YesterdaySummaryCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Header row ─────────────────────────────────────
+            // Header Row: Title & Date
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: AppTextStyles.sectionTitle,
+                Text(
+                  title,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                    fontSize: 13,
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.streakBadgeBg,
-                    borderRadius: BorderRadius.circular(12),
+                Text(
+                  date,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
                   ),
-                  child: Text(date, style: AppTextStyles.dateTag),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
 
-            // ── Summary text ───────────────────────────────────
+            // Summary text preview
             Text(
               summary,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: AppTextStyles.body.copyWith(
-                fontSize: 14,
                 height: 1.5,
                 color: AppColors.textSecondary,
               ),
             ),
-            const SizedBox(height: 14),
 
-                // ── Mood tag & Photo tag ───────────────────────────
-                Row(
-                  children: [
-                    Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.calmTagBg,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '$mood $moodEmoji',
-                        style:
-                            AppTextStyles.tag.copyWith(color: AppColors.calmTagText),
-                      ),
+            if (hasPhoto) ...[
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    if (hasPhoto) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(20),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.photo_camera_rounded,
+                            size: 14, color: AppColors.primary),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Photo',
+                          style: AppTextStyles.tag.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.photo_camera_rounded,
-                                size: 14, color: AppColors.primary),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Photo',
-                              style: AppTextStyles.tag.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

@@ -185,31 +185,7 @@ class _SummaryPageState extends State<SummaryPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.calmTagBg,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(widget.moodEmoji,
-                              style: const TextStyle(fontSize: 12)),
-                          const SizedBox(width: 4),
-                          Text(
-                            widget.mood,
-                            style: AppTextStyles.tag.copyWith(
-                              color: AppColors.calmTagText,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
+
                     Text(
                       '"$snippet"',
                       style: GoogleFonts.lora(
@@ -248,7 +224,7 @@ class _SummaryPageState extends State<SummaryPage> {
                       onPressed: () async {
                         Navigator.pop(ctx);
                         final cardText =
-                            '🌿 Journal ($dateStr)\nMood: ${widget.mood} ${widget.moodEmoji}\n\n"$snippet"';
+                            '🌿 Journal ($dateStr)\n\n"$snippet"';
                         await Clipboard.setData(ClipboardData(text: cardText));
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -292,7 +268,6 @@ class _SummaryPageState extends State<SummaryPage> {
     final dateStr = DateFormat('MMMM d, yyyy').format(effectiveDate);
     final buffer = StringBuffer();
     buffer.writeln('Journal — $dateStr');
-    buffer.writeln('Mood: ${widget.mood} ${widget.moodEmoji}\n');
 
     String snippet = widget.freeformNote?.trim() ?? '';
     if (widget.answers != null && widget.answers!.isNotEmpty) {
@@ -673,62 +648,28 @@ class _SummaryPageState extends State<SummaryPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Entry Metadata: Mood & Time ──────────────────
-                    if (widget.mood.isNotEmpty || widget.date != null) ...[
+                    // ── Entry Metadata: Time ─────────────────────────
+                    if (widget.date != null) ...[
                       Row(
                         children: [
-                          if (widget.mood.isNotEmpty)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.calmTagBg,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    widget.mood,
-                                    style: AppTextStyles.tag.copyWith(
-                                      color: AppColors.calmTagText,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  if (widget.moodEmoji.isNotEmpty) ...[
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      widget.moodEmoji,
-                                      style: const TextStyle(fontSize: 13),
-                                    ),
-                                  ],
-                                ],
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Text(
+                              DateFormat('h:mm a').format(widget.date!),
+                              style: AppTextStyles.bodySmall.copyWith(
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
                               ),
                             ),
-                          if (widget.date != null) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.surface,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Text(
-                                DateFormat('h:mm a').format(widget.date!),
-                                style: AppTextStyles.bodySmall.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.textSecondary,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ],
+                          ),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -754,7 +695,7 @@ class _SummaryPageState extends State<SummaryPage> {
                     ],
 
                     // ── Tags Section (if present) ────────────────────────
-                    if (widget.tags.isNotEmpty) ...[
+                    if (widget.tags.any((t) => t.replaceAll('#', '').trim().toLowerCase() == 'saved')) ...[
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
@@ -777,7 +718,9 @@ class _SummaryPageState extends State<SummaryPage> {
                               child: Wrap(
                                 spacing: 6,
                                 runSpacing: 4,
-                                children: widget.tags.map((tag) {
+                                children: widget.tags
+                                    .where((t) => t.replaceAll('#', '').trim().toLowerCase() == 'saved')
+                                    .map((tag) {
                                   final display =
                                       tag.startsWith('#') ? tag : '#$tag';
                                   return Container(
