@@ -5,6 +5,7 @@
 
 -- 1. Ensure all required columns exist in public.reflections (Fixes PGRST204)
 ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS photo_url TEXT;
+ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS photo_urls TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS is_bookmarked BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS type TEXT NOT NULL DEFAULT 'guided';
 ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT FALSE;

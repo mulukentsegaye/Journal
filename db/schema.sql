@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS public.reflections (
     freeform_title TEXT,
     freeform_note TEXT,
     photo_url TEXT,
+    photo_urls TEXT[] NOT NULL DEFAULT '{}',
     is_bookmarked BOOLEAN NOT NULL DEFAULT FALSE,
     type TEXT NOT NULL DEFAULT 'guided',
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
@@ -27,6 +28,7 @@ CREATE TABLE IF NOT EXISTS public.reflections (
 
 -- Migration helpers if table already exists
 ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS photo_url TEXT;
+ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS photo_urls TEXT[] NOT NULL DEFAULT '{}';
 ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE public.reflections ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 

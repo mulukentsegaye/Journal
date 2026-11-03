@@ -80,7 +80,6 @@ class ReflectionEntryModel {
       'freeform_title': freeformTitle,
       'freeform_note': freeformNote,
       'photo_url': photoUrls.length > 1 ? jsonEncode(photoUrls) : photoUrl,
-      'photo_urls': photoUrls,
       'is_bookmarked': isBookmarked,
       'type': type.name,
       'is_deleted': isDeleted,
