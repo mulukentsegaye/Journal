@@ -90,17 +90,14 @@ class _JournalPageState extends State<JournalPage>
       if (_selectedFilter == 'saved' ||
           _selectedFilter == 'bookmarked' ||
           _selectedFilter == 'tag:saved') {
-        final isSaved = e.isBookmarked ||
-            e.tags.any((t) => t.replaceAll('#', '').trim().toLowerCase() == 'saved');
-        if (!isSaved) return false;
+        if (!e.isBookmarked) return false;
       }
 
       if (_searchQuery.isNotEmpty) {
         final q = _searchQuery.toLowerCase();
         final matchesTitle = e.title.toLowerCase().contains(q);
         final matchesSnippet = e.contentSnippet.toLowerCase().contains(q);
-        final matchesTags = e.tags.any((t) => t.toLowerCase().contains(q));
-        if (!matchesTitle && !matchesSnippet && !matchesTags) {
+        if (!matchesTitle && !matchesSnippet) {
           return false;
         }
       }
@@ -727,7 +724,10 @@ class _JournalPageState extends State<JournalPage>
                               Text(
                                 _searchQuery.isNotEmpty ||
                                         _selectedFilter != 'all'
-                                    ? 'No reflections match your filters'
+                                    ? (_selectedFilter == 'saved' ||
+                                            _selectedFilter == 'bookmarked'
+                                        ? 'No saved entries yet'
+                                        : 'No reflections match your search')
                                     : 'Your journal is peaceful and waiting',
                                 style: GoogleFonts.lora(
                                   fontSize: 16,
@@ -739,7 +739,10 @@ class _JournalPageState extends State<JournalPage>
                               Text(
                                 _searchQuery.isNotEmpty ||
                                         _selectedFilter != 'all'
-                                    ? 'Try adjusting your search query or filter.'
+                                    ? (_selectedFilter == 'saved' ||
+                                            _selectedFilter == 'bookmarked'
+                                        ? 'Tap the bookmark icon on any entry to save it here.'
+                                        : 'Try adjusting your search query.')
                                     : 'Write your thoughts or tap New Entry to begin.',
                                 style: AppTextStyles.bodySmall.copyWith(
                                   color: AppColors.textSecondary,

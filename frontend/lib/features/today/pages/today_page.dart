@@ -112,14 +112,8 @@ class _TodayPageState extends State<TodayPage> with AutomaticKeepAliveClientMixi
         // One recently saved entry (only one)
         final recentEntry = entries.isNotEmpty ? entries.first : null;
 
-        // Entries with "saved" tag (and/or bookmarked)
-        final savedTagEntries = entries.where((e) {
-          final hasSavedTag = e.tags.any((t) {
-            final clean = t.trim().toLowerCase().replaceAll('#', '');
-            return clean == 'saved';
-          });
-          return hasSavedTag || e.isBookmarked;
-        }).toList();
+        // Saved entries (bookmarked)
+        final savedTagEntries = entries.where((e) => e.isBookmarked).toList();
 
         return Scaffold(
           backgroundColor: AppColors.background,
@@ -485,7 +479,7 @@ class _TodayPageState extends State<TodayPage> with AutomaticKeepAliveClientMixi
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Tag your important reflections with #saved or tap the bookmark icon on any card to keep them pinned here.',
+                                    'Tap the bookmark icon on any card to keep it saved here.',
                                     style: AppTextStyles.bodySmall.copyWith(
                                       fontSize: 11,
                                       color: AppColors.textSecondary,

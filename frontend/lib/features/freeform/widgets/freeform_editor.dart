@@ -29,64 +29,6 @@ class FreeformEditor extends StatelessWidget {
     '☕ Small sensory details',
   ];
 
-  static const List<String> presetTags = [
-    'saved',
-  ];
-
-
-  void _toggleTag(String tag) {
-    final clean = tag.replaceAll('#', '').trim().toLowerCase();
-    if (tags.contains(clean)) {
-      onTagsChanged?.call(tags.where((t) => t != clean).toList());
-    } else {
-      onTagsChanged?.call([...tags, clean]);
-    }
-  }
-
-  Widget _buildTagChip(String tag, {required bool isSelected}) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 6),
-      child: GestureDetector(
-        onTap: () => _toggleTag(tag),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.primary : AppColors.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected
-                  ? AppColors.primary
-                  : AppColors.divider.withValues(alpha: 0.8),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '#$tag',
-                style: AppTextStyles.bodySmall.copyWith(
-                  fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color: isSelected ? Colors.white : AppColors.textSecondary,
-                ),
-              ),
-              if (isSelected) ...[
-                const SizedBox(width: 4),
-                const Icon(
-                  Icons.close_rounded,
-                  size: 11,
-                  color: Colors.white,
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -156,21 +98,6 @@ class FreeformEditor extends StatelessWidget {
               ),
             ),
           ),
-
-          // ── Tag Pills Bar ──────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Row(
-              children: [
-                ...presetTags.map((tag) {
-                  final isSelected = tags.contains(tag.toLowerCase());
-                  return _buildTagChip(tag, isSelected: isSelected);
-                }),
-              ],
-            ),
-          ),
-
-
 
           // ── Content / Note Body Input ─────────────────────
           Padding(

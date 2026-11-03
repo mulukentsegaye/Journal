@@ -478,42 +478,7 @@ class JournalCard extends StatelessWidget {
                 height: 1.5,
               ),
             ),
-            const SizedBox(height: 10),
-
-            // ── Tag Chips (if present) ─────────────────────────
-            if (entry.tags.any((t) => t.replaceAll('#', '').trim().toLowerCase() == 'saved')) ...[
-              Wrap(
-                spacing: 6,
-                runSpacing: 4,
-                children: entry.tags
-                    .where((t) => t.replaceAll('#', '').trim().toLowerCase() == 'saved')
-                    .map((tag) {
-                  final display = tag.startsWith('#') ? tag : '#$tag';
-                  return Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: AppColors.divider.withValues(alpha: 0.7),
-                        width: 0.8,
-                      ),
-                    ),
-                    child: Text(
-                      display,
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 10),
-            ] else
-              const SizedBox(height: 2),
+            const SizedBox(height: 12),
 
             // ── Footer: Relative timestamp + Read entry action ────
             Row(

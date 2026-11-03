@@ -696,7 +696,7 @@ class _FreeformPageState extends State<FreeformPage> {
         photoUrls: _photoPaths,
         type: ReflectionType.freeform,
         createdAt: now,
-        tags: _tags.where((t) => t.replaceAll('#', '').trim().toLowerCase() == 'saved').toList(),
+        tags: const [],
       );
 
       await ReflectionService().saveReflection(entry);
@@ -745,7 +745,7 @@ class _FreeformPageState extends State<FreeformPage> {
               freeformTitle: null,
               freeformNote: content.isNotEmpty ? content : null,
               photoUrls: _photoPaths,
-              tags: _tags.where((t) => t.replaceAll('#', '').trim().toLowerCase() == 'saved').toList(),
+              tags: const [],
             ),
           ),
         );
@@ -1174,11 +1174,6 @@ class _FreeformPageState extends State<FreeformPage> {
                     // Editor card
                     FreeformEditor(
                       contentController: _contentController,
-                      tags: _tags.where((t) => t.replaceAll('#', '').trim().toLowerCase() == 'saved').toList(),
-                      onTagsChanged: (newTags) {
-                        setState(() => _tags = newTags);
-                        _scheduleAutoSave();
-                      },
                       onContentChanged: (_) => setState(() {}),
                     ),
                     const SizedBox(height: 20),
