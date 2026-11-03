@@ -32,6 +32,22 @@ set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE}")
 # Use Unicode and silence experimental coroutine deprecation in MSVC for all targets.
 add_definitions(-DUNICODE -D_UNICODE -D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)
 
+# Suppress MSB8028 false-positive intermediate directory warnings in Visual Studio MSBuild
+set(CMAKE_VS_GLOBALS
+  "IgnoreWarnIntDirSharingDetected=true"
+  "IntDirSharingDetected=None"
+)
+
+# Generate Directory.Build.props in build directory to ensure MSBuild silences MSB8028 across all projects
+file(WRITE "${CMAKE_BINARY_DIR}/Directory.Build.props"
+  "<Project>\n"
+  "  <PropertyGroup>\n"
+  "    <IgnoreWarnIntDirSharingDetected>true</IgnoreWarnIntDirSharingDetected>\n"
+  "    <IntDirSharingDetected>None</IntDirSharingDetected>\n"
+  "  </PropertyGroup>\n"
+  "</Project>\n"
+)
+
 # Enable multi-processor compilation across all MSVC targets (utilizing all 16 logical cores)
 if(MSVC)
   add_compile_options(/MP)
