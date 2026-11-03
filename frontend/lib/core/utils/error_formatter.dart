@@ -13,7 +13,7 @@ class ErrorFormatter {
 
     final lower = raw.toLowerCase();
 
-    // 1. Server & Gateway & Status 5xx / 521 errors (e.g. Cloudflare / Supabase server outage)
+    // 1. Server & Gateway & Status 5xx / 521 errors (e.g. Cloudflare / Supabase server outage or paused project)
     if (_isServerError(lower)) {
       return 'Server temporarily unavailable.';
     }

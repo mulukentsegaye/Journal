@@ -84,6 +84,32 @@ class DatabaseService {
   String get _keyLocalReflections => _scopedKey(_keyLocalReflectionsBase);
   String get _keyPendingWrites => _scopedKey(_keyPendingWritesBase);
   String get _keyPendingDeletes => _scopedKey(_keyPendingDeletesBase);
+  static const String _keyTombstonesBase = 'daily_reflections_deleted_tombstones';
+  String get _keyTombstones => _scopedKey(_keyTombstonesBase);
+
+  Future<Set<String>> _getTombstones() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = prefs.getStringList(_keyTombstones) ?? [];
+      return list.toSet();
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<void> _addTombstone(String id) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = prefs.getStringList(_keyTombstones) ?? [];
+      if (!list.contains(id)) {
+        list.add(id);
+        if (list.length > 2000) {
+          list.removeRange(0, list.length - 2000);
+        }
+        await prefs.setStringList(_keyTombstones, list);
+      }
+    } catch (_) {}
+  }
 
   final StreamController<List<ReflectionEntryModel>> _streamController =
       StreamController<List<ReflectionEntryModel>>.broadcast();
@@ -147,10 +173,12 @@ class DatabaseService {
       await prefs.remove(_keyLocalReflections);
       await prefs.remove(_keyPendingWrites);
       await prefs.remove(_keyPendingDeletes);
+      await prefs.remove(_keyTombstones);
       // Also clear legacy unscoped keys from before per-user scoping
       await prefs.remove(_keyLocalReflectionsBase);
       await prefs.remove(_keyPendingWritesBase);
       await prefs.remove(_keyPendingDeletesBase);
+      await prefs.remove(_keyTombstonesBase);
       _streamController.add([]);
       _setSyncStatus(SyncStatus.idle);
       debugPrint('[DatabaseService] ✓ Local cache cleared for account isolation');
@@ -231,9 +259,11 @@ class DatabaseService {
 
       if (candidateKeys.isEmpty) return 0;
 
+      final tombstones = await _getTombstones();
       final currentLocal = await _loadLocalEntries();
       final Map<String, ReflectionEntryModel> entryMap = {
-        for (final e in currentLocal) e.id: e,
+        for (final e in currentLocal)
+          if (!tombstones.contains(e.id)) e.id: e,
       };
       final initialCount = entryMap.length;
 
@@ -260,13 +290,13 @@ class DatabaseService {
           try {
             final map = jsonDecode(raw) as Map<String, dynamic>;
             final id = map['id']?.toString();
-            if (id == null || id.isEmpty) continue;
+            if (id == null || id.isEmpty || tombstones.contains(id)) continue;
 
             final entry = ReflectionEntryModel.fromMap(map, id);
             final existing = entryMap[id];
             if (existing == null) {
               entryMap[id] = entry;
-            } else if (entry.createdAt.isAfter(existing.createdAt)) {
+            } else if (entry.updatedAt.isAfter(existing.updatedAt)) {
               entryMap[id] = entry;
             }
           } catch (_) {
@@ -769,6 +799,7 @@ class DatabaseService {
 
       debugPrint('[DatabaseService] Total remote entries pulled: ${remoteEntries.length}');
 
+      final tombstones = await _getTombstones();
       final localEntries = await _loadLocalEntries();
       final map = <String, ReflectionEntryModel>{};
 
@@ -784,9 +815,9 @@ class DatabaseService {
         } catch (_) {}
       }
 
-      // Preserve existing local entries that aren't marked for permanent deletion
+      // Preserve existing local entries that aren't marked for permanent deletion or tombstoned
       for (final e in localEntries) {
-        if (!pendingDeletes.contains(e.id)) {
+        if (!pendingDeletes.contains(e.id) && !tombstones.contains(e.id)) {
           map[e.id] = e;
         }
       }
@@ -795,7 +826,12 @@ class DatabaseService {
 
       // Merge remote entries into local cache
       for (final remote in remoteEntries) {
-        if (pendingDeletes.contains(remote.id)) continue;
+        if (pendingDeletes.contains(remote.id) || tombstones.contains(remote.id)) {
+          // If remote cloud still holds this entry but it was permanently deleted locally,
+          // purge it from cloud
+          unawaited(client.from('reflections').delete().eq('id', remote.id).eq('user_id', user.id));
+          continue;
+        }
 
         final existing = map[remote.id];
         if (existing == null) {
@@ -810,14 +846,13 @@ class DatabaseService {
             // Remotely soft-deleted on another device -> sync to local Recycle Bin!
             map[remote.id] = remote;
           } else if (existing.isDeleted && !remote.isDeleted) {
-            // Locally soft-deleted on this device: if local delete is newer, keep it and push to cloud
-            if (existing.deletedAt != null &&
-                (remote.updatedAt.isBefore(existing.deletedAt!) ||
-                 remote.updatedAt.isAtSameMomentAs(existing.deletedAt!))) {
+            // Locally soft-deleted on this device: preserve local delete unless remote was updated strictly after deletion
+            final localDeletedTime = existing.deletedAt ?? existing.updatedAt;
+            if (remote.updatedAt.isAfter(localDeletedTime)) {
+              map[remote.id] = remote;
+            } else {
               map[remote.id] = existing;
               missingOnRemote.add(existing);
-            } else {
-              map[remote.id] = remote;
             }
           } else if (remote.updatedAt.isAfter(existing.updatedAt)) {
             // Remote is newer
@@ -833,13 +868,22 @@ class DatabaseService {
         }
       }
 
-      // Find any local entries (active or in recycle bin) missing from remote cloud
+      // Find any local entries missing from remote cloud
       final remoteIdSet = remoteEntries.map((e) => e.id).toSet();
       for (final local in localEntries) {
-        if (!pendingDeletes.contains(local.id) &&
-            !pendingWriteIds.contains(local.id) &&
-            !remoteIdSet.contains(local.id)) {
-          missingOnRemote.add(local);
+        if (pendingDeletes.contains(local.id) || tombstones.contains(local.id)) {
+          continue;
+        }
+        if (!remoteIdSet.contains(local.id)) {
+          if (local.isDeleted && !pendingWriteIds.contains(local.id)) {
+            // It was in the Recycle Bin locally, but no longer exists on Supabase,
+            // and has no pending delete/write queued -> it was permanently purged on another device!
+            // Remove it locally and tombstone it so it never resurrects!
+            map.remove(local.id);
+            await _addTombstone(local.id);
+          } else if (!local.isDeleted || pendingWriteIds.contains(local.id)) {
+            missingOnRemote.add(local);
+          }
         }
       }
 
@@ -1223,10 +1267,37 @@ class DatabaseService {
 
   /// Permanently deletes a reflection document from local storage and cloud.
   Future<void> permanentlyDeleteReflection(String docId) async {
+    // 1. Record tombstone immediately so it can never be resurrected
+    await _addTombstone(docId);
+
+    // 2. Remove from active cache and pending write queue
     final entries = await _loadLocalEntries();
     entries.removeWhere((e) => e.id == docId);
     await _persistLocalEntries(entries);
     await _removePendingWrite(docId);
+
+    // 3. Purge docId from all candidate keys in SharedPreferences (including legacy unscoped keys)
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      for (final key in prefs.getKeys()) {
+        if (key.startsWith(_keyLocalReflectionsBase) || key.startsWith(_keyPendingWritesBase)) {
+          final list = prefs.getStringList(key);
+          if (list != null) {
+            final updated = list.where((item) {
+              try {
+                final m = jsonDecode(item) as Map<String, dynamic>;
+                return m['id'] != docId;
+              } catch (_) {
+                return true;
+              }
+            }).toList();
+            if (updated.length != list.length) {
+              await prefs.setStringList(key, updated);
+            }
+          }
+        }
+      }
+    } catch (_) {}
 
     final user = AuthService().currentUser;
     if (AuthService().isGuest || user == null) return;
