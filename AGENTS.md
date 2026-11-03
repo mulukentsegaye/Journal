@@ -5,8 +5,10 @@
 - Only run tests (`flutter test`) and static analysis (`flutter analyze`) to verify your code changes.
 - Only build the application/APK when the user explicitly asks you to build it.
 
-## Commit Cadence
-- **Frequent Commits**: Every time you work and complete a committable step (e.g., implementing a feature, fixing a bug, refactoring, or updating UI), commit it immediately after verifying that it works.
-- **Commit Messages**: Use clear, concise commit messages following Conventional Commits (e.g., `feat:`, `fix:`, `refactor:`, `chore:`, `test:`).
-- **Scope Verification**: Always verify staged changes (`git status` / diff) before committing to ensure only intentional, project-relevant changes are included.
-- **Push**: Push committed changes to `origin main`.
+## Git Workflow
+- **No Intermediate Git Commands**: Do NOT run exploratory or repetitive git commands (e.g., `git diff`, `git status`, `git log`, etc.) during work or in the middle of a task.
+- **Commit Only Upon Completion**: Only run git commands when you have completely finished working on the task or project.
+- **Strictly Two Git Commands**: When finished, execute exactly two git commands:
+  1. `git add <changed-files>` to stage the modified project files.
+  2. `git commit -m "<message>"` with a clear Conventional Commit message.
+- **Never Push**: Do NOT run `git push`. The user will push commits manually when they choose.
