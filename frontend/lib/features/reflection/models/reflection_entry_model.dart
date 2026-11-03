@@ -25,6 +25,7 @@ class ReflectionEntryModel {
   final bool isDeleted;
   final DateTime? deletedAt;
   final DateTime createdAt;
+  final DateTime updatedAt;
   final List<String> tags;
 
   /// Returns the first photo URL for backward compatibility.
@@ -45,8 +46,10 @@ class ReflectionEntryModel {
     this.isDeleted = false,
     this.deletedAt,
     required this.createdAt,
+    DateTime? updatedAt,
     this.tags = const [],
-  }) : photoUrls = photoUrls ?? (photoUrl != null && photoUrl.isNotEmpty ? [photoUrl] : const []);
+  }) : photoUrls = photoUrls ?? (photoUrl != null && photoUrl.isNotEmpty ? [photoUrl] : const []),
+       updatedAt = updatedAt ?? createdAt;
 
   /// Convert to local/JSON Map
   Map<String, dynamic> toMap() {
@@ -65,6 +68,7 @@ class ReflectionEntryModel {
       'isDeleted': isDeleted,
       'deletedAt': deletedAt?.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
       'tags': tags,
     };
   }
@@ -85,6 +89,7 @@ class ReflectionEntryModel {
       'is_deleted': isDeleted,
       'deleted_at': deletedAt?.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
       'tags': tags,
     };
     if (userId != null && userId.isNotEmpty) {
@@ -159,7 +164,14 @@ class ReflectionEntryModel {
 
     final dateStr = map['date']?.toString();
     final createdStr = (map['createdAt'] ?? map['created_at'])?.toString();
+    final updatedStr = (map['updatedAt'] ?? map['updated_at'])?.toString();
     final deletedStr = (map['deletedAt'] ?? map['deleted_at'])?.toString();
+    final parsedCreatedAt = createdStr != null
+        ? DateTime.tryParse(createdStr) ?? DateTime.now()
+        : DateTime.now();
+    final parsedUpdatedAt = updatedStr != null
+        ? DateTime.tryParse(updatedStr) ?? parsedCreatedAt
+        : parsedCreatedAt;
 
     return ReflectionEntryModel(
       id: docId,
@@ -176,9 +188,8 @@ class ReflectionEntryModel {
       type: parsedType,
       isDeleted: (map['isDeleted'] ?? map['is_deleted']) == true,
       deletedAt: deletedStr != null ? DateTime.tryParse(deletedStr) : null,
-      createdAt: createdStr != null
-          ? DateTime.tryParse(createdStr) ?? DateTime.now()
-          : DateTime.now(),
+      createdAt: parsedCreatedAt,
+      updatedAt: parsedUpdatedAt,
       tags: parsedTags,
     );
   }
@@ -277,6 +288,7 @@ class ReflectionEntryModel {
     DateTime? deletedAt,
     bool clearDeletedAt = false,
     DateTime? createdAt,
+    DateTime? updatedAt,
     List<String>? tags,
   }) {
     return ReflectionEntryModel(
@@ -293,6 +305,7 @@ class ReflectionEntryModel {
       isDeleted: isDeleted ?? this.isDeleted,
       deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
       tags: tags ?? this.tags,
     );
   }

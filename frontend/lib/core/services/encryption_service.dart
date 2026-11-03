@@ -200,6 +200,7 @@ class EncryptionService {
       isDeleted: entry.isDeleted,
       deletedAt: entry.deletedAt,
       createdAt: entry.createdAt,
+      updatedAt: entry.updatedAt,
       tags: entry.tags,
     );
   }
@@ -230,6 +231,7 @@ class EncryptionService {
       isDeleted: entry.isDeleted,
       deletedAt: entry.deletedAt,
       createdAt: entry.createdAt,
+      updatedAt: entry.updatedAt,
       tags: entry.tags,
     );
   }

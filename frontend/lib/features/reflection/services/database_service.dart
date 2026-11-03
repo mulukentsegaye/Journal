@@ -772,24 +772,90 @@ class DatabaseService {
       final localEntries = await _loadLocalEntries();
       final map = <String, ReflectionEntryModel>{};
 
-      // Collect IDs of pending deletions so we don't accidentally restore deleted entries
+      // Collect IDs of pending deletions and writes
       final prefs = await SharedPreferences.getInstance();
       final pendingDeletes = (prefs.getStringList(_keyPendingDeletes) ?? []).toSet();
+      final pendingWrites = prefs.getStringList(_keyPendingWrites) ?? [];
+      final pendingWriteIds = <String>{};
+      for (final item in pendingWrites) {
+        try {
+          final m = jsonDecode(item) as Map<String, dynamic>;
+          if (m['id'] != null) pendingWriteIds.add(m['id'].toString());
+        } catch (_) {}
+      }
 
-      // In local-first architecture, local entries are sacred.
-      // Preserve all local entries that aren't marked for deletion.
+      // Preserve existing local entries that aren't marked for permanent deletion
       for (final e in localEntries) {
         if (!pendingDeletes.contains(e.id)) {
           map[e.id] = e;
         }
       }
 
-      // Merge remote entries: keep newer or non-conflicting
-      for (final e in remoteEntries) {
-        if (!pendingDeletes.contains(e.id)) {
-          final existing = map[e.id];
-          if (existing == null || e.createdAt.isAfter(existing.createdAt)) {
-            map[e.id] = e;
+      final missingOnRemote = <ReflectionEntryModel>[];
+
+      // Merge remote entries into local cache
+      for (final remote in remoteEntries) {
+        if (pendingDeletes.contains(remote.id)) continue;
+
+        final existing = map[remote.id];
+        if (existing == null) {
+          // New entry from remote device (could be active or soft-deleted in recycle bin)
+          map[remote.id] = remote;
+        } else if (pendingWriteIds.contains(remote.id)) {
+          // Device has pending local edit queued for push; keep local version
+          map[remote.id] = existing;
+        } else {
+          // Both exist: check soft-delete state and last-write-wins (LWW)
+          if (remote.isDeleted && !existing.isDeleted) {
+            // Remotely soft-deleted on another device -> sync to local Recycle Bin!
+            map[remote.id] = remote;
+          } else if (existing.isDeleted && !remote.isDeleted) {
+            // Locally soft-deleted on this device: if local delete is newer, keep it and push to cloud
+            if (existing.deletedAt != null &&
+                (remote.updatedAt.isBefore(existing.deletedAt!) ||
+                 remote.updatedAt.isAtSameMomentAs(existing.deletedAt!))) {
+              map[remote.id] = existing;
+              missingOnRemote.add(existing);
+            } else {
+              map[remote.id] = remote;
+            }
+          } else if (remote.updatedAt.isAfter(existing.updatedAt)) {
+            // Remote is newer
+            map[remote.id] = remote;
+          } else if (existing.updatedAt.isAfter(remote.updatedAt)) {
+            // Local is newer
+            map[remote.id] = existing;
+            missingOnRemote.add(existing);
+          } else {
+            // Timestamps tie: prefer whichever has soft-delete info
+            map[remote.id] = remote.isDeleted ? remote : existing;
+          }
+        }
+      }
+
+      // Find any local entries (active or in recycle bin) missing from remote cloud
+      final remoteIdSet = remoteEntries.map((e) => e.id).toSet();
+      for (final local in localEntries) {
+        if (!pendingDeletes.contains(local.id) &&
+            !pendingWriteIds.contains(local.id) &&
+            !remoteIdSet.contains(local.id)) {
+          missingOnRemote.add(local);
+        }
+      }
+
+      // Two-way sync: push any un-synced local reflections (including un-synced Recycle Bin items!)
+      if (missingOnRemote.isNotEmpty) {
+        debugPrint('[DatabaseService] Auto-syncing ${missingOnRemote.length} un-synced local entries (including recycle bin) to cloud...');
+        for (final item in missingOnRemote) {
+          try {
+            final encrypted = await _encryption.encryptEntry(item);
+            await client.from('reflections').upsert(
+              encrypted.toSupabaseMap(userId: user.id),
+              onConflict: 'id',
+            );
+            debugPrint('[DatabaseService] ✓ Auto-synced entry ${item.id} (isDeleted: ${item.isDeleted}) to cloud');
+          } catch (e) {
+            debugPrint('[DatabaseService] ✗ Failed to auto-sync entry ${item.id}: $e');
           }
         }
       }
@@ -876,6 +942,7 @@ class DatabaseService {
       v.length > 3000 ? v.substring(0, 3000) : v,
     ));
 
+    final now = DateTime.now();
     final entryWithId = ReflectionEntryModel(
       id: docId,
       date: entry.date,
@@ -890,6 +957,7 @@ class DatabaseService {
       isDeleted: entry.isDeleted,
       deletedAt: entry.deletedAt,
       createdAt: entry.createdAt,
+      updatedAt: now,
       tags: entry.tags,
     );
 
@@ -1032,7 +1100,10 @@ class DatabaseService {
     final index = entries.indexWhere((e) => e.id == docId);
     if (index >= 0) {
       final old = entries[index];
-      final updated = old.copyWith(isBookmarked: !currentBookmark);
+      final updated = old.copyWith(
+        isBookmarked: !currentBookmark,
+        updatedAt: DateTime.now(),
+      );
       entries[index] = updated;
       await _persistLocalEntries(entries);
 
@@ -1075,9 +1146,11 @@ class DatabaseService {
     final index = entries.indexWhere((e) => e.id == docId);
     if (index >= 0) {
       final old = entries[index];
+      final now = DateTime.now();
       final trashed = old.copyWith(
         isDeleted: true,
-        deletedAt: DateTime.now(),
+        deletedAt: now,
+        updatedAt: now,
       );
       entries[index] = trashed;
       await _persistLocalEntries(entries);
@@ -1127,9 +1200,11 @@ class DatabaseService {
     final index = entries.indexWhere((e) => e.id == docId);
     if (index >= 0) {
       final old = entries[index];
+      final now = DateTime.now();
       final restored = old.copyWith(
         isDeleted: false,
         clearDeletedAt: true,
+        updatedAt: now,
       );
       entries[index] = restored;
       await _persistLocalEntries(entries);
