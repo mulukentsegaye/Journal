@@ -643,7 +643,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             ),
                           ),
                           Text(
-                            'Version 1.0.0',
+                            _settingsService.formattedVersion,
                             style: AppTextStyles.bodySmall.copyWith(
                               color: AppColors.textHint,
                               fontWeight: FontWeight.w600,

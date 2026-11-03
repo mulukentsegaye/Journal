@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:daily_reflection/core/services/settings_service.dart';
 import 'package:daily_reflection/features/reflection/models/reflection_entry_model.dart';
@@ -142,6 +143,23 @@ void main() {
       expect(entriesList.first['id'], equals('json_active_1'));
       expect(entriesList.first['freeformTitle'], equals('Json Export Test'));
       expect(entriesList.first['tags'], containsAll(['backup', 'export']));
+    });
+
+    test('loadSettings retrieves dynamic app version from package info', () async {
+      PackageInfo.setMockInitialValues(
+        appName: 'Journal',
+        packageName: 'com.example.daily_reflection',
+        version: '2.3.4',
+        buildNumber: '12',
+        buildSignature: '',
+      );
+
+      final settings = SettingsService();
+      await settings.loadSettings();
+
+      expect(settings.appVersion, equals('2.3.4'));
+      expect(settings.buildNumber, equals('12'));
+      expect(settings.formattedVersion, equals('Version 2.3.4'));
     });
   });
 }

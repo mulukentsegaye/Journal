@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import '../constants/app_strings.dart';
@@ -28,6 +29,8 @@ class SettingsService extends ChangeNotifier {
   TimeOfDay _morningReminderTime = const TimeOfDay(hour: 8, minute: 0); // 8:00 AM
   bool _hasCompletedOnboarding = false;
   bool _isInitialized = false;
+  String _appVersion = '1.0.0';
+  String _buildNumber = '1';
 
   ThemeMode get themeMode => _themeMode;
   bool get reminderEnabled => _reminderEnabled;
@@ -40,6 +43,9 @@ class SettingsService extends ChangeNotifier {
 
   bool get hasCompletedOnboarding => _hasCompletedOnboarding;
   bool get isInitialized => _isInitialized;
+  String get appVersion => _appVersion;
+  String get buildNumber => _buildNumber;
+  String get formattedVersion => 'Version $_appVersion';
 
   /// Whether dark mode is currently active based on theme mode or system brightness.
   bool get isDarkMode {
@@ -81,6 +87,17 @@ class SettingsService extends ChangeNotifier {
       }
       if (_morningReminderEnabled) {
         NotificationService().scheduleMorningReminder(_morningReminderTime);
+      }
+
+      // Load true runtime app version from the platform/APK
+      try {
+        final info = await PackageInfo.fromPlatform();
+        if (info.version.isNotEmpty) {
+          _appVersion = info.version;
+          _buildNumber = info.buildNumber;
+        }
+      } catch (_) {
+        // Fallback gracefully in testing environments or unsupported platforms
       }
 
       _isInitialized = true;
@@ -262,7 +279,7 @@ class SettingsService extends ChangeNotifier {
 
     final exportData = {
       'app': 'Journal',
-      'version': '1.0.0',
+      'version': _appVersion,
       'exported_at': DateTime.now().toIso8601String(),
       'total_entries': entries.length,
       'entries': entries.map((e) => e.toMap()).toList(),
