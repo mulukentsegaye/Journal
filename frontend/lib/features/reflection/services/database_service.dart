@@ -1008,10 +1008,16 @@ class DatabaseService {
     // 1. Instant local update (0ms UI latency, cleartext locally for speed)
     final entries = await _loadLocalEntries();
     final index = entries.indexWhere((e) => e.id == docId);
+    final finalCreatedAt = (index >= 0 && entries[index].createdAt.isBefore(entryWithId.createdAt))
+        ? entries[index].createdAt
+        : entryWithId.createdAt;
+    final finalEntry = (finalCreatedAt != entryWithId.createdAt)
+        ? entryWithId.copyWith(createdAt: finalCreatedAt)
+        : entryWithId;
     if (index >= 0) {
-      entries[index] = entryWithId;
+      entries[index] = finalEntry;
     } else {
-      entries.insert(0, entryWithId);
+      entries.insert(0, finalEntry);
     }
     entries.sort((a, b) => b.date.compareTo(a.date));
     await _persistLocalEntries(entries);
@@ -1025,10 +1031,10 @@ class DatabaseService {
     }
 
     // Always queue the write first so it is safely persisted for background sync
-    await _queueWrite(entryWithId);
+    await _queueWrite(finalEntry);
 
     // 3. Trigger background sync without blocking the caller UI
-    unawaited(_syncSingleEntryInBackground(entryWithId, user));
+    unawaited(_syncSingleEntryInBackground(finalEntry, user));
   }
 
   /// Background task to upload photos and push an encrypted entry to Supabase without blocking UI.

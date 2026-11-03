@@ -178,6 +178,7 @@ class _JournalPageState extends State<JournalPage>
         builder: (_) => FreeformPage(
           id: model.id,
           date: model.date,
+          createdAt: model.createdAt,
           initialTitle: model.freeformTitle,
           initialContent: model.freeformNote ??
               (model.answers.isNotEmpty ? model.answers.values.first : ''),
@@ -196,6 +197,7 @@ class _JournalPageState extends State<JournalPage>
         builder: (_) => SummaryPage(
           id: model.id,
           date: model.date,
+          createdAt: model.createdAt,
           mood: model.mood,
           moodEmoji: model.moodEmoji,
           freeformTitle: model.freeformTitle,
@@ -772,7 +774,7 @@ class _JournalPageState extends State<JournalPage>
                                 freeformTitle: entry.title,
                                 freeformNote: entry.contentSnippet,
                                 answers: const {},
-                                createdAt: entry.date,
+                                createdAt: entry.effectiveCreatedAt,
                               );
 
                           return JournalCard(

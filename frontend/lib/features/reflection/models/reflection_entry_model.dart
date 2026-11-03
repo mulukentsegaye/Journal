@@ -77,7 +77,7 @@ class ReflectionEntryModel {
   Map<String, dynamic> toSupabaseMap({String? userId}) {
     final map = <String, dynamic>{
       'id': id,
-      'date': date.toIso8601String(),
+      'date': date.toUtc().toIso8601String(),
       'mood': mood,
       'mood_emoji': moodEmoji,
       'answers': answers.map((k, v) => MapEntry(k.toString(), v)),
@@ -87,9 +87,9 @@ class ReflectionEntryModel {
       'is_bookmarked': isBookmarked,
       'type': type.name,
       'is_deleted': isDeleted,
-      'deleted_at': deletedAt?.toIso8601String(),
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'deleted_at': deletedAt?.toUtc().toIso8601String(),
+      'created_at': createdAt.toUtc().toIso8601String(),
+      'updated_at': updatedAt.toUtc().toIso8601String(),
       'tags': tags,
     };
     if (userId != null && userId.isNotEmpty) {
@@ -166,18 +166,23 @@ class ReflectionEntryModel {
     final createdStr = (map['createdAt'] ?? map['created_at'])?.toString();
     final updatedStr = (map['updatedAt'] ?? map['updated_at'])?.toString();
     final deletedStr = (map['deletedAt'] ?? map['deleted_at'])?.toString();
-    final parsedCreatedAt = createdStr != null
-        ? DateTime.tryParse(createdStr) ?? DateTime.now()
+
+    final parsedDate = dateStr != null
+        ? DateTime.tryParse(dateStr)?.toLocal() ?? DateTime.now()
         : DateTime.now();
+    final parsedCreatedAt = createdStr != null
+        ? DateTime.tryParse(createdStr)?.toLocal() ?? parsedDate
+        : parsedDate;
     final parsedUpdatedAt = updatedStr != null
-        ? DateTime.tryParse(updatedStr) ?? parsedCreatedAt
+        ? DateTime.tryParse(updatedStr)?.toLocal() ?? parsedCreatedAt
         : parsedCreatedAt;
+    final parsedDeletedAt = deletedStr != null
+        ? DateTime.tryParse(deletedStr)?.toLocal()
+        : null;
 
     return ReflectionEntryModel(
       id: docId,
-      date: dateStr != null
-          ? DateTime.tryParse(dateStr) ?? DateTime.now()
-          : DateTime.now(),
+      date: parsedDate,
       mood: map['mood']?.toString() ?? 'Calm',
       moodEmoji: (map['moodEmoji'] ?? map['mood_emoji'])?.toString() ?? '🌿',
       answers: parsedAnswers,
@@ -187,7 +192,7 @@ class ReflectionEntryModel {
       isBookmarked: (map['isBookmarked'] ?? map['is_bookmarked']) == true,
       type: parsedType,
       isDeleted: (map['isDeleted'] ?? map['is_deleted']) == true,
-      deletedAt: deletedStr != null ? DateTime.tryParse(deletedStr) : null,
+      deletedAt: parsedDeletedAt,
       createdAt: parsedCreatedAt,
       updatedAt: parsedUpdatedAt,
       tags: parsedTags,

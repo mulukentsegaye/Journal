@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -32,32 +33,53 @@ class JournalCard extends StatelessWidget {
   ];
 
   String _formatDate(DateTime d) {
+    final localD = d.isUtc ? d.toLocal() : d;
     final now = DateTime.now();
-    if (d.year == now.year && d.month == now.month && d.day == now.day) {
+    if (localD.year == now.year && localD.month == now.month && localD.day == now.day) {
       return 'Today';
     }
     final yesterday = now.subtract(const Duration(days: 1));
-    if (d.year == yesterday.year &&
-        d.month == yesterday.month &&
-        d.day == yesterday.day) {
+    if (localD.year == yesterday.year &&
+        localD.month == yesterday.month &&
+        localD.day == yesterday.day) {
       return 'Yesterday';
     }
-    return '${_months[d.month - 1]} ${d.day}, ${d.year}';
+    return '${_months[localD.month - 1]} ${localD.day}, ${localD.year}';
   }
 
   String _formatTime(DateTime d) {
-    final hour = d.hour;
-    final minute = d.minute.toString().padLeft(2, '0');
+    final localD = d.isUtc ? d.toLocal() : d;
+    final hour = localD.hour;
+    final minute = localD.minute.toString().padLeft(2, '0');
     final period = hour >= 12 ? 'PM' : 'AM';
     final h12 = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
     return '$h12:$minute $period';
   }
 
-  String _formatRelativeTime(DateTime dateTime) {
+  /// Formats relative time elapsed since [dateTime].
+  /// Accurately handles UTC/Local conversions and clock skew/future stamps.
+  static String formatRelativeTime(DateTime dateTime) {
     final now = DateTime.now();
-    final difference = now.difference(dateTime);
+    final target = dateTime.isUtc ? dateTime.toLocal() : dateTime;
+    final localNow = now.isUtc ? now.toLocal() : now;
+    final difference = localNow.difference(target);
 
-    if (difference.isNegative || difference.inSeconds < 5) {
+    // If clock skew or future timestamp
+    if (difference.isNegative) {
+      if (difference.inSeconds.abs() < 60) {
+        return 'Just now';
+      }
+      final absDiff = difference.abs();
+      if (absDiff.inMinutes < 60) {
+        return '${absDiff.inMinutes}m ago';
+      }
+      if (absDiff.inHours < 24) {
+        return '${absDiff.inHours}h ago';
+      }
+      return 'Just now';
+    }
+
+    if (difference.inSeconds < 45) {
       return 'Just now';
     }
     if (difference.inSeconds < 60) {
@@ -86,8 +108,6 @@ class JournalCard extends StatelessWidget {
     final years = (difference.inDays / 365).floor();
     return '${years}y ago';
   }
-
-
 
   Widget _buildPhotoThumbnail(BuildContext context) {
     if (entry.photoUrls.isEmpty) {
@@ -494,8 +514,8 @@ class JournalCard extends StatelessWidget {
                       color: AppColors.textHint.withValues(alpha: 0.8),
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      _formatRelativeTime(entry.effectiveCreatedAt),
+                    RelativeTimeText(
+                      dateTime: entry.effectiveCreatedAt,
                       style: GoogleFonts.inter(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w500,
@@ -517,6 +537,84 @@ class JournalCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Displays a relative timestamp (e.g., "Just now", "5m ago") and automatically
+/// schedules live ticker updates so elapsed time is always accurate.
+class RelativeTimeText extends StatefulWidget {
+  final DateTime dateTime;
+  final TextStyle? style;
+
+  const RelativeTimeText({
+    super.key,
+    required this.dateTime,
+    this.style,
+  });
+
+  @override
+  State<RelativeTimeText> createState() => _RelativeTimeTextState();
+}
+
+class _RelativeTimeTextState extends State<RelativeTimeText> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleNextTick();
+  }
+
+  @override
+  void didUpdateWidget(covariant RelativeTimeText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.dateTime != widget.dateTime) {
+      _scheduleNextTick();
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _scheduleNextTick() {
+    _timer?.cancel();
+    if (!mounted) return;
+
+    final target = widget.dateTime.isUtc ? widget.dateTime.toLocal() : widget.dateTime;
+    final diff = DateTime.now().difference(target);
+
+    Duration interval;
+    if (diff.inSeconds < 60) {
+      // In the first minute, update every 5 seconds so "Just now" transitions promptly
+      interval = const Duration(seconds: 5);
+    } else if (diff.inHours < 1) {
+      // In the first hour, update every 20 seconds so "10m ago" updates promptly
+      interval = const Duration(seconds: 20);
+    } else if (diff.inDays < 1) {
+      // In the first day, update every 2 minutes
+      interval = const Duration(minutes: 2);
+    } else {
+      // Older entries, update every 15 minutes
+      interval = const Duration(minutes: 15);
+    }
+
+    _timer = Timer(interval, () {
+      if (mounted) {
+        setState(() {});
+        _scheduleNextTick();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      JournalCard.formatRelativeTime(widget.dateTime),
+      style: widget.style,
     );
   }
 }

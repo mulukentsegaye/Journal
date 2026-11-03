@@ -25,6 +25,7 @@ class FreeformPage extends StatefulWidget {
   final String? initialPhotoUrl;
   final List<String>? initialPhotoUrls;
   final DateTime? date;
+  final DateTime? createdAt;
   final VoidCallback? onSaved;
   final List<String>? initialTags;
 
@@ -37,6 +38,7 @@ class FreeformPage extends StatefulWidget {
     this.initialPhotoUrl,
     this.initialPhotoUrls,
     this.date,
+    this.createdAt,
     this.onSaved,
     this.initialTags,
   });
@@ -683,19 +685,21 @@ class _FreeformPageState extends State<FreeformPage> {
 
 
     try {
-      final now = widget.date ?? DateTime.now();
+      final now = DateTime.now();
+      final entryDate = widget.date ?? now;
+      final entryCreatedAt = widget.createdAt ?? (widget.id != null ? entryDate : now);
       final docId = widget.id ?? DatabaseService.generateUniqueId();
 
       final entry = ReflectionEntryModel(
         id: docId,
-        date: now,
+        date: entryDate,
         mood: '',
         moodEmoji: '',
         freeformTitle: null,
         freeformNote: content.isNotEmpty ? content : null,
         photoUrls: _photoPaths,
         type: ReflectionType.freeform,
-        createdAt: now,
+        createdAt: entryCreatedAt,
         tags: const [],
       );
 
@@ -740,6 +744,7 @@ class _FreeformPageState extends State<FreeformPage> {
             builder: (_) => SummaryPage(
               id: docId,
               date: widget.date,
+              createdAt: entryCreatedAt,
               mood: '',
               moodEmoji: '',
               freeformTitle: null,

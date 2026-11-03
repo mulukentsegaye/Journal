@@ -28,6 +28,7 @@ class SummaryPage extends StatefulWidget {
   final List<String> photoUrls;
   final Map<int, String>? answers;
   final List<String> tags;
+  final DateTime? createdAt;
 
   String? get photoUrl => photoUrls.isNotEmpty ? photoUrls.first : null;
 
@@ -35,6 +36,7 @@ class SummaryPage extends StatefulWidget {
     super.key,
     this.id,
     this.date,
+    this.createdAt,
     this.mood = 'Calm',
     this.moodEmoji = '🌿',
     this.freeformTitle,
@@ -78,6 +80,7 @@ class _SummaryPageState extends State<SummaryPage> {
 
   void _saveNewEntry() {
     final entryDate = widget.date ?? DateTime.now();
+    final entryCreatedAt = widget.createdAt ?? entryDate;
     final entry = ReflectionEntryModel(
       id: _docId,
       date: entryDate,
@@ -92,7 +95,7 @@ class _SummaryPageState extends State<SummaryPage> {
           : null,
       photoUrls: widget.photoUrls,
       tags: widget.tags,
-      createdAt: entryDate,
+      createdAt: entryCreatedAt,
     );
 
     _reflectionService.saveReflection(entry);

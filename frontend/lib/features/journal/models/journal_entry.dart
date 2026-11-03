@@ -20,7 +20,7 @@ class JournalEntry {
   String? get photoUrl => photoUrls.isNotEmpty ? photoUrls.first : null;
 
   /// Returns the creation timestamp when available, falling back to the entry date.
-  DateTime get effectiveCreatedAt => createdAt ?? date;
+  DateTime get effectiveCreatedAt => (createdAt ?? date).toLocal();
 
   JournalEntry({
     required this.id,

@@ -60,6 +60,7 @@ class _TodayPageState extends State<TodayPage> with AutomaticKeepAliveClientMixi
         builder: (_) => FreeformPage(
           id: model.id,
           date: model.date,
+          createdAt: model.createdAt,
           initialTitle: model.freeformTitle,
           initialContent: model.freeformNote ??
               (model.answers.isNotEmpty ? model.answers.values.first : ''),
@@ -78,6 +79,7 @@ class _TodayPageState extends State<TodayPage> with AutomaticKeepAliveClientMixi
         builder: (_) => SummaryPage(
           id: model.id,
           date: model.date,
+          createdAt: model.createdAt,
           mood: model.mood,
           moodEmoji: model.moodEmoji,
           freeformTitle: model.freeformTitle ?? 'Journal Entry',
